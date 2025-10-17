@@ -18,10 +18,10 @@ chmod +x run.sh
 ./run.sh setup
 
 # compose up
-run.bat up
+./run.bat up
 
 # compose down
-run.bat down
+./run.bat down
 ```
 
 ## Windows
