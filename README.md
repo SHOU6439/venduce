@@ -72,3 +72,9 @@ http://localhost:8000/docs
 ```sh
 http://localhost/admin/
 ```
+
+```makefile
+make setup # バックエンド・フロントエンド両方のセットアップ
+make up # コンテナ起動
+make logs # ログ表示
+```
