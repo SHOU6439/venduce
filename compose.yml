@@ -29,18 +29,18 @@ services:
     volumes:
       - ./backend:/app
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/health']
-      interval: 10s
-      timeout: 5s
+      test: ['CMD-SHELL', 'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/api/health'').read()"']
+      interval: 15s
+      timeout: 10s
       retries: 5
+      start_period: 30s
 
   frontend:
     build: ./frontend
     ports:
       - '3000:3000'
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
   nginx:
     image: nginx:alpine
