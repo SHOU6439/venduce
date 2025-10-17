@@ -1,21 +1,12 @@
 # pride
 
-上から順番に実行してください。
+## 前提条件
+
+- Docker Desktop
+- Python pip
+- npm and node.js
 
 # Setup
-
-## Windows
-
-```sh
-# 初期セットアップ
-run.bat setup
-
-# compose up
-run.bat up
-
-# compose down
-run.bat down
-```
 
 ## Mac
 
@@ -25,6 +16,19 @@ chmod +x run.sh
 
 # 初期セットアップ
 ./run.sh setup
+
+# compose up
+run.bat up
+
+# compose down
+run.bat down
+```
+
+## Windows
+
+```sh
+# 初期セットアップ
+run.bat setup
 
 # compose up
 run.bat up
