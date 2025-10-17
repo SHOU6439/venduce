@@ -1,5 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from database import engine, Base
+from models import User
+from admin import setup_admin
+
+# テーブル作成
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -11,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# SQLAdmin セットアップ
+setup_admin(app)
 
 @app.get("/api/health")
 def health_check():
