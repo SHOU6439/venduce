@@ -19,7 +19,10 @@ app.add_middleware(
 )
 
 # SQLAdmin セットアップ
-setup_admin(app)
+try:
+    setup_admin(app)
+except Exception as e:
+    print(f"SQLAdmin setup error: {e}")
 
 @app.get("/api/health")
 def health_check():
