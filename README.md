@@ -4,47 +4,33 @@
 
 # Setup
 
-## Python pip install
-
-## mac
+## Windows
 
 ```sh
-cd backend
-python3 -m venv .venv
-. ./.venv/bin/activate
-pip install -r requirements.txt
+# 初期セットアップ
+run.bat setup
+
+# compose up
+run.bat up
+
+# compose down
+run.bat down
 ```
 
-## windows
+## Mac
 
 ```sh
-cd backend
-py -m venv .venv
-source .\.venv\Scripts\activate
-pip install -r requirements.txt
-```
+# 権限を付与してください
+chmod +x run.sh
 
-## Next.js
+# 初期セットアップ
+./run.sh setup
 
-## mac and windows
+# compose up
+run.bat up
 
-```sh
-cd frontend
-npm install
-```
-
-# docker
-
-## start
-
-```sh
-docker compose up -d
-```
-
-## stop
-
-```sh
-docker compose down
+# compose down
+run.bat down
 ```
 
 # URL まとめ
@@ -71,10 +57,4 @@ http://localhost:8000/docs
 
 ```sh
 http://localhost/admin/
-```
-
-```makefile
-make setup # バックエンド・フロントエンド両方のセットアップ
-make up # コンテナ起動
-make logs # ログ表示
 ```
