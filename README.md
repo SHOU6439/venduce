@@ -1,4 +1,14 @@
-# pride
+# Pride - SNS × EC プラットフォーム
+
+> 買ったモノを自慢できる、SNS型ECサイト
+
+## 📖 ドキュメント
+
+- **[🚀 開発を始める](./GETTING_STARTED.md)** - まずはここから！次にやることガイド
+- [開発計画](./DEVELOPMENT_PLAN.md) - プロジェクト全体の開発計画とロードマップ
+- [ワークフロー](./.github/WORKFLOW.md) - ブランチ戦略、開発フロー、コミット規約
+- [ラベル設定](./.github/LABELS.md) - GitHub Issueのラベル一覧
+- [サンプルIssue](./.github/SAMPLE_ISSUES.md) - Issue作成の参考例
 
 ## 前提条件
 
@@ -62,3 +72,19 @@ http://localhost:8000/docs
 ```sh
 http://localhost/admin/
 ```
+
+---
+
+## 🚀 開発を始める前に
+
+1. **開発計画を確認**: [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) でプロジェクト全体の流れを把握
+2. **GitHubラベル設定**: [LABELS.md](./.github/LABELS.md) を参考にリポジトリのラベルを作成
+3. **ワークフロー確認**: [WORKFLOW.md](./.github/WORKFLOW.md) でブランチ戦略とコミット規約を確認
+4. **最初のIssue作成**: [SAMPLE_ISSUES.md](./.github/SAMPLE_ISSUES.md) を参考にIssue #1（データベース設計）から始める
+
+## 📋 現在の開発状況
+
+- ✅ Phase 0: 開発環境整備完了
+- 🔄 Phase 1: 基盤機能実装中（次: データベース設計）
+
+詳細は [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) を参照してください。
