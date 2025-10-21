@@ -78,30 +78,20 @@ git checkout -b feature/1-database-schema
 ## ステップ 4: データベース設計を開始 🗄️
 
 ### 4.1 ER図の作成
-- [draw.io](https://app.diagrams.net/) または MermaidでER図を作成
-- `docs/` ディレクトリを作成して保存
-
-```bash
-mkdir docs
-# draw.ioでER図を作成 → docs/er-diagram.drawio として保存
-```
-
-または Mermaidの場合:
-```bash
-# docs/er-diagram.md に以下のようなMermaid記法で記載
-```
+- [draw.io](https://app.diagrams.net/) などでER図を作成
+- 保存はリポジトリ外（Notion/Google Drive 等）に行い、共有リンクを関連Issueに記載
 
 ### 4.2 モデルファイルの編集
 `backend/models.py` を編集して、必要なモデルを追加
 
-参考: `.github/SAMPLE_ISSUES.md` のIssue #1に記載されたテーブル一覧
+参考: `.github/SAMPLE_ISSUES.md` のIssue #1に記載されたテーブル一覧（図面・定義書は外部ストレージに保存）
 
 ### 4.3 Alembicマイグレーションの初期化
 ```bash
 cd backend
 
-# Alembicの初期化
-alembic init alembic
+# Alembicの初期化（migrations ディレクトリを作成）
+alembic init migrations
 
 # マイグレーションファイル作成
 alembic revision --autogenerate -m "Initial schema"

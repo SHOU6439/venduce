@@ -5,6 +5,7 @@
 ## 📖 ドキュメント
 
 - **[🚀 開発を始める](./GETTING_STARTED.md)** - まずはここから！次にやることガイド
+- [ディレクトリ構成ガイド](./docs/DIRECTORY_STRUCTURE.md) - Backend/Frontendの推奨構成
 - [開発計画](./DEVELOPMENT_PLAN.md) - プロジェクト全体の開発計画とロードマップ
 - [ワークフロー](./.github/WORKFLOW.md) - ブランチ戦略、開発フロー、コミット規約
 - [ラベル設定](./.github/LABELS.md) - GitHub Issueのラベル一覧
