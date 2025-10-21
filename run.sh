@@ -17,19 +17,8 @@ show_usage() {
 }
 
 setup() {
-    echo "バックエンドのセットアップ中..."
-    cd backend
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    cd ..
-
-    echo ""
-    echo "フロントエンドのセットアップ中..."
-    cd frontend
-    npm install
-    cd ..
-
+    echo "Dockerイメージをビルド中..."
+    docker compose build
     echo ""
     echo "セットアップが完了しました！"
 }
