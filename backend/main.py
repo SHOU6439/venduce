@@ -1,11 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
 from models import User
 from admin import setup_admin
-
-# テーブル作成
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -24,9 +20,11 @@ try:
 except Exception as e:
     print(f"SQLAdmin setup error: {e}")
 
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
 
 @app.get("/api/")
 def read_root():
