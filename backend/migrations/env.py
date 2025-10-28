@@ -14,6 +14,14 @@ from app.db.base import target_metadata as Base
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+# Import your models so that 'target_metadata' is populated for autogenerate
+# (this ensures Alembic sees the SQLAlchemy Table objects)
+try:
+    import app.models  # noqa: F401
+except Exception:
+    # If the import fails here, autogenerate will not work — let Alembic handle the error later
+    pass
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
