@@ -1,8 +1,8 @@
 from typing import Sequence
 
 from sqladmin import Admin, ModelView
-from models import User
-from database import engine
+from app.models import User
+from app.db.database import engine
 
 
 class UserAdmin(ModelView, model=User):

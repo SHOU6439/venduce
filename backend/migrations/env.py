@@ -8,8 +8,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from database import DATABASE_URL
-from models import Base
+from app.db.database import DATABASE_URL
+from app.db.base import target_metadata as Base
 
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -32,7 +32,8 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+# env.py expects `target_metadata` to be a MetaData object; we import it from app.db.base
+target_metadata = Base
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
