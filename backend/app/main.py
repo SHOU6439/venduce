@@ -5,6 +5,7 @@ from app.admin.sqladmin import setup_admin
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.utils.timezone import to_jst
+from app.api.routers import auth as auth_router
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ try:
 except Exception as e:
     print(f"SQLAdmin setup error: {e}")
 
+app.include_router(auth_router.router)
 
 @app.get("/api/health")
 def health_check():
@@ -52,6 +54,9 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
     return {
         "id": user.id,
-        "name": user.name,
+        "email": user.email,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
         "created_at": created_at_jst.isoformat() if created_at_jst is not None else None,
     }
