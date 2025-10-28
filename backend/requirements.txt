@@ -9,3 +9,4 @@ alembic==1.13.3
 sqladmin==0.20.1
 passlib[bcrypt]==1.7.4
 pytest==7.4.2
+httpx==0.24.1
