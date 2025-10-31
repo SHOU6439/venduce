@@ -1,14 +1,14 @@
 # Pride - SNS × EC プラットフォーム
 
-> 買ったモノを自慢できる、SNS型ECサイト
+> 買ったモノを自慢できる、SNS 型 EC サイト
 
 ## 📖 ドキュメント
 
 - **[🚀 開発を始める](./GETTING_STARTED.md)** - まずはここから！次にやることガイド
-- [ディレクトリ構成ガイド](./docs/DIRECTORY_STRUCTURE.md) - Backend/Frontendの推奨構成
+- [ディレクトリ構成ガイド](./docs/DIRECTORY_STRUCTURE.md) - Backend/Frontend の推奨構成
 - [開発計画](./DEVELOPMENT_PLAN.md) - プロジェクト全体の開発計画とロードマップ
 - [ワークフロー](./.github/WORKFLOW.md) - ブランチ戦略、開発フロー、コミット規約
-- [サンプルIssue](./.github/SAMPLE_ISSUES.md) - Issue作成の参考例
+- [サンプル Issue](./.github/SAMPLE_ISSUES.md) - Issue 作成の参考例
 
 ## 前提条件
 
@@ -78,9 +78,9 @@ http://localhost/admin/
 ## 🚀 開発を始める前に
 
 1. **開発計画を確認**: [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) でプロジェクト全体の流れを把握
-2. **GitHubラベル設定**: ラベルは自動同期されます（`backend`, `frontend`, `bug`, `feature`, `task`, `high`, `medium`, `low`）。必要に応じてメンテナが追加します。
+2. **GitHub ラベル設定**: ラベルは自動同期されます（`backend`, `frontend`, `bug`, `feature`, `task`, `high`, `medium`, `low`）。必要に応じてメンテナが追加します。
 3. **ワークフロー確認**: [WORKFLOW.md](./.github/WORKFLOW.md) でブランチ戦略とコミット規約を確認
-4. **最初のIssue作成**: [SAMPLE_ISSUES.md](./.github/SAMPLE_ISSUES.md) を参考にIssue #1（データベース設計）から始める
+4. **最初の Issue 作成**: [SAMPLE_ISSUES.md](./.github/SAMPLE_ISSUES.md) を参考に Issue #1（データベース設計）から始める
 
 ## 📋 現在の開発状況
 
