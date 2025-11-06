@@ -4,6 +4,27 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import smtplib
+
+
+class _DummySMTP:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def login(self, *args, **kwargs):
+        return None
+
+    def send_message(self, *args, **kwargs):
+        return None
+
+smtplib.SMTP = _DummySMTP
+
 from app.db.database import Base, get_db
 from app.main import app
 from app.deps import get_user_service
