@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
@@ -25,3 +26,10 @@ class UserInDB(UserRead):
     password_hash: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RegistrationResponse(BaseModel):
+    message: str
+    confirmation_token: Optional[str] = None
+
+    model_config = ConfigDict()
