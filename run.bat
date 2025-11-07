@@ -13,6 +13,7 @@ if "%1"=="" (
     echo   logs     - コンテナのログを表示
     echo   clean    - コンテナを停止し、不要なリソースを削除
     echo   rebuild  - コンテナを再ビルドして起動
+    echo   nocache  - キャッシュを使わずにDockerイメージをビルド
     exit /b 0
 )
 
@@ -22,6 +23,7 @@ if "%1"=="down" goto down
 if "%1"=="logs" goto logs
 if "%1"=="clean" goto clean
 if "%1"=="rebuild" goto rebuild
+if "%1"=="nocache" goto nocache
 
 echo エラー: 不明なコマンド '%1'
 echo 'run.bat' を引数なしで実行すると、使い方が表示されます。
@@ -61,4 +63,11 @@ echo Dockerコンテナを再ビルド中...
 docker compose down
 docker compose up -d --build
 echo 再ビルドが完了しました！
+exit /b 0
+
+:nocache
+echo Dockerイメージをキャッシュ無しでビルド中...
+docker compose build --no-cache
+echo.
+echo ノーキャッシュビルドが完了しました！
 exit /b 0

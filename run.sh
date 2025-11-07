@@ -14,6 +14,7 @@ show_usage() {
     echo "  logs     - コンテナのログを表示"
     echo "  clean    - コンテナを停止し、不要なリソースを削除"
     echo "  rebuild  - コンテナを再ビルドして起動"
+    echo "  nocache  - キャッシュを使わずにDockerイメージをビルド"
 }
 
 setup() {
@@ -52,6 +53,13 @@ rebuild() {
     echo "再ビルドが完了しました！"
 }
 
+nocache() {
+    echo "Dockerイメージをキャッシュ無しでビルド中..."
+    docker compose build --no-cache
+    echo ""
+    echo "ノーキャッシュビルドが完了しました！"
+}
+
 # メイン処理
 if [ $# -eq 0 ]; then
     show_usage
@@ -76,6 +84,9 @@ case "$1" in
         ;;
     rebuild)
         rebuild
+        ;;
+    nocache)
+        nocache
         ;;
     *)
         echo "エラー: 不明なコマンド '$1'"
