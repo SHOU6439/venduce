@@ -152,7 +152,7 @@ Issue #1が完了したら、次のIssueを作成：
 open http://localhost/admin/
 
 # または、PostgreSQLに直接接続
-docker exec -it pride-db-1 psql -U postgres -d pride
+docker exec -it pride-db-1 psql -U pride_user -d pride_db
 ```
 
 ### バックエンド開発

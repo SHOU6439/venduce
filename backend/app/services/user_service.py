@@ -1,0 +1,116 @@
+from sqlalchemy.orm import Session
+from passlib.context import CryptContext
+
+from app.core.config import settings
+
+from app.models.user import User
+from app.schemas.user import UserCreate
+from datetime import datetime, timezone, timedelta
+import secrets
+
+pwd_context = CryptContext(
+    schemes=["argon2", "pbkdf2_sha256"],
+    default="argon2",
+    deprecated="auto",
+    argon2__time_cost=settings.ARGON2_TIME_COST,
+    argon2__memory_cost=settings.ARGON2_MEMORY_COST,
+    argon2__parallelism=settings.ARGON2_PARALLELISM,
+)
+
+
+class UserAlreadyExists(Exception):
+    pass
+
+
+class ConfirmationError(Exception):
+    pass
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+class UserService:
+    def __init__(self, settings):
+        self.settings = settings
+        self.pwd_context = pwd_context
+
+    def _generate_token(self, length: int = 32) -> str:
+        return secrets.token_urlsafe(length)
+
+    def get_password_hash(self, password: str) -> str:
+        return self.pwd_context.hash(password)
+
+    def create_provisional_user(self, db: Session, user_in: UserCreate, expires_hours: int = 24) -> tuple[User, str]:
+        existing = db.query(User).filter((User.email == user_in.email) | (User.username == user_in.username)).first()
+        if existing:
+            raise UserAlreadyExists("email or username already exists")
+
+        token = self._generate_token(32)
+        now = datetime.now(timezone.utc)
+        expires = now + timedelta(hours=expires_hours)
+
+        user = User(
+            email=user_in.email,
+            username=user_in.username,
+            first_name=user_in.first_name,
+            last_name=user_in.last_name,
+            password_hash=self.get_password_hash(user_in.password),
+            created_at=now,
+            is_active=False,
+            is_confirmed=False,
+            confirmation_token=token,
+            confirmation_sent_at=now,
+            confirmation_expires_at=expires,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user, token
+
+    def confirm_user(self, db: Session, token: str) -> User:
+        user = db.query(User).filter(User.confirmation_token == token).first()
+        if not user:
+            raise ConfirmationError("invalid token")
+        now = datetime.now(timezone.utc)
+
+        def _ensure_aware(dt):
+            if dt is None:
+                return None
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt
+
+        expires = _ensure_aware(user.confirmation_expires_at)
+        if not expires or expires < now:
+            raise ConfirmationError("token expired")
+
+        user.is_confirmed = True
+        user.is_active = True
+        user.confirmation_token = None
+        user.confirmation_sent_at = None
+        user.confirmation_expires_at = None
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+
+    def resend_confirmation(self, db: Session, email: str, expires_hours: int = 24) -> str:
+        user = db.query(User).filter(User.email == email).first()
+        if not user or user.is_confirmed:
+            raise ConfirmationError("user not found or already confirmed")
+        token = self._generate_token(32)
+        now = datetime.now(timezone.utc)
+        expires = now + timedelta(hours=expires_hours)
+
+        user.confirmation_token = token
+        user.confirmation_sent_at = now
+        user.confirmation_expires_at = expires
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return token
+
+
+# default service instance for convenience / backward compatibility
+user_service = UserService(settings)

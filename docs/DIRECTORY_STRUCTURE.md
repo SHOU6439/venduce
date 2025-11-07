@@ -72,6 +72,8 @@ backend/
     api/
     services/
     repositories/
+    fakes/                  # test fakes / stubs used to override DI in API tests
+      fake_user_service.py
   requirements.txt
   Dockerfile
   .env.example
@@ -124,6 +126,12 @@ backend/
 - テスト
   - FastAPI の `TestClient` で API を疎通。サービス/リポジトリは単体テストも用意
   - DB を使うテストはトランザクションロールバック or テスト専用DBを利用
+  - テストのモック/スタブ
+    - DI を使った API テストでは外部副作用（メール送信など）や DB 依存を切り離すために
+      `tests/fakes/` 配下に Fake/Stub サービスを置き、`app.dependency_overrides` で差し替えます。
+    - 例: `tests/fakes/fake_user_service.py` に `FakeUserService` を定義し、テスト内で
+      `app.dependency_overrides[get_user_service] = lambda: FakeUserService()` のように使います。
+    - `backend/tests/__init__.py` を置くことで `tests.fakes` のようにインポートしやすくなります。
 
 ---
 
