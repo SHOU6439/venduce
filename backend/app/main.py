@@ -37,7 +37,7 @@ def read_root():
 
 
 @app.get("/api/users/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(user_id: str, db: Session = Depends(get_db)):
     """Example endpoint that returns a user and converts created_at to JST.
 
     This is a minimal, illustrative endpoint for developers: it queries the
