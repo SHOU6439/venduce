@@ -106,8 +106,8 @@ def login(
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
 
-    days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
-    refresh_token, jwt_id, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), days=days)
+    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
+    refresh_token, jwt_id, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
 
     rt = RefreshToken(jti=jwt_id, user_id=str(user.id), expires_at=expires_at, revoked=False)
     db.add(rt)
@@ -149,9 +149,9 @@ def refresh(
     rt.revoked = True
     db.add(rt)
     remaining_days = (rt.expires_at - now).days
-    days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS else settings.REFRESH_TOKEN_EXPIRE_DAYS
+    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS else settings.REFRESH_TOKEN_EXPIRE_DAYS
 
-    new_refresh_token, new_jti, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), days=days)
+    new_refresh_token, new_jti, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), ttl_days=remember_days)
     new_rt = RefreshToken(jti=new_jti, user_id=str(sub), expires_at=new_expires_at, revoked=False)
     db.add(new_rt)
     db.commit()
