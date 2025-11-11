@@ -126,6 +126,10 @@ class UserService:
             return None
         return user
 
+    def get_user_by_email(self, db: Session, email: str):
+        """Return user by email or None."""
+        return db.query(User).filter(User.email == email).first()
+
 
 # default service instance for convenience / backward compatibility
 user_service = UserService(settings)

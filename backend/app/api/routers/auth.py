@@ -79,9 +79,30 @@ def login(
     db: Session = Depends(get_db),
     svc: UserService = Depends(get_user_service),
 ):
-    user = svc.authenticate_user(db, payload.email, payload.password)
+    user = svc.get_user_by_email(db, payload.email)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_credentials", "message": "Invalid email or password"},
+        )
+
+    if not getattr(user, "is_confirmed", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "not_confirmed", "message": "Account not confirmed. Check your email."},
+        )
+
+    if not getattr(user, "is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "inactive_account", "message": "Account is inactive. Contact support."},
+        )
+
+    if not svc.pwd_context.verify(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "invalid_credentials", "message": "Invalid email or password"},
+        )
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
 
