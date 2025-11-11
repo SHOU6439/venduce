@@ -5,7 +5,8 @@ from app.core.config import settings
 
 from app.models.user import User
 from app.schemas.user import UserCreate
-from datetime import datetime, timezone, timedelta
+from datetime import timezone, timedelta
+from app.utils.timezone import now_utc
 import secrets
 
 pwd_context = CryptContext(
@@ -47,7 +48,7 @@ class UserService:
             raise UserAlreadyExists("email or username already exists")
 
         token = self._generate_token(32)
-        now = datetime.now(timezone.utc)
+        now = now_utc()
         expires = now + timedelta(hours=expires_hours)
 
         user = User(
@@ -72,7 +73,7 @@ class UserService:
         user = db.query(User).filter(User.confirmation_token == token).first()
         if not user:
             raise ConfirmationError("invalid token")
-        now = datetime.now(timezone.utc)
+        now = now_utc()
 
         def _ensure_aware(dt):
             if dt is None:
@@ -100,7 +101,7 @@ class UserService:
         if not user or user.is_confirmed:
             raise ConfirmationError("user not found or already confirmed")
         token = self._generate_token(32)
-        now = datetime.now(timezone.utc)
+        now = now_utc()
         expires = now + timedelta(hours=expires_hours)
 
         user.confirmation_token = token
@@ -110,6 +111,20 @@ class UserService:
         db.commit()
         db.refresh(user)
         return token
+
+    def authenticate_user(self, db: Session, email: str, password: str):
+        """Verify user credentials. Returns the user on success, otherwise None.
+
+        Also verifies the user is active.
+        """
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return None
+        if not getattr(user, "is_active", True):
+            return None
+        if not self.pwd_context.verify(password, user.password_hash):
+            return None
+        return user
 
 
 # default service instance for convenience / backward compatibility
