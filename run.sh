@@ -20,7 +20,49 @@ show_usage() {
 setup() {
     echo "Dockerイメージをビルド中..."
     docker compose build
-    docker docker exec -it pride-backend-1 alembic upgrade head
+    if [ ! -f .env ]; then
+        echo "'.env' が見つかりません。'.env.example' をコピーして作成します..."
+        cp .env.example .env
+    fi
+    JWT_ALG=$(grep -E '^JWT_ALGORITHM=' .env | cut -d'=' -f2 | tr -d '"')
+    JWT_ALG=${JWT_ALG:-RS256}
+
+    if [ "$JWT_ALG" = "RS256" ]; then
+        # Prefer path-based keys (JWT_PRIVATE_KEY_PATH). If neither path nor inline key
+        # is configured, generate files under backend/keys and point env to them.
+        HAS_PRIVATE_PATH=$(grep -E '^JWT_PRIVATE_KEY_PATH=' .env | sed -E "s/^JWT_PRIVATE_KEY_PATH=(.*)$/\1/") || true
+        HAS_PRIVATE_INLINE=$(grep -E '^JWT_PRIVATE_KEY=' .env | sed -E "s/^JWT_PRIVATE_KEY=(.*)$/\1/") || true
+
+        if [ -z "$HAS_PRIVATE_PATH" ] && ( [ -z "$HAS_PRIVATE_INLINE" ] || [ "$HAS_PRIVATE_INLINE" = '""' ] ); then
+            echo "RS256 鍵が .env に設定されていないため、RSA 鍵を生成して backend/keys に保存します..."
+            mkdir -p backend/keys
+            openssl genpkey -algorithm RSA -out backend/keys/private.pem -pkeyopt rsa_keygen_bits:2048
+            openssl rsa -in backend/keys/private.pem -pubout -out backend/keys/public.pem
+
+            # Ensure .env points to the key file paths. Replace existing placeholders or append.
+            if grep -q '^JWT_PRIVATE_KEY_PATH=' .env; then
+                sed -i '' -e "s|^JWT_PRIVATE_KEY_PATH=.*$|JWT_PRIVATE_KEY_PATH=backend/keys/private.pem|" .env || sed -i -e "s|^JWT_PRIVATE_KEY_PATH=.*$|JWT_PRIVATE_KEY_PATH=backend/keys/private.pem|" .env
+            else
+                printf '\nJWT_PRIVATE_KEY_PATH=backend/keys/private.pem\n' >> .env
+            fi
+            if grep -q '^JWT_PUBLIC_KEY_PATH=' .env; then
+                sed -i '' -e "s|^JWT_PUBLIC_KEY_PATH=.*$|JWT_PUBLIC_KEY_PATH=backend/keys/public.pem|" .env || sed -i -e "s|^JWT_PUBLIC_KEY_PATH=.*$|JWT_PUBLIC_KEY_PATH=backend/keys/public.pem|" .env
+            else
+                printf 'JWT_PUBLIC_KEY_PATH=backend/keys/public.pem\n' >> .env
+            fi
+
+            echo "Generated RSA keys and updated .env to reference them (JWT_*_KEY_PATH)."
+            echo "Note: backend/keys/ is not committed if it's in .gitignore."
+        else
+            echo ".env に既に JWT_PRIVATE_KEY または JWT_PRIVATE_KEY_PATH が設定されています。鍵の生成はスキップします。"
+        fi
+    else
+        echo "JWT_ALGORITHM は $JWT_ALG です。RS256 でない場合は .env の設定を確認してください。"
+    fi
+
+    echo "マイグレーションを適用します（コンテナ内で alembic を実行）..."
+    docker compose run --rm backend sh -c "alembic upgrade head || true"
+
     echo ""
     echo "セットアップが完了しました！"
 }
