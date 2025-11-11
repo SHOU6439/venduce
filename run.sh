@@ -20,6 +20,7 @@ show_usage() {
 setup() {
     echo "Dockerイメージをビルド中..."
     docker compose build
+    docker docker exec -it pride-backend-1 alembic upgrade head
     echo ""
     echo "セットアップが完了しました！"
 }
