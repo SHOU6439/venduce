@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import timezone
+from app.utils.timezone import now_utc
 
 
 class FakeUser:
@@ -10,4 +11,4 @@ class FakeUser:
         self.first_name = first_name
         self.last_name = last_name
         self.id = 1
-        self.created_at = datetime.now(timezone.utc)
+        self.created_at = now_utc()
