@@ -3,6 +3,7 @@
 ---
 
 ## 全体像
+
 ```
 pride/
   backend/            # FastAPI + SQLAlchemy + Alembic
@@ -19,11 +20,13 @@ pride/
 ## Backend（FastAPI）
 
 目的
-- 小さく始めて、機能増加に耐えられるモジュール分割
-- APIのバージョニング、責務分離（router/schemas/models/services/repositories）
-- 設定・DB・マイグレーションの一元化
+
+-   小さく始めて、機能増加に耐えられるモジュール分割
+-   API のバージョニング、責務分離（router/schemas/models/services/repositories）
+-   設定・DB・マイグレーションの一元化
 
 推奨構成
+
 ```
 backend/
   app/
@@ -68,80 +71,90 @@ backend/
     env.py
   alembic.ini
   tests/
-    conftest.py
-    api/
-    services/
-    repositories/
-    fakes/                  # test fakes / stubs used to override DI in API tests
-      fake_user_service.py
+    conftest.py             # pytest設定、DB/session フィクスチャ
+    factories/              # factory-boy ファクトリ（テストデータ生成）
+      __init__.py
+      user.py
+      refresh_token.py
+    routers/                # API ルーター テスト
+      test_api_auth.py
+    services/               # サービス層 ユニットテスト
+      test_user_service.py
   requirements.txt
   Dockerfile
   .env.example
 ```
 
 補足
-- 今回はバージョニングなしで `/api/...` を使用（必要になったら後から `/api/v1` を導入可能）
-- `db/base.py` で `Base` と `target_metadata` を定義し、Alembic が参照
-- 責務分離ポリシー
-  - Router: リクエスト/レスポンス変換、バリデーションの委譲、認可チェック、サービス呼び出しのみ（ビジネスロジックは禁止）
-  - Service: ユースケース単位のビジネスロジック、トランザクション境界の管理
-  - Repository: データアクセス（ORMクエリ/永続化）
-- 最初は `models.py`/`schemas.py` を1ファイルで始め、増えたら分割でもOK
+
+-   今回はバージョニングなしで `/api/...` を使用（必要になったら後から `/api/v1` を導入可能）
+-   `db/base.py` で `Base` と `target_metadata` を定義し、Alembic が参照
+-   責務分離ポリシー
+    -   Router: リクエスト/レスポンス変換、バリデーションの委譲、認可チェック、サービス呼び出しのみ（ビジネスロジックは禁止）
+    -   Service: ユースケース単位のビジネスロジック、トランザクション境界の管理
+    -   Repository: データアクセス（ORM クエリ/永続化）
+-   最初は `models.py`/`schemas.py` を 1 ファイルで始め、増えたら分割でも OK
 
 運用ルール（Backend）
-- ルーティング（`api/routers/*.py`）
-  - ルーターにはビジネスロジックを書かない。入出力のI/O、認可チェック、サービス呼び出しのみ
-  - リクエスト/レスポンスの型は必ず Pydantic スキーマを介す（`schemas/`）
-  - ルートの命名はリソース基準（例: `/api/users`, `/api/products`）
-- スキーマ（`schemas/*.py`）
-  - Create/Update/Read を分ける（例: `UserCreate`, `UserUpdate`, `UserRead`）
-  - DBモデルの内部フィールドは返さない（password_hash など）
-- サービス（`services/*.py`）
-  - ユースケース単位で関数を定義し、必要ならトランザクション境界をここで管理
-  - 複数リポジトリ/外部サービスのオーケストレーションはサービスで実施
-- リポジトリ（`repositories/*.py`）
-  - 同種のクエリが重複/複雑化してきたら導入し、ORM 操作を集約
-  - 返り値はドメインオブジェクト（モデル）か DTO（スキーマ）に限定
-- DB/セッション
-  - セッションは依存関数 `get_db()` で注入し、サービスで使い切る
-  - 長い処理はできるだけサービスで明示的にトランザクション（commit/rollback）を管理
-- 例外/エラー
-  - ドメイン例外を定義し、ルーターで HTTP 例外に変換（404/409/400など）
-  - バリデーションは Pydantic、ビジネスルール違反はサービス層で例外を投げる
-- パフォーマンス
-  - N+1 が発生しそうな箇所は `selectinload/joinedload` を検討
-  - ページング/検索は `utils/pagination.py` 等にユーティリティ化
-- 認証/認可
-  - 認証は `core/security.py`（JWT/パスワード）に集約、Depends で注入
-  - ルーターではスコープ/ロールの軽い判定、詳細はサービスで
-- ログ
-  - 重要なドメインイベントはサービスで構造化ログを出力
-  - エラーは stacktrace と相関ID（可能なら）を付与
-- マイグレーション
-  - Alembic は `migrations/` を使用し、`env.py` は `app.db.base:target_metadata` を参照
-  - 自動生成後は差分をレビューし、命名規則は `YYYYMMDDHHMM_<short_desc>`
-- 環境変数/設定
-  - `core/config.py`（pydantic-settings）で集中管理し、`settings.X` から参照
-  - 機密は `.env`、テンプレは `.env.example` に記載
-- テスト
-  - FastAPI の `TestClient` で API を疎通。サービス/リポジトリは単体テストも用意
-  - DB を使うテストはトランザクションロールバック or テスト専用DBを利用
-  - テストのモック/スタブ
-    - DI を使った API テストでは外部副作用（メール送信など）や DB 依存を切り離すために
-      `tests/fakes/` 配下に Fake/Stub サービスを置き、`app.dependency_overrides` で差し替えます。
-    - 例: `tests/fakes/fake_user_service.py` に `FakeUserService` を定義し、テスト内で
-      `app.dependency_overrides[get_user_service] = lambda: FakeUserService()` のように使います。
-    - `backend/tests/__init__.py` を置くことで `tests.fakes` のようにインポートしやすくなります。
+
+-   ルーティング（`api/routers/*.py`）
+    -   ルーターにはビジネスロジックを書かない。入出力の I/O、認可チェック、サービス呼び出しのみ
+    -   リクエスト/レスポンスの型は必ず Pydantic スキーマを介す（`schemas/`）
+    -   ルートの命名はリソース基準（例: `/api/users`, `/api/products`）
+-   スキーマ（`schemas/*.py`）
+    -   Create/Update/Read を分ける（例: `UserCreate`, `UserUpdate`, `UserRead`）
+    -   DB モデルの内部フィールドは返さない（password_hash など）
+-   サービス（`services/*.py`）
+    -   ユースケース単位で関数を定義し、必要ならトランザクション境界をここで管理
+    -   複数リポジトリ/外部サービスのオーケストレーションはサービスで実施
+-   リポジトリ（`repositories/*.py`）
+    -   同種のクエリが重複/複雑化してきたら導入し、ORM 操作を集約
+    -   返り値はドメインオブジェクト（モデル）か DTO（スキーマ）に限定
+-   DB/セッション
+    -   セッションは依存関数 `get_db()` で注入し、サービスで使い切る
+    -   長い処理はできるだけサービスで明示的にトランザクション（commit/rollback）を管理
+-   例外/エラー
+    -   ドメイン例外を定義し、ルーターで HTTP 例外に変換（404/409/400 など）
+    -   バリデーションは Pydantic、ビジネスルール違反はサービス層で例外を投げる
+-   パフォーマンス
+    -   N+1 が発生しそうな箇所は `selectinload/joinedload` を検討
+    -   ページング/検索は `utils/pagination.py` 等にユーティリティ化
+-   認証/認可
+    -   認証は `core/security.py`（JWT/パスワード）に集約、Depends で注入
+    -   ルーターではスコープ/ロールの軽い判定、詳細はサービスで
+-   ログ
+    -   重要なドメインイベントはサービスで構造化ログを出力
+    -   エラーは stacktrace と相関 ID（可能なら）を付与
+-   マイグレーション
+    -   Alembic は `migrations/` を使用し、`env.py` は `app.db.base:target_metadata` を参照
+    -   自動生成後は差分をレビューし、命名規則は `YYYYMMDDHHMM_<short_desc>`
+-   環境変数/設定
+    -   `core/config.py`（pydantic-settings）で集中管理し、`settings.X` から参照
+    -   機密は `.env`、テンプレは `.env.example` に記載
+-   テスト
+    -   FastAPI の `TestClient` で API を疎通。サービス/リポジトリは単体テストも用意
+    -   DB を使うテストはトランザクションロールバック or テスト専用 DB を利用
+    -   テストデータ生成
+        -   factory-boy を使用して、テストに必要なモデルインスタンスを生成
+        -   `tests/factories/` に各モデル用ファクトリを配置し、関心ごとで分割
+        -   テスト環境は本番と同じ PostgreSQL を使用し、各テスト後にテーブルをドロップして隔離
+        -   例：`UserFactory(email="test@example.com", is_confirmed=True)`
+    -   DI の使用方針
+        -   テスト時は本物のサービスを使い、実装に近い状態でテストを実施
+        -   外部副作用（メール送信など）は別途 Mock で切り離す（必要に応じて）
+        -   依存関係は `conftest.py` の fixture で DB session を統一し、テスト間での隔離を確保
 
 ---
 
 ## Frontend（Next.js）
 
 目的
-- App Router/Server Componentsを活用しつつ、関心ごとで整理
-- APIクライアント層、型、状態管理の置き場を固定
+
+-   App Router/Server Components を活用しつつ、関心ごとで整理
+-   API クライアント層、型、状態管理の置き場を固定
 
 推奨構成
+
 ```
 frontend/
   app/
@@ -196,70 +209,76 @@ frontend/
 ```
 
 補足
-- 認証トークンは当面 localStorage、将来的に httpOnly Cookie 検討
-- `lib/api/client.ts` にHTTP処理を集約、SDKを薄く分割
-- 型はバックエンドのスキーマに合わせ、Zodでランタイム検証も可能
+
+-   認証トークンは当面 localStorage、将来的に httpOnly Cookie 検討
+-   `lib/api/client.ts` に HTTP 処理を集約、SDK を薄く分割
+-   型はバックエンドのスキーマに合わせ、Zod でランタイム検証も可能
 
 運用ルール（Frontend）
-- ルーティング
-  - 画面は App Router を使用。ルートグループは機能単位で括る（例: `(auth)`, `(product)`）
-  - 画面数が増えたら機能境界で `features/<domain>/` を作る（コンポーネント/フック/型を内包）
-- データ取得
-  - HTTPアクセスは `lib/api/client.ts` に集約し、`lib/api/<domain>.ts` に薄い関数を置く
-  - 可能な限り Server Components でデータを取得し、クライアント側はUIとイベントだけに集中
-- 状態管理
-  - まずはローカルステート。2画面以上で共有が必要になったら `stores/`（Zustand/Context）を導入
-  - 認証状態など長寿命の状態のみグローバル化する
-- コンポーネント
-  - 再利用UIは `components/ui/`、レイアウト/共通枠は `components/common/`
-  - 200行超 or 2画面以上で再利用になったら切り出す
-- 型/バリデーション
-  - バックエンドのスキーマに合わせて `types/` に共通型を配置
-  - フォームが複雑化したら React Hook Form + Zod を導入
-- 命名/パス
-  - パスエイリアス `@/*` を利用し、相対パスのネストを避ける
-  - ドメイン固有のものは `features/<domain>/` 直下で閉じる
-- スタイル
-  - Tailwind を基本とし、ユーティリティ/コンポーネントクラスは過度に抽象化しない
-- テスト
-  - ユニット（hooks, lib）と軽めの E2E（主要フロー）から開始。必要に応じて拡張
-- 環境変数
-  - `NEXT_PUBLIC_API_BASE_URL` を基本に、増えてきたら `.env.example` に追記し、コード側は `process.env` 経由で参照
+
+-   ルーティング
+    -   画面は App Router を使用。ルートグループは機能単位で括る（例: `(auth)`, `(product)`）
+    -   画面数が増えたら機能境界で `features/<domain>/` を作る（コンポーネント/フック/型を内包）
+-   データ取得
+    -   HTTP アクセスは `lib/api/client.ts` に集約し、`lib/api/<domain>.ts` に薄い関数を置く
+    -   可能な限り Server Components でデータを取得し、クライアント側は UI とイベントだけに集中
+-   状態管理
+    -   まずはローカルステート。2 画面以上で共有が必要になったら `stores/`（Zustand/Context）を導入
+    -   認証状態など長寿命の状態のみグローバル化する
+-   コンポーネント
+    -   再利用 UI は `components/ui/`、レイアウト/共通枠は `components/common/`
+    -   200 行超 or 2 画面以上で再利用になったら切り出す
+-   型/バリデーション
+    -   バックエンドのスキーマに合わせて `types/` に共通型を配置
+    -   フォームが複雑化したら React Hook Form + Zod を導入
+-   命名/パス
+    -   パスエイリアス `@/*` を利用し、相対パスのネストを避ける
+    -   ドメイン固有のものは `features/<domain>/` 直下で閉じる
+-   スタイル
+    -   Tailwind を基本とし、ユーティリティ/コンポーネントクラスは過度に抽象化しない
+-   テスト
+    -   ユニット（hooks, lib）と軽めの E2E（主要フロー）から開始。必要に応じて拡張
+-   環境変数
+    -   `NEXT_PUBLIC_API_BASE_URL` を基本に、増えてきたら `.env.example` に追記し、コード側は `process.env` 経由で参照
 
 ---
 
 ## ルート/インフラ
-- `.github/` にテンプレ/ガイド/CI設定を集約
-- `infra/`（任意）に本番向けIaC/デプロイ設定
-- `.env.example` で環境変数のキー名方針を共有
+
+-   `.github/` にテンプレ/ガイド/CI 設定を集約
+-   `infra/`（任意）に本番向け IaC/デプロイ設定
+-   `.env.example` で環境変数のキー名方針を共有
 
 ---
 
 ## 小さく始めて拡張する指針
-- 最初は `models.py`/`schemas.py`/`routers.py` を1〜2ファイルで開始
-- 機能や行数が増えたら `models/`, `schemas/`, `api/routers/` に段階的分割
-- ビジネスロジックがルーターに肥大化したら `services/` を導入
-- クエリが重複/複雑化してきたら `repositories/` で集約
+
+-   最初は `models.py`/`schemas.py`/`routers.py` を 1〜2 ファイルで開始
+-   機能や行数が増えたら `models/`, `schemas/`, `api/routers/` に段階的分割
+-   ビジネスロジックがルーターに肥大化したら `services/` を導入
+-   クエリが重複/複雑化してきたら `repositories/` で集約
 
 ---
 
 ## 現在構成からの移行メモ
-- backend
-  - `backend/main.py` → `backend/app/main.py`
-  - `backend/database.py` → `backend/app/db/database.py`
-  - `backend/admin.py` → `backend/app/admin/sqladmin.py`
-  - `backend/models.py` → `backend/app/models/` へ段階的分割（当面は `__init__.py` で集約）
-  - Alembic の `env.py` は `app.db.base` の `target_metadata` を参照
-- frontend
-  - `components/`, `lib/api/`, `stores/` を追加
-  - `tsconfig.json` に `@/*` エイリアスを設定し import を整理
+
+-   backend
+    -   `backend/main.py` → `backend/app/main.py`
+    -   `backend/database.py` → `backend/app/db/database.py`
+    -   `backend/admin.py` → `backend/app/admin/sqladmin.py`
+    -   `backend/models.py` → `backend/app/models/` へ段階的分割（当面は `__init__.py` で集約）
+    -   Alembic の `env.py` は `app.db.base` の `target_metadata` を参照
+-   frontend
+    -   `components/`, `lib/api/`, `stores/` を追加
+    -   `tsconfig.json` に `@/*` エイリアスを設定し import を整理
 
 ---
 
 ## 参考
-- FastAPI: https://fastapi.tiangolo.com/
-- SQLAlchemy: https://docs.sqlalchemy.org/
-- Alembic: https://alembic.sqlalchemy.org/
-- Next.js App Router: https://nextjs.org/docs
-- React Hook Form: https://react-hook-form.com/
-- Zod: https://zod.dev/
+
+-   FastAPI: https://fastapi.tiangolo.com/
+-   SQLAlchemy: https://docs.sqlalchemy.org/
+-   Alembic: https://alembic.sqlalchemy.org/
+-   Next.js App Router: https://nextjs.org/docs
+-   React Hook Form: https://react-hook-form.com/
+-   Zod: https://zod.dev/
