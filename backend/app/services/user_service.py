@@ -1,22 +1,12 @@
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
+from app.core.security import hash_password, verify_password, pwd_context
 from app.models.user import User
 from app.schemas.user import UserCreate
 from datetime import timezone, timedelta
 from app.utils.timezone import now_utc
 import secrets
-
-pwd_context = CryptContext(
-    schemes=["argon2", "pbkdf2_sha256"],
-    default="argon2",
-    deprecated="auto",
-    argon2__time_cost=settings.ARGON2_TIME_COST,
-    argon2__memory_cost=settings.ARGON2_MEMORY_COST,
-    argon2__parallelism=settings.ARGON2_PARALLELISM,
-)
 
 
 class UserAlreadyExists(Exception):
@@ -27,20 +17,10 @@ class ConfirmationError(Exception):
     pass
 
 
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
 class UserService:
-    def __init__(self, settings):
-        self.settings = settings
-        self.pwd_context = pwd_context
 
     def _generate_token(self, length: int = 32) -> str:
         return secrets.token_urlsafe(length)
-
-    def get_password_hash(self, password: str) -> str:
-        return self.pwd_context.hash(password)
 
     def create_provisional_user(self, db: Session, user_in: UserCreate, expires_hours: int = 24) -> tuple[User, str]:
         existing = db.query(User).filter((User.email == user_in.email) | (User.username == user_in.username)).first()
@@ -56,7 +36,7 @@ class UserService:
             username=user_in.username,
             first_name=user_in.first_name,
             last_name=user_in.last_name,
-            password_hash=self.get_password_hash(user_in.password),
+            password_hash=hash_password(user_in.password),
             created_at=now,
             is_active=False,
             is_confirmed=False,
@@ -122,7 +102,7 @@ class UserService:
             return None
         if not getattr(user, "is_active", True):
             return None
-        if not self.pwd_context.verify(password, user.password_hash):
+        if not verify_password(password, user.password_hash):
             return None
         return user
 
@@ -132,4 +112,4 @@ class UserService:
 
 
 # default service instance for convenience / backward compatibility
-user_service = UserService(settings)
+user_service = UserService()
