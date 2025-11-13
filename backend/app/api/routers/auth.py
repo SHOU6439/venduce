@@ -44,7 +44,7 @@ def register(
         },
     )
 
-    return {"message": "confirmation sent", "confirmation_token": token}
+    return RegistrationResponse(message="confirmation sent", confirmation_token=token)
 
 
 @router.post("/confirm", response_model=UserRead)
@@ -57,10 +57,10 @@ def confirm(
         user = svc.confirm_user(db, token)
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return user
+    return UserRead.model_validate(user)
 
 
-@router.post("/resend-confirmation")
+@router.post("/resend-confirmation", response_model=RegistrationResponse)
 def resend(
     email: EmailStr,
     db: Session = Depends(get_db),
@@ -70,7 +70,7 @@ def resend(
         token = svc.resend_confirmation(db, email)
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return {"message": "confirmation resent", "confirmation_token": token}
+    return RegistrationResponse(message="confirmation resent", confirmation_token=token)
 
 
 @router.post("/login", response_model=TokenPair)
@@ -113,7 +113,7 @@ def login(
     db.add(rt)
     db.commit()
 
-    return {"access_token": access_token, "refresh_token": refresh_token, "expires_in": expires_in}
+    return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 
 
 
@@ -157,4 +157,4 @@ def refresh(
     db.commit()
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
-    return {"access_token": access_token, "refresh_token": new_refresh_token, "expires_in": expires_in}
+    return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
