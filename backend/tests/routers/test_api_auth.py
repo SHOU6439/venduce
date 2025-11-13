@@ -1,4 +1,5 @@
 from app.services.user_service import UserAlreadyExists
+from tests.factories import UserFactory
 
 
 def test_register_api_success(client):
@@ -33,6 +34,8 @@ def test_register_and_confirm_flow(client):
     assert r2.status_code == 200
     data = r2.json()
     assert data["email"] == payload["email"]
+    assert data["is_confirmed"] is True
+    assert data["is_active"] is True
 
 
 def test_register_api_conflict(client):
@@ -47,3 +50,179 @@ def test_register_api_conflict(client):
     assert r1.status_code == 202
     r2 = client.post("/api/auth/register", json=payload)
     assert r2.status_code == 409
+
+
+def test_confirm_invalid_token(client):
+    """Test confirm endpoint with invalid token."""
+    r = client.post("/api/auth/confirm", params={"token": "invalid-token"})
+    assert r.status_code == 400
+    assert "invalid token" in r.json()["detail"].lower()
+
+
+def test_login_success_after_confirmation(client, db_session):
+    """Test login flow after user confirms email."""
+    user = UserFactory(
+        email="login@example.com",
+        username="loginuser",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    # Login
+    login_payload = {
+        "email": "login@example.com",
+        "password": "password123",
+    }
+    r = client.post("/api/auth/login", json=login_payload)
+    assert r.status_code == 200
+    data = r.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert "expires_in" in data
+    assert isinstance(data["access_token"], str) and data["access_token"]
+    assert isinstance(data["refresh_token"], str) and data["refresh_token"]
+
+
+def test_login_unconfirmed_user(client):
+    """Test login fails if email not confirmed."""
+    register_payload = {
+        "email": "unconfirmed@example.com",
+        "username": "unconfirmed",
+        "password": "strongpassword",
+        "first_name": "Unconfirmed",
+        "last_name": "User",
+    }
+    r1 = client.post("/api/auth/register", json=register_payload)
+    assert r1.status_code == 202
+
+    login_payload = {
+        "email": "unconfirmed@example.com",
+        "password": "strongpassword",
+    }
+    r2 = client.post("/api/auth/login", json=login_payload)
+    assert r2.status_code == 403
+    data = r2.json()
+    assert "not_confirmed" in data.get("detail", {}).get("code", "")
+
+
+def test_login_invalid_credentials(client):
+    """Test login fails with invalid password."""
+    register_payload = {
+        "email": "validuser@example.com",
+        "username": "validuser",
+        "password": "correctpassword",
+        "first_name": "Valid",
+        "last_name": "User",
+    }
+    r1 = client.post("/api/auth/register", json=register_payload)
+    token = r1.json()["confirmation_token"]
+    client.post("/api/auth/confirm", params={"token": token})
+
+    login_payload = {
+        "email": "validuser@example.com",
+        "password": "wrongpassword",
+    }
+    r2 = client.post("/api/auth/login", json=login_payload)
+    assert r2.status_code == 401
+    data = r2.json()
+    assert "invalid_credentials" in data.get("detail", {}).get("code", "")
+
+
+def test_login_nonexistent_user(client):
+    """Test login fails for nonexistent user."""
+    login_payload = {
+        "email": "doesnotexist@example.com",
+        "password": "anypassword",
+    }
+    r = client.post("/api/auth/login", json=login_payload)
+    assert r.status_code == 401
+    data = r.json()
+    assert "invalid_credentials" in data.get("detail", {}).get("code", "")
+
+
+def test_refresh_token_success(client, db_session):
+    """Test refresh token endpoint returns new tokens."""
+    # Create a confirmed user with factory
+    user = UserFactory(
+        email="refreshuser@example.com",
+        username="refreshuser",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    # Login to get tokens
+    login_payload = {
+        "email": "refreshuser@example.com",
+        "password": "password123",
+    }
+    r1 = client.post("/api/auth/login", json=login_payload)
+    assert r1.status_code == 200
+    refresh_token = r1.json()["refresh_token"]
+
+    # Refresh
+    refresh_payload = {"refresh_token": refresh_token}
+    r2 = client.post("/api/auth/refresh", json=refresh_payload)
+    assert r2.status_code == 200
+    data = r2.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert "expires_in" in data
+
+
+def test_refresh_invalid_token(client):
+    """Test refresh with invalid token."""
+    refresh_payload = {"refresh_token": "invalid-refresh-token"}
+    r = client.post("/api/auth/refresh", json=refresh_payload)
+    assert r.status_code == 401
+    assert "invalid" in r.json()["detail"].lower()
+
+
+def test_resend_confirmation_success(client):
+    """Test resend confirmation endpoint."""
+    # Register user
+    register_payload = {
+        "email": "resend@example.com",
+        "username": "resenduser",
+        "password": "strongpassword",
+        "first_name": "Resend",
+        "last_name": "User",
+    }
+    r1 = client.post("/api/auth/register", json=register_payload)
+    assert r1.status_code == 202
+
+    # Resend confirmation
+    r2 = client.post("/api/auth/resend-confirmation", params={"email": "resend@example.com"})
+    assert r2.status_code == 200
+    data = r2.json()
+    assert "confirmation_token" in data
+    assert isinstance(data["confirmation_token"], str) and data["confirmation_token"]
+
+    # New token should work for confirmation
+    new_token = data["confirmation_token"]
+    r3 = client.post("/api/auth/confirm", params={"token": new_token})
+    assert r3.status_code == 200
+
+
+def test_resend_confirmation_already_confirmed(client):
+    """Test resend confirmation fails for already confirmed user."""
+    # Register and confirm user
+    register_payload = {
+        "email": "alreadyconfirmed@example.com",
+        "username": "confirmed",
+        "password": "strongpassword",
+        "first_name": "Already",
+        "last_name": "Confirmed",
+    }
+    r1 = client.post("/api/auth/register", json=register_payload)
+    token = r1.json()["confirmation_token"]
+    client.post("/api/auth/confirm", params={"token": token})
+
+    # Try to resend confirmation (should fail)
+    r2 = client.post("/api/auth/resend-confirmation", params={"email": "alreadyconfirmed@example.com"})
+    assert r2.status_code == 400
+
+
+def test_resend_confirmation_nonexistent_user(client):
+    """Test resend confirmation for nonexistent user."""
+    r = client.post("/api/auth/resend-confirmation", params={"email": "does-not-exist@example.com"})
+    assert r.status_code == 400
