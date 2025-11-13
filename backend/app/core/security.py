@@ -5,7 +5,6 @@ Security utilities: password hashing, JWT handling, etc.
 from passlib.context import CryptContext
 from app.core.config import settings
 
-# Initialize password context
 pwd_context = CryptContext(
     schemes=["argon2", "pbkdf2_sha256"],
     default="argon2",
