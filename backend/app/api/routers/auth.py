@@ -12,6 +12,7 @@ from app.models.refresh_token import RefreshToken
 from app.utils.timezone import now_utc
 from app.core.config import settings
 from app.schemas.auth import RefreshRequest
+from app.core.security import verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -98,7 +99,7 @@ def login(
             detail={"code": "inactive_account", "message": "Account is inactive. Contact support."},
         )
 
-    if not svc.pwd_context.verify(payload.password, user.password_hash):
+    if not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "invalid_credentials", "message": "Invalid email or password"},
