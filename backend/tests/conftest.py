@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+import os
 
 import smtplib
 
@@ -31,15 +31,23 @@ from app.deps import get_user_service
 from tests.fakes.services.fake_user_service import FakeUserService
 
 
-# Shared in-memory SQLite engine for tests that need DB access across requests.
-# Using StaticPool keeps the in-memory DB alive across connections/threads used by TestClient.
-_engine = create_engine(
-    "sqlite:///:memory:",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+# Use PostgreSQL for tests (same as production)
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql://pride_user:pride_password@postgres:5432/pride_db_test"
 )
-TestingSessionLocal = sessionmaker(bind=_engine)
+
+_engine = create_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+)
+
+# Create test database schema
+Base.metadata.drop_all(bind=_engine)
 Base.metadata.create_all(bind=_engine)
+
+TestingSessionLocal = sessionmaker(bind=_engine)
 
 
 def _override_get_db():
@@ -68,6 +76,9 @@ def override_db():
         yield
     finally:
         app.dependency_overrides.pop(get_db, None)
+        # Clean up: drop and recreate all tables after each test
+        Base.metadata.drop_all(bind=_engine)
+        Base.metadata.create_all(bind=_engine)
 
 
 @pytest.fixture
