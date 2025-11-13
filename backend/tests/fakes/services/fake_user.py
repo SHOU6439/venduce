@@ -10,5 +10,5 @@ class FakeUser:
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
-        self.id = 1
+        self.id = "fake-ulid-123456789012"
         self.created_at = now_utc()
