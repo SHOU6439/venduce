@@ -68,9 +68,29 @@ def resend(
     svc: UserService = Depends(get_user_service),
 ):
     try:
+        user = svc.get_user_by_email(db, email)
+        if not user:
+            raise ConfirmationError("user not found")
         token = svc.resend_confirmation(db, email)
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Send confirmation email
+    from app.utils.mailer import send_confirmation_email
+
+    confirm_url = f"http://localhost:8025/confirm?token={token}"  # developer-friendly MailHog UI link
+    send_confirmation_email(
+        user.email,
+        "Confirm your account",
+        template_name="confirm",
+        context={
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "confirm_url": confirm_url,
+            "token": token,
+        },
+    )
+
     return RegistrationResponse(message="confirmation resent", confirmation_token=token)
 
 
