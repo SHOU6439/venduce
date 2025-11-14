@@ -51,6 +51,9 @@ out/
 .env.local
 .env.*.local
 
+# Local keys
+backend/keys/
+
 # Database
 postgres_data/
 

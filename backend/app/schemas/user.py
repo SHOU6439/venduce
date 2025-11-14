@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import EmailStr, Field, ConfigDict
+from app.schemas.base import AppModel
 
 
-class UserCreate(BaseModel):
+class UserCreate(AppModel):
     email: EmailStr
     username: str = Field(..., min_length=6, max_length=32)
     password: str = Field(..., min_length=8)
@@ -11,24 +12,22 @@ class UserCreate(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
 
 
-class UserRead(BaseModel):
+class UserRead(AppModel):
+    """Public user profile information returned to the client."""
     id: str
     email: EmailStr
     username: str
     first_name: str
     last_name: str
     created_at: datetime
+    is_confirmed: bool
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserInDB(UserRead):
-    password_hash: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class RegistrationResponse(BaseModel):
+class RegistrationResponse(AppModel):
+    """Response for user registration endpoint."""
     message: str
     confirmation_token: Optional[str] = None
 

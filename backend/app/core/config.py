@@ -13,6 +13,15 @@ class Settings(BaseSettings):
     MAIL_PORT: int = 1025
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
+    JWT_PRIVATE_KEY: str | None = None
+    JWT_PUBLIC_KEY: str | None = None
+    JWT_PRIVATE_KEY_PATH: str | None = None
+    JWT_PUBLIC_KEY_PATH: str | None = None
+    JWT_SECRET_KEY: str | None = None
+    JWT_ALGORITHM: str = "RS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+    REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER: int = 60
 
     model_config = ConfigDict(env_prefix="")
 
