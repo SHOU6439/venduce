@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
+from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
@@ -75,10 +76,7 @@ def resend(
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # Send confirmation email
-    from app.utils.mailer import send_confirmation_email
-
-    confirm_url = f"http://localhost:8025/confirm?token={token}"  # developer-friendly MailHog UI link
+    confirm_url = f"http://localhost:8025/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
