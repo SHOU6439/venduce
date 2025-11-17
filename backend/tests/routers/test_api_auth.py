@@ -68,7 +68,6 @@ def test_login_success_after_confirmation(client, db_session):
         is_active=True,
     )
 
-    # Login
     login_payload = {
         "email": "login@example.com",
         "password": "password123",
@@ -142,7 +141,6 @@ def test_login_nonexistent_user(client):
 
 def test_refresh_token_success(client, db_session):
     """Test refresh token endpoint returns new tokens."""
-    # Create a confirmed user with factory
     user = UserFactory(
         email="refreshuser@example.com",
         username="refreshuser",
@@ -150,7 +148,6 @@ def test_refresh_token_success(client, db_session):
         is_active=True,
     )
 
-    # Login to get tokens
     login_payload = {
         "email": "refreshuser@example.com",
         "password": "password123",
@@ -159,7 +156,6 @@ def test_refresh_token_success(client, db_session):
     assert r1.status_code == 200
     refresh_token = r1.json()["refresh_token"]
 
-    # Refresh
     refresh_payload = {"refresh_token": refresh_token}
     r2 = client.post("/api/auth/refresh", json=refresh_payload)
     assert r2.status_code == 200
@@ -179,7 +175,6 @@ def test_refresh_invalid_token(client):
 
 def test_resend_confirmation_success(client):
     """Test resend confirmation endpoint."""
-    # Register user
     register_payload = {
         "email": "resend@example.com",
         "username": "resenduser",
@@ -190,14 +185,12 @@ def test_resend_confirmation_success(client):
     r1 = client.post("/api/auth/register", json=register_payload)
     assert r1.status_code == 202
 
-    # Resend confirmation
     r2 = client.post("/api/auth/resend-confirmation", params={"email": "resend@example.com"})
     assert r2.status_code == 200
     data = r2.json()
     assert "confirmation_token" in data
     assert isinstance(data["confirmation_token"], str) and data["confirmation_token"]
 
-    # New token should work for confirmation
     new_token = data["confirmation_token"]
     r3 = client.post("/api/auth/confirm", params={"token": new_token})
     assert r3.status_code == 200
@@ -205,7 +198,6 @@ def test_resend_confirmation_success(client):
 
 def test_resend_confirmation_already_confirmed(client):
     """Test resend confirmation fails for already confirmed user."""
-    # Register and confirm user
     register_payload = {
         "email": "alreadyconfirmed@example.com",
         "username": "confirmed",
@@ -217,7 +209,6 @@ def test_resend_confirmation_already_confirmed(client):
     token = r1.json()["confirmation_token"]
     client.post("/api/auth/confirm", params={"token": token})
 
-    # Try to resend confirmation (should fail)
     r2 = client.post("/api/auth/resend-confirmation", params={"email": "alreadyconfirmed@example.com"})
     assert r2.status_code == 400
 

@@ -29,11 +29,9 @@ def register(
     except UserAlreadyExists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
 
-    # Send confirmation email (MailHog) in dev if enabled. Also return token for tests/dev convenience.
     from app.utils.mailer import send_confirmation_email
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"  # developer-friendly MailHog UI link
-    # Try to use the template-based mailer; falls back to plain text if templates/Jinja2 are unavailable
+    confirm_url = f"http://localhost:8025/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -202,7 +200,6 @@ def logout(
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
     
-    # ユーザーのすべてのアクティブなリフレッシュトークンを無効化
     svc.logout(db, user_id)
     
     return None
