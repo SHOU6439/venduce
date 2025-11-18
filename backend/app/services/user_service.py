@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
+from datetime import timezone, timedelta, datetime
 
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, pwd_context
 from app.models.user import User
+from app.models.refresh_token import RefreshToken
 from app.schemas.user import UserCreate
-from datetime import timezone, timedelta
 from app.utils.timezone import now_utc
 import secrets
 
@@ -109,6 +110,30 @@ class UserService:
     def get_user_by_email(self, db: Session, email: str):
         """Return user by email or None."""
         return db.query(User).filter(User.email == email).first()
+
+    def create_refresh_token(self, db: Session, user_id: str, refresh_token: str, expires_at: datetime) -> RefreshToken:
+        """
+        リフレッシュトークンを作成し、データベースに保存します。
+        
+        引数:
+            db: データベースセッション
+            user_id: トークンに関連付けるユーザーID
+            refresh_token: JWTリフレッシュトークン文字列
+            expires_at: トークン有効期限日時
+            
+        戻り値:
+            データベースに保存されたRefreshTokenモデルインスタンス
+        """
+        rt = RefreshToken(
+            refresh_token=refresh_token,
+            user_id=user_id,
+            expires_at=expires_at,
+            revoked_at=None,
+        )
+        db.add(rt)
+        db.commit()
+        db.refresh(rt)
+        return rt
 
 
 # default service instance for convenience / backward compatibility

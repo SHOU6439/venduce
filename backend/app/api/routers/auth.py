@@ -128,14 +128,7 @@ def login(
     remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
 
-    rt = RefreshToken(
-        refresh_token=refresh_token,
-        user_id=str(user.id),
-        expires_at=expires_at,
-        revoked_at=None,
-    )
-    db.add(rt)
-    db.commit()
+    svc.create_refresh_token(db, str(user.id), refresh_token, expires_at)
 
     return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 
@@ -145,6 +138,7 @@ def login(
 def refresh(
     payload: RefreshRequest,
     db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
 ):
     try:
         data = jwt_utils.decode_token(payload.refresh_token)
@@ -181,14 +175,7 @@ def refresh(
     remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS else settings.REFRESH_TOKEN_EXPIRE_DAYS
 
     new_refresh_token, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), ttl_days=remember_days)
-    new_rt = RefreshToken(
-        refresh_token=new_refresh_token,
-        user_id=str(sub),
-        expires_at=new_expires_at,
-        revoked_at=None,
-    )
-    db.add(new_rt)
-    db.commit()
+    svc.create_refresh_token(db, str(sub), new_refresh_token, new_expires_at)
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
     return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
