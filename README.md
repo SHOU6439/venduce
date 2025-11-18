@@ -16,36 +16,100 @@
 - Python pip
 - npm and node.js
 
+Windows ユーザー向けの補足
+
+Windows 環境では `make` がデフォルトで利用できないことが多いです。以下のいずれかの方法で `make` を用意してください（WSL2 が最も推奨されます）。
+
+- WSL2（推奨）
+  1. 管理者 PowerShell で WSL をインストール（Windows 10/11 の最新で利用可能）:
+
+    ```powershell
+      wsl --install -d Ubuntu
+    ```
+
+  2. Ubuntu を起動して make をインストール:
+
+    ```bash
+      sudo apt update
+      sudo apt install -y build-essential make
+    ```
+
+  3. WSL 内からリポジトリをチェックアウトするか、Windows 側でファイルを共有して `make` を実行してください。Docker Desktop は Windows 側で動かしておき、WSL から Docker に接続できます。
+
+- Chocolatey（PowerShell 管理者での方法）
+
+  1. Chocolatey をインストール（管理者 PowerShell）:
+
+      ```powershell
+      Set-ExecutionPolicy Bypass -Scope Process -Force; \
+      [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+      iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+      ```
+
+  2. make をインストール:
+
+    ```powershell
+    choco install make -y
+    ```
+
+- Scoop（PowerShell ユーザー向けの別案）
+
+  ```powershell
+  iwr -useb get.scoop.sh | iex
+  scoop install make
+  ```
+
+注: Git Bash の環境に含まれる make はバージョン差や互換性の違いがある場合があるため、WSL2 を強く推奨します。
+
 # Setup
 
-## Mac
+## 環境構築
+
+プロジェクトの環境構築には **Makefile** を使用します。
+
+### 前提条件
+
+- Docker Desktop がインストールされていること
+- `make` コマンドが利用可能であること（Mac は デフォルトで利用可能、Windows は WSL2 または Git Bash を推奨）
+
+### 初期セットアップ
 
 ```sh
-# 権限を付与してください
-chmod +x run.sh
-
-# 初期セットアップ
-./run.sh setup
-
-# compose up
-./run.bat up
-
-# compose down
-./run.bat down
+# 初期セットアップ（Docker ビルド、.env 作成、RSA 鍵生成、マイグレーション、テスト DB 作成）
+make setup
 ```
 
-## Windows
+### よく使うコマンド
 
 ```sh
-# 初期セットアップ
-run.bat setup
+# コンテナを起動
+make up
 
-# compose up
-run.bat up
+# コンテナを停止
+make down
 
-# compose down
-run.bat down
+# コンテナを停止して削除し、リソースをクリーンアップ
+make clean
+
+# コンテナを再ビルドして起動
+make rebuild
+
+# キャッシュなしでイメージを再ビルド
+make nocache
+
+# コンテナのログを表示
+make logs
+
+# テストを実行
+make test
+
+# 利用可能なすべてのコマンドを表示
+make help
 ```
+
+### Makefile の詳細
+
+各コマンドの詳細については、プロジェクト直下の `Makefile` を参照してください。
 
 # URL まとめ
 
