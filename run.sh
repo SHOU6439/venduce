@@ -63,6 +63,11 @@ setup() {
     echo "マイグレーションを適用します（コンテナ内で alembic を実行）..."
     docker compose run --rm backend sh -c "alembic upgrade head || true"
 
+    echo "テスト用データベースを作成中..."
+    docker compose exec postgres createdb -U pride_user pride_db_test || true
+    echo "テスト用データベースにマイグレーションを適用中..."
+    docker compose exec backend bash -c "DATABASE_URL=postgresql://pride_user:pride_password@postgres:5432/pride_db_test alembic upgrade head || true"
+
     echo ""
     echo "セットアップが完了しました！"
 }

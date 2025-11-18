@@ -54,6 +54,11 @@ if not exist backend\keys (
 echo マイグレーションを適用します（コンテナ内で alembic を実行）...
 call docker compose run --rm backend sh -c "alembic upgrade head || true"
 
+echo テスト用データベースを作成中...
+call docker compose exec postgres createdb -U pride_user pride_db_test 2>nul || true
+echo テスト用データベースにマイグレーションを適用中...
+call docker compose exec backend bash -c "DATABASE_URL=postgresql://pride_user:pride_password@postgres:5432/pride_db_test alembic upgrade head || true"
+
 echo(
 echo セットアップが完了しました！
 exit /b 0
