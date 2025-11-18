@@ -51,6 +51,9 @@ if not exist backend\keys (
     echo Generated RSA keys and updated .env to reference them.
 )
 
+echo Dockerコンテナを起動中...
+call docker compose up -d
+
 echo マイグレーションを適用します（コンテナ内で alembic を実行）...
 call docker compose run --rm backend sh -c "alembic upgrade head || true"
 

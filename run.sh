@@ -28,8 +28,6 @@ setup() {
     JWT_ALG=${JWT_ALG:-RS256}
 
     if [ "$JWT_ALG" = "RS256" ]; then
-        # Prefer path-based keys (JWT_PRIVATE_KEY_PATH). If neither path nor inline key
-        # is configured, generate files under backend/keys and point env to them.
         HAS_PRIVATE_PATH=$(grep -E '^JWT_PRIVATE_KEY_PATH=' .env | sed -E "s/^JWT_PRIVATE_KEY_PATH=(.*)$/\1/") || true
         HAS_PRIVATE_INLINE=$(grep -E '^JWT_PRIVATE_KEY=' .env | sed -E "s/^JWT_PRIVATE_KEY=(.*)$/\1/") || true
 
@@ -39,7 +37,6 @@ setup() {
             openssl genpkey -algorithm RSA -out backend/keys/private.pem -pkeyopt rsa_keygen_bits:2048
             openssl rsa -in backend/keys/private.pem -pubout -out backend/keys/public.pem
 
-            # Ensure .env points to the key file paths. Replace existing placeholders or append.
             if grep -q '^JWT_PRIVATE_KEY_PATH=' .env; then
                 sed -i '' -e "s|^JWT_PRIVATE_KEY_PATH=.*$|JWT_PRIVATE_KEY_PATH=backend/keys/private.pem|" .env || sed -i -e "s|^JWT_PRIVATE_KEY_PATH=.*$|JWT_PRIVATE_KEY_PATH=backend/keys/private.pem|" .env
             else
@@ -59,6 +56,9 @@ setup() {
     else
         echo "JWT_ALGORITHM は $JWT_ALG です。RS256 でない場合は .env の設定を確認してください。"
     fi
+
+    echo "Dockerコンテナを起動中..."
+    docker compose up -d
 
     echo "マイグレーションを適用します（コンテナ内で alembic を実行）..."
     docker compose run --rm backend sh -c "alembic upgrade head || true"
