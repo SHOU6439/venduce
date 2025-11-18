@@ -197,8 +197,6 @@ def logout(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
     
     user_id = data.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
     
     svc.logout(db, user_id)
     
