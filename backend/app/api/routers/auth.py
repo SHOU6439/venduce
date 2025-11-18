@@ -126,9 +126,14 @@ def login(
     access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
 
     remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
-    refresh_token, jwt_id, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
+    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
 
-    rt = RefreshToken(jti=jwt_id, user_id=str(user.id), expires_at=expires_at, revoked=False)
+    rt = RefreshToken(
+        refresh_token=refresh_token,
+        user_id=str(user.id),
+        expires_at=expires_at,
+        revoked_at=None,
+    )
     db.add(rt)
     db.commit()
 
@@ -149,31 +154,71 @@ def refresh(
     if data.get("typ") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token type")
 
-    jti = data.get("jti")
     sub = data.get("sub")
-    if not jti or not sub:
+    if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
 
-    rt = db.query(RefreshToken).filter(RefreshToken.jti == jti).first()
-    if not rt or rt.revoked:
+    # Query refresh token by token string (only active tokens: revoked_at IS NULL)
+    rt = db.query(RefreshToken).filter(
+        RefreshToken.refresh_token == payload.refresh_token,
+        RefreshToken.revoked_at.is_(None),
+    ).first()
+    
+    if not rt:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token revoked or not found")
 
     now = now_utc()
     if rt.expires_at is None or rt.expires_at < now:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token expired")
 
-    # TODO: 今の実装だと、リフレッシュトークンのテーブルが無効となったリフレッシュトークンのレコードで肥大化する可能性がある。
-    # 定期的に古い revoked トークンを削除するジョブを追加することを検討する。
-    # もしくは、ここで削除しても良いかもしれないが、ログ/監査の観点からは好ましくないかもしれない。
-    rt.revoked = True
+    # Revoke the old token by setting revoked_at
+    rt.revoked_at = now
+    rt.last_used_at = now
     db.add(rt)
+    
+    # Create new refresh token
     remaining_days = (rt.expires_at - now).days
     remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS else settings.REFRESH_TOKEN_EXPIRE_DAYS
 
-    new_refresh_token, new_jti, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), ttl_days=remember_days)
-    new_rt = RefreshToken(jti=new_jti, user_id=str(sub), expires_at=new_expires_at, revoked=False)
+    new_refresh_token, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), ttl_days=remember_days)
+    new_rt = RefreshToken(
+        refresh_token=new_refresh_token,
+        user_id=str(sub),
+        expires_at=new_expires_at,
+        revoked_at=None,
+    )
     db.add(new_rt)
     db.commit()
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
     return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    payload: RefreshRequest,
+    db: Session = Depends(get_db),
+):
+    """Logout by revoking the refresh token."""
+    try:
+        data = jwt_utils.decode_token(payload.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid refresh token")
+
+    if data.get("typ") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token type")
+
+    sub = data.get("sub")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
+
+    # Revoke the refresh token
+    rt = db.query(RefreshToken).filter(
+        RefreshToken.refresh_token == payload.refresh_token,
+        RefreshToken.revoked_at.is_(None),
+    ).first()
+    
+    if rt:
+        rt.revoked_at = now_utc()
+        db.add(rt)
+        db.commit()
