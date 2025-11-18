@@ -82,8 +82,8 @@ def create_access_token(subject: str, roles: list[str] | None = None) -> tuple[s
     return token, int(expires_delta.total_seconds())
 
 
-def create_refresh_token(subject: str, ttl_days: int | None = None) -> tuple[str, str, datetime]:
-    """Create a refresh token. Returns (token, jwt_id, expires_at_datetime).
+def create_refresh_token(subject: str, ttl_days: int | None = None) -> tuple[str, datetime]:
+    """Create a refresh token. Returns (token, expires_at_datetime).
 
     `ttl_days` can override the default TTL (used for "remember me").
     """
@@ -91,17 +91,18 @@ def create_refresh_token(subject: str, ttl_days: int | None = None) -> tuple[str
     ttl_days = ttl_days if ttl_days is not None else settings.REFRESH_TOKEN_EXPIRE_DAYS
     expires_delta = timedelta(days=ttl_days)
     expires_at = now + expires_delta
-    jwt_id = str(uuid.uuid4())
+    
     payload = {
         "sub": str(subject),
+        "jti": str(uuid.uuid4()),
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
-        "jti": jwt_id,
         "typ": "refresh",
     }
     key, alg = _signing_key_and_alg()
     token = jwt.encode(payload, key, algorithm=alg)
-    return token, jwt_id, expires_at
+    
+    return token, expires_at
 
 
 def decode_token(token: str) -> dict:
