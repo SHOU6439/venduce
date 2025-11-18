@@ -29,11 +29,9 @@ def register(
     except UserAlreadyExists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
 
-    # Send confirmation email (MailHog) in dev if enabled. Also return token for tests/dev convenience.
     from app.utils.mailer import send_confirmation_email
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"  # developer-friendly MailHog UI link
-    # Try to use the template-based mailer; falls back to plain text if templates/Jinja2 are unavailable
+    confirm_url = f"http://localhost:8025/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -177,3 +175,29 @@ def refresh(
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
     return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    payload: RefreshRequest,
+    db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
+):
+    """
+    ログアウトエンドポイント。
+    
+    リフレッシュトークンをリクエストボディで受け取り、
+    該当ユーザーのすべてのアクティブなリフレッシュトークンを無効化する。
+    
+    レスポンス: 204 No Content
+    """
+    try:
+        data = jwt_utils.decode_token(payload.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
+    
+    user_id = data.get("sub")
+    
+    svc.logout(db, user_id)
+    
+    return None

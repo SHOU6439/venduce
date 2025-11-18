@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, pwd_context
 from app.models.user import User
+from app.models.refresh_token import RefreshToken
 from app.schemas.user import UserCreate
 from datetime import timezone, timedelta
 from app.utils.timezone import now_utc
@@ -109,6 +110,20 @@ class UserService:
     def get_user_by_email(self, db: Session, email: str):
         """Return user by email or None."""
         return db.query(User).filter(User.email == email).first()
+
+    def logout(self, db: Session, user_id: str) -> None:
+        """
+        ユーザーのログアウト処理。
+        
+        ユーザーのすべてのアクティブ（revoked=False）なリフレッシュトークンを無効化する。
+        クライアント側は別途 localStorage のアクセストークンを破棄する責任を持つ。
+        """
+        
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked == False
+        ).update({RefreshToken.revoked: True}, synchronize_session=False)
+        db.commit()
 
 
 # default service instance for convenience / backward compatibility
