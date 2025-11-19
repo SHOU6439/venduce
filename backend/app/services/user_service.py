@@ -175,7 +175,9 @@ class UserService:
         if rt.expires_at is None or rt.expires_at < now:
             raise RefreshTokenError("refresh token expired")
         
-        # TODO: 今の実装だと古いトークンを削除ではなく、無効化するだけなので、将来的に定期クリーンアップ処理を検討する必要があります。ここで削除しても良いのですが、監視観点を考慮して、この実装としています。
+        # TODO: 今の実装だと、リフレッシュトークンのテーブルが無効となったリフレッシュトークンのレコードで肥大化する可能性がある。
+        # 定期的に古い revoked トークンを削除するジョブを追加することを検討する。
+        # もしくは、ここで削除しても良いかもしれないが、ログ/監査の観点からは好ましくないかもしれない。
         rt.revoked_at = now
         rt.last_used_at = now
         db.add(rt)
