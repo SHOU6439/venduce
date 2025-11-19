@@ -167,7 +167,7 @@ def logout(
     db: Session = Depends(get_db),
     svc: UserService = Depends(get_user_service),
 ):
-    """Logout by revoking the refresh token."""
+    """リフレッシュトークンを無効化してログアウト処理を実行します。"""
     try:
         data = jwt_utils.decode_token(payload.refresh_token)
     except Exception:
