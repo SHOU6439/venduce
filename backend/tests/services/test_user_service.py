@@ -248,8 +248,8 @@ def test_authenticate_user_inactive(db_session):
     assert authenticated_user is None
 
 
-def test_create_refresh_token_success(db_session):
-    """Test creating a refresh token in the database."""
+def test_save_refresh_token_success(db_session):
+    """Test saving a refresh token in the database."""
     from app.models.refresh_token import RefreshToken
     from app.utils import jwt as jwt_utils
     
@@ -261,7 +261,7 @@ def test_create_refresh_token_success(db_session):
     )
     
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
-    db_refresh_token = user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
+    db_refresh_token = user_service.save_refresh_token(db_session, str(user.id), refresh_token, expires_at)
     
     assert db_refresh_token.id is not None
     assert db_refresh_token.user_id == str(user.id)
@@ -287,7 +287,7 @@ def test_refresh_access_token_success(db_session):
     user_service.confirm_user(db_session, token)
     
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
-    user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
+    user_service.save_refresh_token(db_session, str(user.id), refresh_token, expires_at)
     
     new_refresh_token = user_service.refresh_access_token(
         db_session,

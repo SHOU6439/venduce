@@ -115,9 +115,12 @@ class UserService:
         """Return user by email or None."""
         return db.query(User).filter(User.email == email).first()
 
-    def create_refresh_token(self, db: Session, user_id: str, refresh_token: str, expires_at: datetime) -> RefreshToken:
+    def save_refresh_token(self, db: Session, user_id: str, refresh_token: str, expires_at: datetime) -> RefreshToken:
         """
-        リフレッシュトークンを作成し、データベースに保存します。
+        【DB保存】リフレッシュトークンをデータベースに保存します。
+        
+        トークン生成は jwt_utils.create_refresh_token() で行い、
+        このメソッドはその後の DB 保存処理のみを担当します。
         
         引数:
             db: データベースセッション
@@ -185,7 +188,7 @@ class UserService:
         )
         
         new_refresh_token, new_expires_at = create_new_refresh_token_fn(ttl_days=remember_days)
-        self.create_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
+        self.save_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
         
         return new_refresh_token
       
