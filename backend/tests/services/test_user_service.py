@@ -124,7 +124,7 @@ def test_confirm_expired_token(db_session):
         first_name="Expired",
         last_name="User",
     )
-    user, token = user_service.create_provisional_user(db_session, user_in, expires_hours=-1)  # Already expired
+    user, token = user_service.create_provisional_user(db_session, user_in, expires_hours=-1)
     
     with pytest.raises(ConfirmationError) as exc_info:
         user_service.confirm_user(db_session, token)
@@ -146,11 +146,9 @@ def test_resend_confirmation_success(db_session):
     assert new_token != old_token
     assert isinstance(new_token, str) and new_token
 
-    # Old token should no longer work
     with pytest.raises(ConfirmationError):
         user_service.confirm_user(db_session, old_token)
 
-    # New token should work
     confirmed_user = user_service.confirm_user(db_session, new_token)
     assert confirmed_user.is_confirmed is True
 
@@ -255,3 +253,124 @@ def test_authenticate_user_inactive(db_session):
     
     authenticated_user = user_service.authenticate_user(db_session, "inactive@example.com", "password")
     assert authenticated_user is None
+
+
+def test_create_refresh_token_success(db_session):
+    """Test creating a refresh token in the database."""
+    from app.models.refresh_token import RefreshToken
+    from app.utils import jwt as jwt_utils
+    
+    user_in = UserCreate(
+        email="refresh@example.com",
+        username="refreshtoken",
+        password="password",
+        first_name="Refresh",
+        last_name="Token",
+    )
+    user, token = user_service.create_provisional_user(db_session, user_in)
+    user_service.confirm_user(db_session, token)
+    
+    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
+    db_refresh_token = user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
+    
+    assert db_refresh_token.id is not None
+    assert db_refresh_token.user_id == str(user.id)
+    assert db_refresh_token.refresh_token == refresh_token
+    assert db_refresh_token.expires_at == expires_at
+    assert db_refresh_token.revoked_at is None
+    assert db_refresh_token.created_at is not None
+
+
+def test_refresh_access_token_success(db_session):
+    """Test refreshing access token rotates refresh token."""
+    from app.models.refresh_token import RefreshToken
+    from app.utils import jwt as jwt_utils
+    
+    user_in = UserCreate(
+        email="tokenrefresh@example.com",
+        username="tokenrefreshuser",
+        password="password",
+        first_name="Token",
+        last_name="Refresh",
+    )
+    user, token = user_service.create_provisional_user(db_session, user_in)
+    user_service.confirm_user(db_session, token)
+    
+    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
+    user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
+    
+    new_refresh_token = user_service.refresh_access_token(
+        db_session,
+        refresh_token,
+        lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
+    )
+    
+    assert new_refresh_token is not None
+    assert isinstance(new_refresh_token, str)
+    assert new_refresh_token != refresh_token
+
+    old_record = db_session.query(RefreshToken).filter(
+        RefreshToken.refresh_token == refresh_token
+    ).first()
+    assert old_record.revoked_at is not None
+    
+    new_record = db_session.query(RefreshToken).filter(
+        RefreshToken.refresh_token == new_refresh_token
+    ).first()
+    assert new_record is not None
+    assert new_record.revoked_at is None
+
+
+def test_refresh_access_token_invalid_token(db_session):
+    """Test refresh with invalid token raises error."""
+    from app.services.user_service import RefreshTokenError
+    from app.utils import jwt as jwt_utils
+    
+    user_in = UserCreate(
+        email="invalidrefresh@example.com",
+        username="invalidrefreshuser",
+        password="password",
+        first_name="Invalid",
+        last_name="Refresh",
+    )
+    user, token = user_service.create_provisional_user(db_session, user_in)
+    
+    with pytest.raises(RefreshTokenError):
+        user_service.refresh_access_token(
+            db_session,
+            "invalid-token",
+            lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
+        )
+
+
+def test_refresh_access_token_revoked_token(db_session):
+    """Test refresh with already revoked token raises error."""
+    from app.models.refresh_token import RefreshToken
+    from app.services.user_service import RefreshTokenError
+    from app.utils import jwt as jwt_utils
+    from app.utils.timezone import now_utc
+    
+    user_in = UserCreate(
+        email="revokedrefresh@example.com",
+        username="revokedrefreshuser",
+        password="password",
+        first_name="Revoked",
+        last_name="Refresh",
+    )
+    user, token = user_service.create_provisional_user(db_session, user_in)
+    user_service.confirm_user(db_session, token)
+    
+    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
+    db_refresh_token = user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
+    
+    db_refresh_token.revoked_at = now_utc()
+    db_session.add(db_refresh_token)
+    db_session.commit()
+    
+    with pytest.raises(RefreshTokenError) as exc_info:
+        user_service.refresh_access_token(
+            db_session,
+            refresh_token,
+            lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
+        )
+    assert "revoked" in str(exc_info.value).lower()
