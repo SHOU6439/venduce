@@ -271,8 +271,8 @@ def test_save_refresh_token_success(db_session):
     assert db_refresh_token.created_at is not None
 
 
-def test_refresh_access_token_success(db_session):
-    """Test refreshing access token rotates refresh token."""
+def test_rotate_refresh_token_success(db_session):
+    """Test rotating refresh token rotates refresh token."""
     from app.models.refresh_token import RefreshToken
     from app.utils import jwt as jwt_utils
     
@@ -289,7 +289,7 @@ def test_refresh_access_token_success(db_session):
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
     user_service.save_refresh_token(db_session, str(user.id), refresh_token, expires_at)
     
-    new_refresh_token = user_service.refresh_access_token(
+    new_refresh_token = user_service.rotate_refresh_token(
         db_session,
         refresh_token,
         lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
@@ -311,7 +311,7 @@ def test_refresh_access_token_success(db_session):
     assert new_record.revoked_at is None
 
 
-def test_refresh_access_token_invalid_token(db_session):
+def test_rotate_refresh_token_invalid_token(db_session):
     """Test refresh with invalid token raises error."""
     from app.services.user_service import RefreshTokenError
     from app.utils import jwt as jwt_utils
@@ -324,14 +324,14 @@ def test_refresh_access_token_invalid_token(db_session):
     )
     
     with pytest.raises(RefreshTokenError):
-        user_service.refresh_access_token(
+        user_service.rotate_refresh_token(
             db_session,
             "invalid-token",
             lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
         )
 
 
-def test_refresh_access_token_revoked_token(db_session):
+def test_rotate_refresh_token_revoked_token(db_session):
     """Test refresh with already revoked token raises error."""
     from app.services.user_service import RefreshTokenError
     from app.utils import jwt as jwt_utils
@@ -346,7 +346,7 @@ def test_refresh_access_token_revoked_token(db_session):
     revoked_token = RefreshTokenFactory(user_id=str(user.id), revoked_at=now_utc())
     
     with pytest.raises(RefreshTokenError) as exc_info:
-        user_service.refresh_access_token(
+        user_service.rotate_refresh_token(
             db_session,
             revoked_token.refresh_token,
             lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),

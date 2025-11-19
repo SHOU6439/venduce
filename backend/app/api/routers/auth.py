@@ -149,7 +149,7 @@ def refresh(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
 
     try:
-        new_refresh_token = svc.refresh_access_token(
+        new_refresh_token = svc.rotate_refresh_token(
             db,
             payload.refresh_token,
             lambda ttl_days: jwt_utils.create_refresh_token(subject=str(sub), ttl_days=ttl_days),

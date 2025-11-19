@@ -142,14 +142,18 @@ class UserService:
         db.refresh(rt)
         return rt
 
-    def refresh_access_token(
+    def rotate_refresh_token(
         self, 
         db: Session, 
         refresh_token_str: str,
         create_new_refresh_token_fn,
     ) -> str:
         """
-        リフレッシュトークンを検証し、新しいリフレッシュトークンを生成します。
+        リフレッシュトークンをローテーションします（古いトークンを無効化し、新しいトークンを生成）。
+        
+        - 古いトークンを無効化（revoked_at を設定）
+        - 新しいトークンを生成して返す
+        - トークン盗聴時のリスク軽減
         
         引数:
             db: データベースセッション
@@ -193,7 +197,7 @@ class UserService:
         self.save_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
         
         return new_refresh_token
-      
+    
     def logout(self, db: Session, refresh_token_str: str) -> None:
         """
         リフレッシュトークンを無効化してログアウト処理を実行します。
