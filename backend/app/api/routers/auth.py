@@ -9,8 +9,6 @@ from app.services.user_service import UserService, UserAlreadyExists, Confirmati
 from app.deps import get_user_service
 from app.schemas.auth import LoginRequest, TokenPair
 from app.utils import jwt as jwt_utils
-from app.models.refresh_token import RefreshToken
-from app.utils.timezone import now_utc
 from app.core.config import settings
 from app.schemas.auth import RefreshRequest
 from app.core.security import verify_password
@@ -167,6 +165,7 @@ def refresh(
 def logout(
     payload: RefreshRequest,
     db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
 ):
     """Logout by revoking the refresh token."""
     try:
@@ -177,16 +176,7 @@ def logout(
     if data.get("typ") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token type")
 
-    sub = data.get("sub")
-    if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
-
-    rt = db.query(RefreshToken).filter(
-        RefreshToken.refresh_token == payload.refresh_token,
-        RefreshToken.revoked_at.is_(None),
-    ).first()
-    
-    if rt:
-        rt.revoked_at = now_utc()
-        db.add(rt)
-        db.commit()
+    try:
+        svc.logout(db, payload.refresh_token)
+    except RefreshTokenError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))

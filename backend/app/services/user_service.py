@@ -189,18 +189,27 @@ class UserService:
         
         return new_refresh_token
       
-    def logout(self, db: Session, user_id: str) -> None:
+    def logout(self, db: Session, refresh_token_str: str) -> None:
         """
-        ユーザーのログアウト処理。
+        リフレッシュトークンを無効化してログアウト処理を実行します。
         
-        ユーザーのすべてのアクティブ（revoked=False）なリフレッシュトークンを無効化する。
-        クライアント側は別途 localStorage のアクセストークンを破棄する責任を持つ。
+        引数:
+            db: データベースセッション
+            refresh_token_str: 無効化するリフレッシュトークン文字列
+        
+        例外:
+            RefreshTokenError: トークンが見つからない場合
         """
+        rt = db.query(RefreshToken).filter(
+            RefreshToken.refresh_token == refresh_token_str,
+            RefreshToken.revoked_at.is_(None),
+        ).first()
         
-        db.query(RefreshToken).filter(
-            RefreshToken.user_id == user_id,
-            RefreshToken.revoked == False
-        ).update({RefreshToken.revoked: True}, synchronize_session=False)
+        if not rt:
+            raise RefreshTokenError("refresh token not found or already revoked")
+        
+        rt.revoked_at = now_utc()
+        db.add(rt)
         db.commit()
 
 
