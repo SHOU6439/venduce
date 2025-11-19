@@ -5,7 +5,7 @@ from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
-from app.services.user_service import UserService, UserAlreadyExists, ConfirmationError
+from app.services.user_service import UserService, UserAlreadyExists, ConfirmationError, RefreshTokenError
 from app.deps import get_user_service
 from app.schemas.auth import LoginRequest, TokenPair
 from app.utils import jwt as jwt_utils
@@ -152,30 +152,14 @@ def refresh(
     if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
 
-    # Query refresh token by token string (only active tokens: revoked_at IS NULL)
-    rt = db.query(RefreshToken).filter(
-        RefreshToken.refresh_token == payload.refresh_token,
-        RefreshToken.revoked_at.is_(None),
-    ).first()
-    
-    if not rt:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token revoked or not found")
-
-    now = now_utc()
-    if rt.expires_at is None or rt.expires_at < now:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token expired")
-
-    # Revoke the old token by setting revoked_at
-    rt.revoked_at = now
-    rt.last_used_at = now
-    db.add(rt)
-    
-    # Create new refresh token
-    remaining_days = (rt.expires_at - now).days
-    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS else settings.REFRESH_TOKEN_EXPIRE_DAYS
-
-    new_refresh_token, new_expires_at = jwt_utils.create_refresh_token(subject=str(sub), ttl_days=remember_days)
-    svc.create_refresh_token(db, str(sub), new_refresh_token, new_expires_at)
+    try:
+        new_refresh_token = svc.refresh_access_token(
+            db,
+            payload.refresh_token,
+            lambda ttl_days: jwt_utils.create_refresh_token(subject=str(sub), ttl_days=ttl_days),
+        )
+    except RefreshTokenError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
     return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
@@ -199,7 +183,6 @@ def logout(
     if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
 
-    # Revoke the refresh token
     rt = db.query(RefreshToken).filter(
         RefreshToken.refresh_token == payload.refresh_token,
         RefreshToken.revoked_at.is_(None),

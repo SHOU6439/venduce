@@ -18,6 +18,10 @@ class ConfirmationError(Exception):
     pass
 
 
+class RefreshTokenError(Exception):
+    pass
+
+
 class UserService:
 
     def _generate_token(self, length: int = 32) -> str:
@@ -134,6 +138,56 @@ class UserService:
         db.commit()
         db.refresh(rt)
         return rt
+
+    def refresh_access_token(
+        self, 
+        db: Session, 
+        refresh_token_str: str,
+        create_new_refresh_token_fn,
+    ) -> str:
+        """
+        リフレッシュトークンを検証し、新しいリフレッシュトークンを生成します。
+        
+        引数:
+            db: データベースセッション
+            refresh_token_str: クライアントが提供したJWTリフレッシュトークン
+            create_new_refresh_token_fn: 新しいリフレッシュトークンを生成する関数
+                                        (ttl_days) -> (token_str, expires_at)
+        
+        戻り値:
+            新しいリフレッシュトークン文字列
+        
+        例外:
+            RefreshTokenError: トークンが無効、期限切れ、または見つからない場合
+        """
+        rt = db.query(RefreshToken).filter(
+            RefreshToken.refresh_token == refresh_token_str,
+            RefreshToken.revoked_at.is_(None),
+        ).first()
+        
+        if not rt:
+            raise RefreshTokenError("refresh token revoked or not found")
+        
+        now = now_utc()
+        if rt.expires_at is None or rt.expires_at < now:
+            raise RefreshTokenError("refresh token expired")
+        
+        # TODO: 今の実装だと古いトークンを削除ではなく、無効化するだけなので、将来的に定期クリーンアップ処理を検討する必要があります。ここで削除しても良いのですが、監視観点を考慮して、この実装としています。
+        rt.revoked_at = now
+        rt.last_used_at = now
+        db.add(rt)
+
+        remaining_days = (rt.expires_at - now).days
+        remember_days = (
+            settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER
+            if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS
+            else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+        
+        new_refresh_token, new_expires_at = create_new_refresh_token_fn(ttl_days=remember_days)
+        self.create_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
+        
+        return new_refresh_token
 
 
 # default service instance for convenience / backward compatibility
