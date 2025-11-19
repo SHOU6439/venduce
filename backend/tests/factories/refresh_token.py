@@ -23,10 +23,14 @@ class RefreshTokenFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     id = factory.LazyFunction(lambda: str(ULID()))
     user = factory.SubFactory(UserFactory)
-    token = factory.Faker("sha256")
+    refresh_token = factory.Faker("sha256")
+    device_id = None
+    ip_address = None
+    user_agent = None
     created_at = factory.LazyFunction(now_utc)
+    last_used_at = None
     expires_at = factory.LazyFunction(lambda: now_utc() + timedelta(days=7))
-    revoked = False
+    revoked_at = None
 
 
 __all__ = ["RefreshTokenFactory"]
