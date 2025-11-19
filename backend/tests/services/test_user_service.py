@@ -4,6 +4,7 @@ from app.db.database import Base
 from app.services.user_service import user_service, UserAlreadyExists, ConfirmationError
 from app.schemas.user import UserCreate
 from app.utils.timezone import now_utc
+from tests.factories import RefreshTokenFactory, UserFactory
 
 
 def test_create_user_success(db_session):
@@ -202,33 +203,27 @@ def test_get_user_by_email_nonexistent(db_session):
 
 def test_authenticate_user_success(db_session):
     """Test authenticating user with correct credentials."""
-    password = "correctpassword"
-    user_in = UserCreate(
+    password = "password123"
+    user = UserFactory(
         email="auth@example.com",
         username="authuser1",
-        password=password,
-        first_name="Auth",
-        last_name="User",
+        is_confirmed=True,
+        is_active=True,
     )
-    created_user, token = user_service.create_provisional_user(db_session, user_in)
-    user_service.confirm_user(db_session, token)
 
     authenticated_user = user_service.authenticate_user(db_session, "auth@example.com", password)
     assert authenticated_user is not None
-    assert authenticated_user.id == created_user.id
+    assert authenticated_user.id == user.id
 
 
 def test_authenticate_user_wrong_password(db_session):
     """Test authentication fails with wrong password."""
-    user_in = UserCreate(
+    user = UserFactory(
         email="wrongpass@example.com",
         username="wrongpassuser",
-        password="correctpassword",
-        first_name="Wrong",
-        last_name="Pass",
+        is_confirmed=True,
+        is_active=True,
     )
-    created_user, token = user_service.create_provisional_user(db_session, user_in)
-    user_service.confirm_user(db_session, token)
 
     authenticated_user = user_service.authenticate_user(db_session, "wrongpass@example.com", "wrongpassword")
     assert authenticated_user is None
@@ -242,16 +237,14 @@ def test_authenticate_user_nonexistent(db_session):
 
 def test_authenticate_user_inactive(db_session):
     """Test authentication fails for inactive user."""
-    user_in = UserCreate(
+    user = UserFactory(
         email="inactive@example.com",
         username="inactiveuser",
-        password="password",
-        first_name="Inactive",
-        last_name="User",
+        is_confirmed=True,
+        is_active=False,
     )
-    created_user, _ = user_service.create_provisional_user(db_session, user_in)
     
-    authenticated_user = user_service.authenticate_user(db_session, "inactive@example.com", "password")
+    authenticated_user = user_service.authenticate_user(db_session, "inactive@example.com", "password123")
     assert authenticated_user is None
 
 
@@ -260,15 +253,12 @@ def test_create_refresh_token_success(db_session):
     from app.models.refresh_token import RefreshToken
     from app.utils import jwt as jwt_utils
     
-    user_in = UserCreate(
+    user = UserFactory(
         email="refresh@example.com",
         username="refreshtoken",
-        password="password",
-        first_name="Refresh",
-        last_name="Token",
+        is_confirmed=True,
+        is_active=True,
     )
-    user, token = user_service.create_provisional_user(db_session, user_in)
-    user_service.confirm_user(db_session, token)
     
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
     db_refresh_token = user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
@@ -326,14 +316,12 @@ def test_refresh_access_token_invalid_token(db_session):
     from app.services.user_service import RefreshTokenError
     from app.utils import jwt as jwt_utils
     
-    user_in = UserCreate(
+    user = UserFactory(
         email="invalidrefresh@example.com",
         username="invalidrefreshuser",
-        password="password",
-        first_name="Invalid",
-        last_name="Refresh",
+        is_confirmed=True,
+        is_active=True,
     )
-    user, token = user_service.create_provisional_user(db_session, user_in)
     
     with pytest.raises(RefreshTokenError):
         user_service.refresh_access_token(
@@ -345,32 +333,22 @@ def test_refresh_access_token_invalid_token(db_session):
 
 def test_refresh_access_token_revoked_token(db_session):
     """Test refresh with already revoked token raises error."""
-    from app.models.refresh_token import RefreshToken
     from app.services.user_service import RefreshTokenError
     from app.utils import jwt as jwt_utils
-    from app.utils.timezone import now_utc
     
-    user_in = UserCreate(
+    user = UserFactory(
         email="revokedrefresh@example.com",
         username="revokedrefreshuser",
-        password="password",
-        first_name="Revoked",
-        last_name="Refresh",
+        is_confirmed=True,
+        is_active=True,
     )
-    user, token = user_service.create_provisional_user(db_session, user_in)
-    user_service.confirm_user(db_session, token)
     
-    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id))
-    db_refresh_token = user_service.create_refresh_token(db_session, str(user.id), refresh_token, expires_at)
-    
-    db_refresh_token.revoked_at = now_utc()
-    db_session.add(db_refresh_token)
-    db_session.commit()
+    revoked_token = RefreshTokenFactory(user_id=str(user.id), revoked_at=now_utc())
     
     with pytest.raises(RefreshTokenError) as exc_info:
         user_service.refresh_access_token(
             db_session,
-            refresh_token,
+            revoked_token.refresh_token,
             lambda ttl_days: jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=ttl_days),
         )
     assert "revoked" in str(exc_info.value).lower()
