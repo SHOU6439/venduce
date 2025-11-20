@@ -1,10 +1,10 @@
 import pytest
-from datetime import timedelta
-from app.db.database import Base
 from app.services.user_service import user_service, UserAlreadyExists, ConfirmationError
 from app.schemas.user import UserCreate
 from app.utils.timezone import now_utc
 from tests.factories import RefreshTokenFactory, UserFactory
+from app.services.user_service import RefreshTokenError
+from app.utils import jwt as jwt_utils
 
 
 def test_create_user_success(db_session):
@@ -313,8 +313,6 @@ def test_rotate_refresh_token_success(db_session):
 
 def test_rotate_refresh_token_invalid_token(db_session):
     """Test refresh with invalid token raises error."""
-    from app.services.user_service import RefreshTokenError
-    from app.utils import jwt as jwt_utils
     
     user = UserFactory(
         email="invalidrefresh@example.com",

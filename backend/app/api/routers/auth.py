@@ -12,6 +12,7 @@ from app.utils import jwt as jwt_utils
 from app.core.config import settings
 from app.schemas.auth import RefreshRequest
 from app.core.security import verify_password
+from app.utils.mailer import send_confirmation_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -26,8 +27,6 @@ def register(
         user, token = svc.create_provisional_user(db, user_in)
     except UserAlreadyExists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
-
-    from app.utils.mailer import send_confirmation_email
 
     confirm_url = f"http://localhost:8025/confirm?token={token}"
     send_confirmation_email(
@@ -180,3 +179,4 @@ def logout(
         svc.logout(db, payload.refresh_token)
     except RefreshTokenError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    
