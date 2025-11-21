@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
+from datetime import timezone, timedelta, datetime
 
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, pwd_context
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.schemas.user import UserCreate
-from datetime import timezone, timedelta
 from app.utils.timezone import now_utc
 import secrets
 
@@ -15,6 +15,10 @@ class UserAlreadyExists(Exception):
 
 
 class ConfirmationError(Exception):
+    pass
+
+
+class RefreshTokenError(Exception):
     pass
 
 
@@ -111,18 +115,110 @@ class UserService:
         """Return user by email or None."""
         return db.query(User).filter(User.email == email).first()
 
-    def logout(self, db: Session, user_id: str) -> None:
+    def save_refresh_token(self, db: Session, user_id: str, refresh_token: str, expires_at: datetime) -> RefreshToken:
         """
-        ユーザーのログアウト処理。
+        【DB保存】リフレッシュトークンをデータベースに保存します。
         
-        ユーザーのすべてのアクティブ（revoked=False）なリフレッシュトークンを無効化する。
-        クライアント側は別途 localStorage のアクセストークンを破棄する責任を持つ。
+        トークン生成は jwt_utils.create_refresh_token() で行い、
+        このメソッドはその後の DB 保存処理のみを担当します。
+        
+        引数:
+            db: データベースセッション
+            user_id: トークンに関連付けるユーザーID
+            refresh_token: JWTリフレッシュトークン文字列
+            expires_at: トークン有効期限日時
+            
+        戻り値:
+            データベースに保存されたRefreshTokenモデルインスタンス
         """
+        rt = RefreshToken(
+            refresh_token=refresh_token,
+            user_id=user_id,
+            expires_at=expires_at,
+            revoked_at=None,
+        )
+        db.add(rt)
+        db.commit()
+        db.refresh(rt)
+        return rt
+
+    def rotate_refresh_token(
+        self, 
+        db: Session, 
+        refresh_token_str: str,
+        create_new_refresh_token_fn,
+    ) -> str:
+        """
+        リフレッシュトークンをローテーションします（古いトークンを無効化し、新しいトークンを生成）。
         
-        db.query(RefreshToken).filter(
-            RefreshToken.user_id == user_id,
-            RefreshToken.revoked == False
-        ).update({RefreshToken.revoked: True}, synchronize_session=False)
+        - 古いトークンを無効化（revoked_at を設定）
+        - 新しいトークンを生成して返す
+        - トークン盗聴時のリスク軽減
+        
+        引数:
+            db: データベースセッション
+            refresh_token_str: クライアントが提供したJWTリフレッシュトークン
+            create_new_refresh_token_fn: 新しいリフレッシュトークンを生成する関数
+                                        (ttl_days) -> (token_str, expires_at)
+        
+        戻り値:
+            新しいリフレッシュトークン文字列
+        
+        例外:
+            RefreshTokenError: トークンが無効、期限切れ、または見つからない場合
+        """
+        rt = db.query(RefreshToken).filter(
+            RefreshToken.refresh_token == refresh_token_str,
+            RefreshToken.revoked_at.is_(None),
+        ).first()
+        
+        if not rt:
+            raise RefreshTokenError("refresh token revoked or not found")
+        
+        now = now_utc()
+        if rt.expires_at is None or rt.expires_at < now:
+            raise RefreshTokenError("refresh token expired")
+        
+        # TODO: 今の実装だと、リフレッシュトークンのテーブルが無効となったリフレッシュトークンのレコードで肥大化する可能性がある。
+        # 定期的に古い revoked トークンを削除するジョブを追加することを検討する。
+        # もしくは、ここで削除しても良いかもしれないが、ログ/監査の観点からは好ましくないかもしれない。
+        rt.revoked_at = now
+        rt.last_used_at = now
+        db.add(rt)
+
+        remaining_days = (rt.expires_at - now).days
+        remember_days = (
+            settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER
+            if remaining_days > settings.REFRESH_TOKEN_EXPIRE_DAYS
+            else settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+        
+        new_refresh_token, new_expires_at = create_new_refresh_token_fn(ttl_days=remember_days)
+        self.save_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
+        
+        return new_refresh_token
+    
+    def logout(self, db: Session, refresh_token_str: str) -> None:
+        """
+        リフレッシュトークンを無効化してログアウト処理を実行します。
+        
+        引数:
+            db: データベースセッション
+            refresh_token_str: 無効化するリフレッシュトークン文字列
+        
+        例外:
+            RefreshTokenError: トークンが見つからない場合
+        """
+        rt = db.query(RefreshToken).filter(
+            RefreshToken.refresh_token == refresh_token_str,
+            RefreshToken.revoked_at.is_(None),
+        ).first()
+        
+        if not rt:
+            raise RefreshTokenError("refresh token not found or already revoked")
+        
+        rt.revoked_at = now_utc()
+        db.add(rt)
         db.commit()
 
 

@@ -1,6 +1,32 @@
 from app.services.user_service import UserAlreadyExists
 from tests.factories import UserFactory
 
+"""
+認証 API テストスイート
+
+このテストスイートは以下をカバーします:
+
+1. **基本的な認証フロー**
+   - ユーザー登録 (registration)
+   - メール確認 (confirmation)
+   - ログイン (login)
+   - トークンリフレッシュ (refresh)
+   - ログアウト (logout)
+
+2. **Refresh Token セキュリティ** (JWT そのまま保存)
+   - JWT トークン文字列が DB に格納されている
+   - revoked_at フィールドで無効化管理
+   - トークンローテーション機能
+
+3. **デバイス追跡**
+   - device_id, ip_address, user_agent, last_used_at の存在確認
+
+注記:
+- すべてのテストは独立して実行可能
+- DB は各テスト前に TRUNCATE される（conftest.py 参照）
+- テストは本番環境と同じ PostgreSQL を使用
+"""
+
 
 def test_register_api_success(client):
     payload = {
@@ -173,6 +199,64 @@ def test_refresh_invalid_token(client):
     assert "invalid" in r.json()["detail"].lower()
 
 
+def test_logout_success(client, db_session):
+    """Test logout successfully revokes refresh tokens."""
+    user = UserFactory(
+        email="logoutuser@example.com",
+        username="logoutuser",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    login_payload = {
+        "email": "logoutuser@example.com",
+        "password": "password123",
+    }
+    r_login = client.post("/api/auth/login", json=login_payload)
+    assert r_login.status_code == 200
+    refresh_token = r_login.json()["refresh_token"]
+
+    logout_payload = {"refresh_token": refresh_token}
+    r_logout = client.post("/api/auth/logout", json=logout_payload)
+    assert r_logout.status_code == 204
+    assert r_logout.text == ""
+
+
+def test_logout_invalid_token(client):
+    """Test logout with invalid token."""
+    logout_payload = {"refresh_token": "invalid-token"}
+    r = client.post("/api/auth/logout", json=logout_payload)
+    assert r.status_code == 401
+    assert "invalid" in r.json()["detail"].lower()
+
+
+def test_logout_then_refresh_fails(client, db_session):
+    """Test that refresh fails after logout."""
+    user = UserFactory(
+        email="logoutrefresh@example.com",
+        username="logoutrefresh",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    login_payload = {
+        "email": "logoutrefresh@example.com",
+        "password": "password123",
+    }
+    r_login = client.post("/api/auth/login", json=login_payload)
+    assert r_login.status_code == 200
+    refresh_token = r_login.json()["refresh_token"]
+
+    logout_payload = {"refresh_token": refresh_token}
+    r_logout = client.post("/api/auth/logout", json=logout_payload)
+    assert r_logout.status_code == 204
+
+    refresh_payload = {"refresh_token": refresh_token}
+    r_refresh = client.post("/api/auth/refresh", json=refresh_payload)
+    assert r_refresh.status_code == 401
+    assert "revoked" in r_refresh.json()["detail"].lower()
+
+
 def test_resend_confirmation_success(client):
     """Test resend confirmation endpoint."""
     register_payload = {
@@ -217,61 +301,3 @@ def test_resend_confirmation_nonexistent_user(client):
     """Test resend confirmation for nonexistent user."""
     r = client.post("/api/auth/resend-confirmation", params={"email": "does-not-exist@example.com"})
     assert r.status_code == 400
-
-
-def test_logout_success(client, db_session):
-    """Test logout successfully revokes refresh tokens."""
-    user = UserFactory(
-        email="logoutuser@example.com",
-        username="logoutuser",
-        is_confirmed=True,
-        is_active=True,
-    )
-
-    login_payload = {
-        "email": "logoutuser@example.com",
-        "password": "password123",
-    }
-    r_login = client.post("/api/auth/login", json=login_payload)
-    assert r_login.status_code == 200
-    refresh_token = r_login.json()["refresh_token"]
-
-    logout_payload = {"refresh_token": refresh_token}
-    r_logout = client.post("/api/auth/logout", json=logout_payload)
-    assert r_logout.status_code == 204
-    assert r_logout.text == ""
-
-
-def test_logout_invalid_token(client):
-    """Test logout with invalid token."""
-    logout_payload = {"refresh_token": "invalid-token"}
-    r = client.post("/api/auth/logout", json=logout_payload)
-    assert r.status_code == 401
-    assert "invalid token" in r.json()["detail"].lower()
-
-
-def test_logout_then_refresh_fails(client, db_session):
-    """Test that refresh fails after logout."""
-    user = UserFactory(
-        email="logoutrefresh@example.com",
-        username="logoutrefresh",
-        is_confirmed=True,
-        is_active=True,
-    )
-
-    login_payload = {
-        "email": "logoutrefresh@example.com",
-        "password": "password123",
-    }
-    r_login = client.post("/api/auth/login", json=login_payload)
-    assert r_login.status_code == 200
-    refresh_token = r_login.json()["refresh_token"]
-
-    logout_payload = {"refresh_token": refresh_token}
-    r_logout = client.post("/api/auth/logout", json=logout_payload)
-    assert r_logout.status_code == 204
-
-    refresh_payload = {"refresh_token": refresh_token}
-    r_refresh = client.post("/api/auth/refresh", json=refresh_payload)
-    assert r_refresh.status_code == 401
-    assert "revoked" in r_refresh.json()["detail"].lower()
