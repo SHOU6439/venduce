@@ -6,7 +6,7 @@ from app.utils.mailer import send_confirmation_email
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
 from app.services.user_service import UserService, UserAlreadyExists, ConfirmationError, RefreshTokenError
-from app.deps import get_user_service, get_current_user
+from app.deps import get_user_service
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenPair
 from app.utils import jwt as jwt_utils
@@ -180,11 +180,3 @@ def logout(
         svc.logout(db, payload.refresh_token)
     except RefreshTokenError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-
-
-@router.get("/me", response_model=UserRead)
-def read_user_me(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    return current_user
-
