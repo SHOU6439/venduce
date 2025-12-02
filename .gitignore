@@ -63,6 +63,3 @@ postgres_data/
 # OS
 .DS_Store
 Thumbs.db
-
-# TODO Files
-moto-todo.md
