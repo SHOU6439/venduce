@@ -29,6 +29,7 @@ smtplib.SMTP = _DummySMTP
 from app.db.database import Base, get_db
 from app.main import app
 from tests.factories import UserFactory
+from app.core.config import settings
 
 
 # Use PostgreSQL for tests (same as production)
@@ -67,6 +68,20 @@ def db_session():
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def mock_jwt_settings(monkeypatch):
+    """
+    テスト用にJWT設定をオーバーライド
+    ファイルシステムへの依存を排除するため、HS256とダミーキーを使用
+    """
+    monkeypatch.setattr(settings, "JWT_ALGORITHM", "HS256")
+    monkeypatch.setattr(settings, "JWT_SECRET_KEY", "test-secret-key-for-unit-tests")
+    monkeypatch.setattr(settings, "JWT_PRIVATE_KEY_PATH", None)
+    monkeypatch.setattr(settings, "JWT_PUBLIC_KEY_PATH", None)
+    monkeypatch.setattr(settings, "JWT_PRIVATE_KEY", None)
+    monkeypatch.setattr(settings, "JWT_PUBLIC_KEY", None)
 
 
 @pytest.fixture(autouse=True)
