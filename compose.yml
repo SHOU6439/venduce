@@ -26,8 +26,6 @@ services:
       MAIL_ENABLED: 'true'
       MAIL_HOST: mailhog
       MAIL_PORT: '1025'
-      JWT_ALGORITHM: HS256
-      JWT_SECRET_KEY: changethis
     depends_on:
       postgres:
         condition: service_healthy

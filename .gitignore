@@ -54,6 +54,7 @@ out/
 
 # Local keys
 backend/keys/
+backend/certs/
 
 # Database
 postgres_data/
