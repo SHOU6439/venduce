@@ -28,7 +28,7 @@ def register(
     except UserAlreadyExists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"
+    confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -71,7 +71,7 @@ def resend(
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"
+    confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -128,7 +128,6 @@ def login(
     return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 
 
-
 @router.post("/refresh", response_model=TokenPair)
 def refresh(
     payload: RefreshRequest,
@@ -179,4 +178,3 @@ def logout(
         svc.logout(db, payload.refresh_token)
     except RefreshTokenError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    
