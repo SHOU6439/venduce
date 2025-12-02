@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.admin.sqladmin import setup_admin
 from app.api.routers import auth as auth_router
+from app.api.routers import users as users_router
 
 app = FastAPI()
 
@@ -21,6 +22,7 @@ except Exception as e:
     print(f"SQLAdmin setup error: {e}")
 
 app.include_router(auth_router.router)
+app.include_router(users_router.router, prefix="/api/users", tags=["users"])
 
 @app.get("/api/health")
 def health_check():
