@@ -22,13 +22,13 @@ def generate_keys():
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
-    certs_dir = Path("backend/certs")
-    certs_dir.mkdir(exist_ok=True)
+    keys_dir = Path("keys")
+    keys_dir.mkdir(exist_ok=True)
 
-    (certs_dir / "private.pem").write_bytes(pem_private)
-    (certs_dir / "public.pem").write_bytes(pem_public)
+    (keys_dir / "private.pem").write_bytes(pem_private)
+    (keys_dir / "public.pem").write_bytes(pem_public)
 
-    print(f"Keys generated in {certs_dir.absolute()}")
+    print(f"Keys generated in {keys_dir.absolute()}")
 
 
 if __name__ == "__main__":
