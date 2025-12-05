@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import EmailStr
+from pydantic import EmailStr, BaseModel
 from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
@@ -57,17 +57,21 @@ def confirm(
     return UserRead.model_validate(user)
 
 
+class ResendRequest(BaseModel):
+    email: EmailStr
+
+
 @router.post("/resend-confirmation", response_model=RegistrationResponse)
 def resend(
-    email: EmailStr,
+    payload: ResendRequest,
     db: Session = Depends(get_db),
     svc: UserService = Depends(get_user_service),
 ):
     try:
-        user = svc.get_user_by_email(db, email)
+        user = svc.get_user_by_email(db, payload.email)
         if not user:
             raise ConfirmationError("user not found")
-        token = svc.resend_confirmation(db, email)
+        token = svc.resend_confirmation(db, payload.email)
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
