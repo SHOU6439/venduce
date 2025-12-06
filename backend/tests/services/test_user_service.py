@@ -1,9 +1,14 @@
 import pytest
-from app.services.user_service import user_service, UserAlreadyExists, ConfirmationError
+from app.services.user_service import (
+    user_service,
+    UserAlreadyExists,
+    ConfirmationError,
+    RefreshTokenError,
+    AuthenticationError,
+)
 from app.schemas.user import UserCreate
 from app.utils.timezone import now_utc
 from tests.factories import RefreshTokenFactory, UserFactory
-from app.services.user_service import RefreshTokenError
 from app.utils import jwt as jwt_utils
 
 
@@ -248,6 +253,65 @@ def test_authenticate_user_inactive(db_session):
     assert authenticated_user is None
 
 
+def test_authenticate_and_issue_tokens_success(db_session):
+    user = UserFactory(
+        email="tokenlogin@example.com",
+        username="tokenlogin",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    access_token, refresh_token, expires_in = user_service.authenticate_and_issue_tokens(
+        db_session,
+        "tokenlogin@example.com",
+        "password123",
+        remember=False,
+    )
+
+    assert isinstance(access_token, str) and access_token
+    assert isinstance(refresh_token, str) and refresh_token
+    assert isinstance(expires_in, int) and expires_in > 0
+
+
+def test_authenticate_and_issue_tokens_not_confirmed(db_session):
+    UserFactory(
+        email="unconfirmed@example.com",
+        username="unconfirmed",
+        is_confirmed=False,
+        is_active=True,
+    )
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        user_service.authenticate_and_issue_tokens(
+            db_session,
+            "unconfirmed@example.com",
+            "password123",
+            remember=False,
+        )
+
+    assert exc_info.value.code == "not_confirmed"
+    assert exc_info.value.status_code == 403
+
+
+def test_authenticate_and_issue_tokens_wrong_password(db_session):
+    UserFactory(
+        email="wrong@example.com",
+        username="wronguser",
+        is_confirmed=True,
+        is_active=True,
+    )
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        user_service.authenticate_and_issue_tokens(
+            db_session,
+            "wrong@example.com",
+            "invalid",
+            remember=False,
+        )
+
+    assert exc_info.value.code == "invalid_credentials"
+
+
 def test_save_refresh_token_success(db_session):
     """Test saving a refresh token in the database."""
     from app.models.refresh_token import RefreshToken
@@ -331,7 +395,6 @@ def test_rotate_refresh_token_invalid_token(db_session):
 
 def test_rotate_refresh_token_revoked_token(db_session):
     """Test refresh with already revoked token raises error."""
-    from app.services.user_service import RefreshTokenError
     from app.utils import jwt as jwt_utils
     
     user = UserFactory(

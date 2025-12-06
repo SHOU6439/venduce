@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
 from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
-from app.services.user_service import UserService, UserAlreadyExists, ConfirmationError, RefreshTokenError
+from app.services.user_service import (
+    UserService,
+    UserAlreadyExists,
+    ConfirmationError,
+    RefreshTokenError,
+    AuthenticationError,
+)
 from app.deps import get_user_service
-from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenPair
 from app.utils import jwt as jwt_utils
-from app.core.config import settings
 from app.schemas.auth import RefreshRequest
-from app.core.security import verify_password
-from app.utils.mailer import send_confirmation_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -94,40 +97,33 @@ def login(
     db: Session = Depends(get_db),
     svc: UserService = Depends(get_user_service),
 ):
-    user = svc.get_user_by_email(db, payload.email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "invalid_credentials", "message": "Invalid email or password"},
+    remember = getattr(payload, "remember", False)
+    try:
+        access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
+            db, payload.email, payload.password, remember
         )
-
-    if not getattr(user, "is_confirmed", False):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "not_confirmed", "message": "Account not confirmed. Check your email."},
-        )
-
-    if not getattr(user, "is_active", True):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "inactive_account", "message": "Account is inactive. Contact support."},
-        )
-
-    if not verify_password(payload.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "invalid_credentials", "message": "Invalid email or password"},
-        )
-
-    access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
-
-    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
-    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
-
-    svc.save_refresh_token(db, str(user.id), refresh_token, expires_at)
+    except AuthenticationError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 
+
+@router.post("/token", response_model=TokenPair, summary="OAuth2 password token endpoint")
+def login_with_password_grant(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
+):
+    """OAuth2 passwordフローからトークンを発行するエンドポイント"""
+    remember = "remember" in (form_data.scopes or [])
+    try:
+        access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
+            db, form_data.username, form_data.password, remember
+        )
+    except AuthenticationError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+    return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 
 
 @router.post("/refresh", response_model=TokenPair)
