@@ -7,7 +7,7 @@ from app.models.user import User
 from app.services.user_service import user_service, UserService
 from app.utils import jwt as jwt_utils
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
 
 def get_user_service() -> UserService:

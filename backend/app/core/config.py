@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER: int = 60
+    API_TITLE: str = "Pride API"
+    API_VERSION: str = "1.0.0"
+    API_DESCRIPTION: str = "Pride backend API"
 
     model_config = ConfigDict(env_prefix="")
 
