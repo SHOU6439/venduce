@@ -9,6 +9,9 @@
 - [開発計画](./DEVELOPMENT_PLAN.md) - プロジェクト全体の開発計画とロードマップ
 - [ワークフロー](./.github/WORKFLOW.md) - ブランチ戦略、開発フロー、コミット規約
 - [サンプル Issue](./.github/SAMPLE_ISSUES.md) - Issue 作成の参考例
+- [Swagger UI ガイド](./docs/SWAGGER_UI.md) - docs 画面での OAuth2 認証と API テスト手順
+- [データベースマイグレーション運用ガイド](./docs/MIGRATE.md) - Alembic を使ったマイグレーション手順と注意点
+- [テスト実行ガイド](./docs/TESTING.md) - pytest の実行方法と Docker コンテナでの検証手順
 
 ## 前提条件
 
