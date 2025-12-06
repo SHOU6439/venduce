@@ -6,7 +6,7 @@ from app.api.routers import auth as auth_router
 from app.api.routers import users as users_router
 from app.core.config import settings
 
-app = FastAPI()
+app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
 
 # CORS設定
 app.add_middleware(
