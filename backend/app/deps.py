@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
 from app.services.user_service import user_service, UserService
+from app.services.asset_service import asset_service, AssetService
 from app.utils import jwt as jwt_utils
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
@@ -13,6 +14,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 def get_user_service() -> UserService:
     """Dependency provider for UserService. Can be overridden in tests."""
     return user_service
+
+
+def get_asset_service() -> AssetService:
+    """Dependency provider for AssetService."""
+    return asset_service
 
 
 def get_current_user(
