@@ -1,4 +1,3 @@
-from datetime import timezone
 from ulid import ULID
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Text
 from app.db.database import Base
@@ -15,6 +14,7 @@ class RefreshToken(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     revoked_at = Column(DateTime(timezone=True), nullable=True, index=True)
