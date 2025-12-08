@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.admin.sqladmin import setup_admin
 from app.api.routers import auth as auth_router
 from app.api.routers import users as users_router
+from app.api.routers import uploads as uploads_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -25,6 +26,7 @@ except Exception as e:
 
 app.include_router(auth_router.router)
 app.include_router(users_router.router, prefix="/api/users", tags=["users"])
+app.include_router(uploads_router.router)
 
 @app.get("/api/health")
 def health_check():
