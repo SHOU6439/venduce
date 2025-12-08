@@ -27,7 +27,7 @@ class Asset(Base):
 
     variants = Column(JSONB, nullable=True)
     public_url = Column(Text, nullable=True)
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -35,6 +35,5 @@ class Asset(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-
 
 __all__ = ["Asset"]
