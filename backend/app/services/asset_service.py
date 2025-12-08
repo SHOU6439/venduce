@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.asset import Asset
 from app.services.storage import storage_client, build_asset_path
+from ulid import ULID
 
 
 class AssetService:
@@ -30,7 +31,9 @@ class AssetService:
         variants: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> Asset:
+        asset_id = str(ULID())
         asset = Asset(
+            id=asset_id,
             owner_id=owner_id,
             owner_type=owner_type,
             purpose=purpose,
@@ -42,13 +45,14 @@ class AssetService:
             height=height,
             checksum=checksum,
             variants=variants,
-            metadata=metadata,
+            extra_metadata=metadata,
         )
+        db.add(asset)
         relative_path = build_asset_path(
             purpose=purpose,
             owner_type=owner_type,
             owner_id=owner_id,
-            asset_id=asset.id,
+            asset_id=asset_id,
             variant="original",
             extension=asset.extension,
         )
@@ -57,7 +61,6 @@ class AssetService:
         asset.storage_key = relative_path
         asset.public_url = self.storage.generate_url(relative_path)
         asset.status = "ready"
-        db.add(asset)
         db.commit()
         db.refresh(asset)
         return asset
