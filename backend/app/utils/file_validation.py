@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import imghdr
 import mimetypes
 from dataclasses import dataclass
 from typing import BinaryIO
 
+import magic
 from PIL import Image
 
 ALLOWED_IMAGE_MIME_TYPES = {
@@ -28,13 +28,9 @@ class FileValidationError(Exception):
 def detect_mime_type(filename: str, sample: bytes | None = None) -> str | None:
     """ファイル内容から優先的に MIME を推定し、難しい場合は拡張子で推定する。"""
     if sample:
-        detected = imghdr.what(None, h=sample)
-        if detected == "jpeg":
-            return "image/jpeg"
-        if detected == "png":
-            return "image/png"
-        if detected == "webp":
-            return "image/webp"
+        detected = magic.from_buffer(sample, mime=True)
+        if detected:
+            return detected
     mime, _ = mimetypes.guess_type(filename)
     return mime
 
