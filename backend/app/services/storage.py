@@ -61,8 +61,9 @@ class LocalStorageClient(StorageClient):
         return self.root / rel
 
 
-def sanitize_segment(segment: str) -> str:
+def sanitize_segment(segment: str | None) -> str:
     """ストレージパスに使えるよう、区切り文字を除外する。"""
+    segment = segment or ""
     sanitized = segment.strip().replace("../", "").replace("..", "")
     sanitized = sanitized.replace("/", "_").replace("\\", "_")
     return sanitized or "unknown"
