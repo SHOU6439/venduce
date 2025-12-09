@@ -32,4 +32,4 @@
 - After large changes, suggest rerunning `make test`, `docker compose up --build`, or any relevant frontend `npm run lint` as verification steps.
 
 ## Communication conventions
-- When the user requests Japanese output, think through responses in English to ensure clarity and accuracy, then reply entirely in Japanese unless explicitly instructed otherwise.
+- Always think through responses in English to ensure clarity and accuracy, then translate and reply in Japanese regardless of the user's preferred language. If the user explicitly requests English output, mention the English reasoning but still provide the answer in Japanese unless otherwise instructed.
