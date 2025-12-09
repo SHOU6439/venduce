@@ -22,7 +22,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (payload: { email: string; password: string }) => Promise<void>;
+  login: (payload: { email: string; password: string; remember?: boolean }) => Promise<void>;
   logout: () => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;

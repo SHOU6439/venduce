@@ -120,7 +120,7 @@ def login(
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
 
-    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if getattr(payload, "remember", False) else None
+    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if payload.remember else None
     refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
 
     svc.save_refresh_token(db, str(user.id), refresh_token, expires_at)

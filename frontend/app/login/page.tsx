@@ -51,7 +51,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login(formData);
+      await login({ ...formData, remember: rememberMe });
       router.push('/');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -124,7 +124,7 @@ export default function Login() {
             </label>
           </div>
 
-          <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5" disabled={isLoading}>
+          <button type="submit" className="w-full flex justify-center py-3 px-4 cursor-pointer border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5" disabled={isLoading}>
             {isLoading ? (
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
