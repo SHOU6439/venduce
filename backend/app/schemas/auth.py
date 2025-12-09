@@ -19,4 +19,8 @@ class RefreshRequest(AppModel):
     refresh_token: str
 
 
-__all__ = ["LoginRequest", "TokenPair", "RefreshRequest"]
+class ResendRequest(AppModel):
+    email: EmailStr
+
+
+__all__ = ["LoginRequest", "TokenPair", "RefreshRequest", "ResendRequest"]

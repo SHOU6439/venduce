@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import EmailStr, BaseModel
+
 from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
 from app.services.user_service import UserService, UserAlreadyExists, ConfirmationError, RefreshTokenError
 from app.deps import get_user_service
-from app.schemas.auth import LoginRequest, TokenPair
+from app.schemas.auth import LoginRequest, TokenPair, ResendRequest, RefreshRequest
 from app.utils import jwt as jwt_utils
 from app.core.config import settings
-from app.schemas.auth import RefreshRequest
+
 from app.core.security import verify_password
-from app.utils.mailer import send_confirmation_email
+
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -55,10 +55,6 @@ def confirm(
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return UserRead.model_validate(user)
-
-
-class ResendRequest(BaseModel):
-    email: EmailStr
 
 
 @router.post("/resend-confirmation", response_model=RegistrationResponse)
