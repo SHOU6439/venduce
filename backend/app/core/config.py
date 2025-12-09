@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     API_TITLE: str = "Pride API"
     API_VERSION: str = "1.0.0"
     API_DESCRIPTION: str = "Pride backend API"
+    ASSET_STORAGE_ROOT: str = "storage"
+    ASSET_PUBLIC_BASE_URL: str = "/storage"
 
     model_config = ConfigDict(env_prefix="")
 
