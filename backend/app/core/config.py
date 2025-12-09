@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     MAIL_PASSWORD: str | None = None
     JWT_PRIVATE_KEY: str | None = None
     JWT_PUBLIC_KEY: str | None = None
-    JWT_PRIVATE_KEY_PATH: str | None = "certs/private.pem"
-    JWT_PUBLIC_KEY_PATH: str | None = "certs/public.pem"
+    JWT_PRIVATE_KEY_PATH: str | None = "keys/private.pem"
+    JWT_PUBLIC_KEY_PATH: str | None = "keys/public.pem"
     JWT_SECRET_KEY: str | None = None
     JWT_ALGORITHM: str = "RS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
