@@ -1,25 +1,23 @@
-from sqlalchemy.orm import Session
+import secrets
 from datetime import timezone, timedelta, datetime
+from typing import Tuple
+
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import hash_password, verify_password, pwd_context
-from app.models.user import User
+from app.core.security import hash_password, verify_password
+from app.exceptions import (
+    AuthenticationError,
+    ConfirmationError,
+    RefreshTokenError,
+    UserAlreadyExists,
+)
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.schemas.user import UserCreate
+from app.utils import jwt as jwt_utils
 from app.utils.timezone import now_utc
 import secrets
-
-
-class UserAlreadyExists(Exception):
-    pass
-
-
-class ConfirmationError(Exception):
-    pass
-
-
-class RefreshTokenError(Exception):
-    pass
 
 
 class UserService:
@@ -220,6 +218,44 @@ class UserService:
         rt.revoked_at = now_utc()
         db.add(rt)
         db.commit()
+
+    def authenticate_and_issue_tokens(
+        self,
+        db: Session,
+        email: str,
+        password: str,
+        remember: bool = False,
+    ) -> Tuple[str, str, int]:
+        """ユーザー認証情報を検証し、(access_token, refresh_token, expires_in) を返す。"""
+        user = self.get_user_by_email(db, email)
+        if not user:
+            raise AuthenticationError("invalid_credentials", "Invalid email or password")
+
+        if not getattr(user, "is_confirmed", False):
+            raise AuthenticationError(
+                "not_confirmed",
+                "Account not confirmed. Check your email.",
+                status_code=403,
+            )
+
+        if not getattr(user, "is_active", True):
+            raise AuthenticationError(
+                "inactive_account",
+                "Account is inactive. Contact support.",
+                status_code=403,
+            )
+
+        if not verify_password(password, user.password_hash):
+            raise AuthenticationError("invalid_credentials", "Invalid email or password")
+
+        access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
+
+        remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if remember else None
+        refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
+
+        self.save_refresh_token(db, str(user.id), refresh_token, expires_at)
+
+        return access_token, refresh_token, expires_in
 
 
 # default service instance for convenience / backward compatibility

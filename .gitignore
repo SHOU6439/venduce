@@ -29,6 +29,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+storage/
 
 # Node.js
 node_modules/
