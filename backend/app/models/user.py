@@ -4,6 +4,18 @@ from app.db.database import Base
 
 
 class User(Base):
+    """アプリケーションのユーザーを表すデータモデル。
+
+    Attributes:
+        email: ユーザーのメールアドレス（ログイン識別子）。
+        username: 表示名とは別の一意のユーザー名。
+        password_hash: ハッシュ化済パスワード。
+        is_active: アカウントが有効か。
+        is_confirmed: メール確認済みか。
+        confirmation_token: メール確認用トークン。
+        confirmation_sent_at: 確認メール送信日時。
+        confirmation_expires_at: 確認トークンの有効期限。
+    """
     __tablename__ = "users"
 
     id = Column(String(26), primary_key=True, index=True, default=lambda: str(ULID()))
