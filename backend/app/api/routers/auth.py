@@ -6,12 +6,12 @@ from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate, UserRead, RegistrationResponse
-from app.services.user_service import (
-    UserService,
-    UserAlreadyExists,
+from app.services.user_service import UserService
+from app.exceptions import (
+    AuthenticationError,
     ConfirmationError,
     RefreshTokenError,
-    AuthenticationError,
+    UserAlreadyExists,
 )
 from app.deps import get_user_service
 from app.schemas.auth import LoginRequest, TokenPair
