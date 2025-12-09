@@ -86,16 +86,16 @@ export default function RegisterPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
-                  名
-                </label>
-                <input id="first_name" name="first_name" type="text" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:ring-indigo-500 focus:border-indigo-500 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200" placeholder="名" value={formData.first_name} onChange={handleChange} disabled={isLoading} />
-              </div>
-              <div>
                 <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
                   姓
                 </label>
                 <input id="last_name" name="last_name" type="text" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:ring-indigo-500 focus:border-indigo-500 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200" placeholder="姓" value={formData.last_name} onChange={handleChange} disabled={isLoading} />
+              </div>
+              <div>
+                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+                  名
+                </label>
+                <input id="first_name" name="first_name" type="text" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:ring-indigo-500 focus:border-indigo-500 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200" placeholder="名" value={formData.first_name} onChange={handleChange} disabled={isLoading} />
               </div>
             </div>
             <div>

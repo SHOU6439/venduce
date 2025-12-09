@@ -1,5 +1,5 @@
 
-こんにちは {{ first_name }} {{ last_name }} 様、
+こんにちは {{ last_name }} {{ first_name }} 様、
 
 Pride にご登録いただきありがとうございます。
 
