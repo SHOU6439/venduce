@@ -1,8 +1,8 @@
+import Login from '@/app/login/page';
 import { useAuthStore } from '@/stores/auth';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import Login from './page';
 
 // Mock modules
 vi.mock('next/navigation', () => ({
@@ -53,7 +53,7 @@ describe('Login Page', () => {
     fireEvent.click(screen.getByRole('button', { name: /サインイン/i }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password' });
+      expect(mockLogin).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password', remember: false });
       expect(mockPush).toHaveBeenCalledWith('/');
     });
   });
