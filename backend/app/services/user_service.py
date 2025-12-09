@@ -1,38 +1,23 @@
-from sqlalchemy.orm import Session
+import secrets
 from datetime import timezone, timedelta, datetime
 from typing import Tuple
 
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.core.security import hash_password, verify_password
-from app.models.user import User
+from app.exceptions import (
+    AuthenticationError,
+    ConfirmationError,
+    RefreshTokenError,
+    UserAlreadyExists,
+)
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.schemas.user import UserCreate
-from app.utils.timezone import now_utc
 from app.utils import jwt as jwt_utils
+from app.utils.timezone import now_utc
 import secrets
-
-
-class UserAlreadyExists(Exception):
-    pass
-
-
-class ConfirmationError(Exception):
-    pass
-
-
-class RefreshTokenError(Exception):
-    pass
-
-
-class AuthenticationError(Exception):
-    def __init__(self, code: str, message: str, status_code: int = 401):
-        self.code = code
-        self.message = message
-        self.status_code = status_code
-
-    @property
-    def detail(self) -> dict:
-        return {"code": self.code, "message": self.message}
 
 
 class UserService:

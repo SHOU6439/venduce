@@ -1,4 +1,4 @@
-from app.services.user_service import UserAlreadyExists
+from app.exceptions import UserAlreadyExists
 from tests.factories import UserFactory
 
 """

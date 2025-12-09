@@ -1,11 +1,11 @@
 import pytest
-from app.services.user_service import (
-    user_service,
-    UserAlreadyExists,
+from app.exceptions import (
+    AuthenticationError,
     ConfirmationError,
     RefreshTokenError,
-    AuthenticationError,
+    UserAlreadyExists,
 )
+from app.services.user_service import user_service
 from app.schemas.user import UserCreate
 from app.utils.timezone import now_utc
 from tests.factories import RefreshTokenFactory, UserFactory
