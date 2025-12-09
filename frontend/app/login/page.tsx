@@ -55,8 +55,19 @@ export default function Login() {
       router.push('/');
     } catch (err) {
       if (err instanceof ApiError) {
-        // Handle specific error codes if available, otherwise use message
-        setError(err.message || 'ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+        switch (err.message) {
+          case 'Invalid email or password':
+            setError('メールアドレスまたはパスワードが正しくありません');
+            break;
+          case 'Account not confirmed. Check your email.':
+            setError('アカウントが確認されていません。メールを確認してください。');
+            break;
+          case 'Account is inactive. Contact support.':
+            setError('アカウントが無効です。サポートにお問い合わせください。');
+            break;
+          default:
+            setError('予期せぬエラーが発生しました。しばらくしてから再度お試しください。');
+        }
       } else {
         setError('予期せぬエラーが発生しました。しばらくしてから再度お試しください。');
       }

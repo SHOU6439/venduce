@@ -32,7 +32,20 @@ export default function RegisterPage() {
       setShowSuccessModal(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        switch (err.message) {
+          case 'email or username already exists':
+            setError('すでに登録されているメールアドレスまたはユーザー名です');
+            break;
+          case 'value is not a valid email address':
+            setError('有効なメールアドレスを入力してください');
+            break;
+          default:
+            if (err.message.includes('Password should be at least 8 characters')) {
+              setError('パスワードは8文字以上で入力してください');
+            } else {
+              setError(err.message);
+            }
+        }
       } else {
         setError('予期せぬエラーが発生しました。もう一度お試しください。');
       }
