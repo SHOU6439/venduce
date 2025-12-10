@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from pydantic import EmailStr
+
 from app.utils.mailer import send_confirmation_email
 
 from app.db.database import get_db
@@ -14,9 +14,12 @@ from app.exceptions import (
     UserAlreadyExists,
 )
 from app.deps import get_user_service
-from app.schemas.auth import LoginRequest, TokenPair
+from app.schemas.auth import LoginRequest, TokenPair, ResendRequest, RefreshRequest
 from app.utils import jwt as jwt_utils
-from app.schemas.auth import RefreshRequest
+from app.core.config import settings
+
+from app.core.security import verify_password
+
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -32,7 +35,7 @@ def register(
     except UserAlreadyExists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"
+    confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -63,19 +66,19 @@ def confirm(
 
 @router.post("/resend-confirmation", response_model=RegistrationResponse)
 def resend(
-    email: EmailStr,
+    payload: ResendRequest,
     db: Session = Depends(get_db),
     svc: UserService = Depends(get_user_service),
 ):
     try:
-        user = svc.get_user_by_email(db, email)
+        user = svc.get_user_by_email(db, payload.email)
         if not user:
             raise ConfirmationError("user not found")
-        token = svc.resend_confirmation(db, email)
+        token = svc.resend_confirmation(db, payload.email)
     except ConfirmationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    confirm_url = f"http://localhost:8025/confirm?token={token}"
+    confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
         "Confirm your account",
@@ -120,8 +123,13 @@ def login_with_password_grant(
         access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
             db, form_data.username, form_data.password, remember
         )
-    except AuthenticationError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+    access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
+
+    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if payload.remember else None
+    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
+
+    svc.save_refresh_token(db, str(user.id), refresh_token, expires_at)
 
     return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 

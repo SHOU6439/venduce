@@ -1,17 +1,16 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <title>アカウント確認</title>
   </head>
   <body>
-    <p>こんにちは {{ first_name }} {{ last_name }} 様、</p>
+    <p>こんにちは {{ last_name }} {{ first_name }} 様、</p>
     <p>Pride にご登録いただきありがとうございます。</p>
     <p>
       下のリンクをクリックしてアカウントを確認してください。<br />
       <a href="{{ confirm_url }}">アカウントを確認する</a>
     </p>
-    <p>上のリンクが動作しない場合は、こちらのトークンをお使いください： <strong>{{ token }}</strong></p>
-    <p>よろしくお願いいたします。<br/>Pride チーム</p>
+    <p>今後とも Pride をよろしくお願いいたします。<br />Pride チーム</p>
   </body>
 </html>

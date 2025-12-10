@@ -9,6 +9,7 @@ help:
 	@echo "  down	 - Dockerコンテナを停止"
 	@echo "  logs	 - コンテナのログを表示"
 	@echo "  clean	- コンテナを停止し、不要なリソースを削除"
+	@echo "  restart	- コンテナを再起動"
 	@echo "  rebuild  - コンテナを再ビルドして起動"
 	@echo "  nocache  - キャッシュを使わずにDockerイメージをビルド"
 	@echo "  test	 - テストを実行"
@@ -76,6 +77,11 @@ clean:
 	docker compose down
 	docker system prune -f
 	@echo "クリーンアップが完了しました！"
+
+restart:
+	@echo "Dockerコンテナを再起動中..."
+	docker compose restart
+	@echo "再起動が完了しました！"
 
 rebuild: down build up
 	@echo "再ビルドが完了しました！"
