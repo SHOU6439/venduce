@@ -61,7 +61,7 @@ docker compose exec backend bash -lc "cd /app && PYTHONPATH=/app pytest -q tests
 ## テスト方針
 
 - **基本方針（推奨）: Factory ベースのテスト（統合寄り）**
-    - 多くの API/ユースケース テストは `factory-boy` をて DB に実際のモデルを作成（`tests/factories/`）し、`db_session` fixture を使って後片付けを確実にする。これにより ORM の制約やトランザクション整合性、マイグレーションの問題を捕捉しやすくなる。
+    - 多くの API/ユースケース テストは `factory-boy` を使って DB に実際のモデルを作成（`tests/factories/`）し、`db_session` fixture を使って後片付けを確実にする。これにより ORM の制約やトランザクション整合性、マイグレーションの問題を捕捉しやすくなる。
     - 利点: 実際の DB を利用するため、本番に近い統合的なテストが可能。予期せぬ DB 制約違反を検出できる。
 
 - **補助方針: Fake（in-memory mock）ベースのテスト（ユニット寄り）**
