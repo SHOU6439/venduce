@@ -78,10 +78,7 @@ clean:
 	docker system prune -f
 	@echo "クリーンアップが完了しました！"
 
-restart:
-	@echo "Dockerコンテナを再起動中..."
-	docker compose restart
-	@echo "再起動が完了しました！"
+restart: down up
 
 rebuild: down build up
 	@echo "再ビルドが完了しました！"
