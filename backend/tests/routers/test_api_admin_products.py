@@ -31,12 +31,10 @@ def test_admin_create_product_success(client, db_session):
     data = r.json()
     assert data['sku'] == 'SKU123'
     assert data['title'] == 'New Product'
-    # categories were removed; ensure we don't return categories
     assert 'categories' not in data
 
 
 def test_non_admin_cannot_create_product(client):
-    # Create non-admin user
     from tests.factories import UserFactory
     UserFactory(email='normal@example.com', is_confirmed=True, is_active=True, is_admin=False)
     r_login = client.post('/api/auth/login', json={'email': 'normal@example.com', 'password': 'password123'})

@@ -19,7 +19,6 @@ def create_product(
     try:
         product = svc.create_product(db, payload=payload, created_by=admin_user.id)
     except ValueError as exc:
-        # Service raises ValueError for SKU conflicts
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return ProductRead.model_validate(product)

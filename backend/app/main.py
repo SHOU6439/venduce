@@ -24,7 +24,6 @@ app.include_router(users_router.router, prefix="/api/users", tags=["users"])
 app.include_router(uploads_router.router)
 app.include_router(admin_products_router.router)
 
-# SQLAdmin セットアップ (mount after API routers so API routes under /admin take precedence)
 try:
     setup_admin(app)
 except Exception as e:
