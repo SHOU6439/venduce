@@ -33,3 +33,7 @@
 
 ## Communication conventions
 - Always think through responses in English to ensure clarity and accuracy, then translate and reply in Japanese regardless of the user's preferred language. If the user explicitly requests English output, mention the English reasoning but still provide the answer in Japanese unless otherwise instructed.
+
+## Formatting
+
+- Indentation/Tabs: When representing indentation or tabs in code or files, do not use actual tab characters (\t). Use spaces for indentation instead. Prefer 4 spaces as the standard.
