@@ -1,4 +1,4 @@
-"""add products table
+"""alter users table
 
 Revision ID: a6bb65b481e9
 Revises: 449ff9d2141a
