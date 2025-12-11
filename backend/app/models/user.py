@@ -30,6 +30,7 @@ class User(Base):
     )
     is_active = Column(Boolean, default=False, nullable=False)
     is_confirmed = Column(Boolean, default=False, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     confirmation_token = Column(String(128), nullable=True, index=True)
     confirmation_sent_at = Column(DateTime(timezone=True), nullable=True)
     confirmation_expires_at = Column(DateTime(timezone=True), nullable=True)
