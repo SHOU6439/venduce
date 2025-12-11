@@ -9,4 +9,10 @@ class AssetPurpose(str, Enum):
     PRODUCT_IMAGE = "product_image"
 
 
-__all__ = ["AssetPurpose"]
+class ProductStatus(str, Enum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"
+
+
+__all__ = ["AssetPurpose", "ProductStatus"]

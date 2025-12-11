@@ -57,3 +57,20 @@ docker compose exec backend bash -lc "cd /app && PYTHONPATH=/app pytest -q tests
 ```bash
 docker compose exec backend bash -lc "cd /app && PYTHONPATH=/app pytest -q tests/test_api_auth.py::test_register_api_conflict"
 ```
+
+## テスト方針
+
+- **基本方針（推奨）: Factory ベースのテスト（統合寄り）**
+    - 多くの API/ユースケース テストは `factory-boy` を使って DB に実際のモデルを作成（`tests/factories/`）し、`db_session` fixture を使って後片付けを確実にする。これにより ORM の制約やトランザクション整合性、マイグレーションの問題を捕捉しやすくなる。
+    - 利点: 実際の DB を利用するため、本番に近い統合的なテストが可能。予期せぬ DB 制約違反を検出できる。
+
+- **補助方針: Fake（in-memory mock）ベースのテスト（ユニット寄り）**
+    - `tests/fakes/` に置いた軽量なモック（例: `fake_user_service.py`）は、サービス層や外部副作用を持つ処理を隔離した純ユニットテストに用いる。依存関係を `app.deps` のオーバーライドで差し替えて利用する。
+    - 利点: DB が不要な早いユニットテストを作りやすい。外部 API を模擬する場合に有効。
+
+- **選び方の例**
+    - エンドポイントの入力バリデーション・権限チェック・トークン処理などは factory+DB を使った統合的テストを優先。
+    - サービス単体のアルゴリズムや外部 API のハンドリング（メール送信や外部 API 呼び出し）は Fake を使ってユニットテスト化する。
+
+- **依存オーバーライドの例（FastAPI）**
+    - `conftest.py` で `app.dependency_overrides[get_user_service] = lambda: FakeUserService()` のように設定してテスト単位で差し替える。

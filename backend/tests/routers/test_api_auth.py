@@ -269,7 +269,7 @@ def test_resend_confirmation_success(client):
     r1 = client.post("/api/auth/register", json=register_payload)
     assert r1.status_code == 202
 
-    r2 = client.post("/api/auth/resend-confirmation", params={"email": "resend@example.com"})
+    r2 = client.post("/api/auth/resend-confirmation", json={"email": "resend@example.com"})
     assert r2.status_code == 200
     data = r2.json()
     assert "confirmation_token" in data
@@ -293,11 +293,11 @@ def test_resend_confirmation_already_confirmed(client):
     token = r1.json()["confirmation_token"]
     client.post("/api/auth/confirm", params={"token": token})
 
-    r2 = client.post("/api/auth/resend-confirmation", params={"email": "alreadyconfirmed@example.com"})
+    r2 = client.post("/api/auth/resend-confirmation", json={"email": "alreadyconfirmed@example.com"})
     assert r2.status_code == 400
 
 
 def test_resend_confirmation_nonexistent_user(client):
     """Test resend confirmation for nonexistent user."""
-    r = client.post("/api/auth/resend-confirmation", params={"email": "does-not-exist@example.com"})
+    r = client.post("/api/auth/resend-confirmation", json={"email": "does-not-exist@example.com"})
     assert r.status_code == 400

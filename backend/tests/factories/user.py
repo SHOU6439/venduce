@@ -28,6 +28,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     created_at = factory.LazyFunction(now_utc)
     is_active = True
     is_confirmed = True
+    is_admin = False
     confirmation_token = None
     confirmation_sent_at = None
     confirmation_expires_at = None

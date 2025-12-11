@@ -123,13 +123,8 @@ def login_with_password_grant(
         access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
             db, form_data.username, form_data.password, remember
         )
-
-    access_token, expires_in = jwt_utils.create_access_token(subject=str(user.id))
-
-    remember_days = settings.REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER if payload.remember else None
-    refresh_token, expires_at = jwt_utils.create_refresh_token(subject=str(user.id), ttl_days=remember_days)
-
-    svc.save_refresh_token(db, str(user.id), refresh_token, expires_at)
+    except AuthenticationError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
     return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
 

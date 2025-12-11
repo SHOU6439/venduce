@@ -7,6 +7,7 @@ from app.models.user import User
 from app.services.user_service import user_service, UserService
 from app.services.asset_service import asset_service, AssetService
 from app.utils import jwt as jwt_utils
+from app.services.product_service import product_service, ProductService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
@@ -19,6 +20,10 @@ def get_user_service() -> UserService:
 def get_asset_service() -> AssetService:
     """Dependency provider for AssetService."""
     return asset_service
+
+
+def get_product_service() -> ProductService:
+    return product_service
 
 
 def get_current_user(
@@ -49,3 +54,12 @@ def get_current_user(
         raise HTTPException(status_code=400, detail="Inactive user")
 
     return user
+
+
+def get_admin_user(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin required")
+    return current_user
