@@ -12,4 +12,4 @@ def read_user_me(
     """
     現在のログインユーザーのプロフィール情報を取得します。
     """
-    return current_user
+    return UserRead.model_validate(current_user)
