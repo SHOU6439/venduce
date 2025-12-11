@@ -33,7 +33,7 @@ class ProductService:
             currency=payload.currency,
             stock_quantity=payload.stock_quantity,
             status=payload.status,
-            metadata=payload.metadata,
+            extra_metadata=payload.metadata,
         )
         db.add(product)
         try:

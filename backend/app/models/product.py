@@ -31,7 +31,7 @@ class Product(Base):
     currency = Column(String(8), nullable=False, default="JPY")
     stock_quantity = Column(Integer, nullable=False, default=0)
     status = Column(String(32), nullable=False, default="draft", index=True)
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
