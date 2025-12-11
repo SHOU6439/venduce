@@ -1,4 +1,4 @@
-"""autogen: add categories, brands, product.image_asset_id
+"""autogen: add categories, brands
 
 Revision ID: 7be5e66efce9
 Revises: 2e9c8e9761bd
