@@ -4,27 +4,36 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Any
 from app.models.product import Product
+from app.schemas.product import ProductCreate
+from app.models.user import User
+from app.exceptions import AuthenticationError
 
 
 class ProductService:
     def create_product(
-        self, db: Session, *, payload: dict[str, Any]
+        self, db: Session, *, payload: ProductCreate, created_by: str | None = None
     ) -> Product:
 
-        existing = db.query(Product).filter(Product.sku == payload["sku"]).first()
+        sku = payload.sku.strip().upper() if payload.sku else None
+
+        if created_by:
+            creator = db.query(User).filter(User.id == created_by).first()
+            if not creator or not creator.is_admin:
+                raise AuthenticationError("forbidden", "admin required", status_code=403)
+
+        existing = db.query(Product).filter(Product.sku == sku).first()
         if existing:
             raise ValueError("sku already exists")
 
         product = Product(
-            title=payload.get("title"),
-            sku=payload.get("sku"),
-            description=payload.get("description"),
-            price_cents=payload.get("price_cents", 0),
-            currency=payload.get("currency", "JPY"),
-            categories=payload.get("categories"),
-            stock_quantity=payload.get("stock_quantity", 0),
-            status=payload.get("status", "draft"),
-            metadata=payload.get("metadata"),
+            title=payload.title,
+            sku=sku,
+            description=payload.description,
+            price_cents=payload.price_cents,
+            currency=payload.currency,
+            stock_quantity=payload.stock_quantity,
+            status=payload.status,
+            metadata=payload.metadata,
         )
         db.add(product)
         try:
