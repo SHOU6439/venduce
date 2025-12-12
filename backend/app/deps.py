@@ -8,6 +8,8 @@ from app.services.user_service import user_service, UserService
 from app.services.asset_service import asset_service, AssetService
 from app.utils import jwt as jwt_utils
 from app.services.product_service import product_service, ProductService
+from app.services.category_service import category_service, CategoryService
+from app.services.brand_service import brand_service, BrandService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
@@ -24,6 +26,14 @@ def get_asset_service() -> AssetService:
 
 def get_product_service() -> ProductService:
     return product_service
+
+
+def get_category_service() -> CategoryService:
+    return category_service
+
+
+def get_brand_service() -> BrandService:
+    return brand_service
 
 
 def get_current_user(
