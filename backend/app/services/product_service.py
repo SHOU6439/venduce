@@ -5,8 +5,6 @@ from sqlalchemy.exc import IntegrityError
 from typing import Any
 from app.models.product import Product
 from app.schemas.product import ProductCreate
-from app.models.user import User
-from app.exceptions import AuthenticationError
 
 
 class ProductService:

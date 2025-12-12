@@ -6,6 +6,10 @@ from app.api.routers import auth as auth_router
 from app.api.routers import users as users_router
 from app.api.routers import uploads as uploads_router
 from app.api.routers import admin_products as admin_products_router
+from app.api.routers import admin_categories as admin_categories_router
+from app.api.routers import admin_brands as admin_brands_router
+from app.api.routers import categories as categories_router
+from app.api.routers import brands as brands_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -23,6 +27,10 @@ app.include_router(auth_router.router)
 app.include_router(users_router.router, prefix="/api/users", tags=["users"])
 app.include_router(uploads_router.router)
 app.include_router(admin_products_router.router)
+app.include_router(admin_categories_router.router)
+app.include_router(admin_brands_router.router)
+app.include_router(categories_router.router)
+app.include_router(brands_router.router)
 
 try:
     setup_admin(app)
