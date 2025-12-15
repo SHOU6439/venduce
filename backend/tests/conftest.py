@@ -1,3 +1,7 @@
+from app.core.config import settings
+from tests.factories import UserFactory
+from app.main import app
+from app.db.database import Base, get_db
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -24,12 +28,8 @@ class _DummySMTP:
     def send_message(self, *args, **kwargs):
         return None
 
-smtplib.SMTP = _DummySMTP
 
-from app.db.database import Base, get_db
-from app.main import app
-from tests.factories import UserFactory
-from app.core.config import settings
+smtplib.SMTP = _DummySMTP
 
 
 # Use PostgreSQL for tests (same as production)
@@ -65,6 +65,9 @@ def db_session():
     try:
         UserFactory._meta.sqlalchemy_session = db
         RefreshTokenFactory._meta.sqlalchemy_session = db
+        # Lazy import to avoid circular issues or early read
+        from tests.factories.asset_factory import AssetFactory
+        AssetFactory._meta.sqlalchemy_session = db
         yield db
     finally:
         db.close()
@@ -105,3 +108,21 @@ def client():
     the autouse override_db fixture.
     """
     return TestClient(app)
+
+
+@pytest.fixture
+def test_user(db_session):
+    return UserFactory()
+
+
+@pytest.fixture
+def authorized_client(client, test_user):
+    # Create a token for the user
+    from app.utils.jwt import create_access_token
+    # Note: create_access_token returns tuple(token, expires_in) based on grep result
+    token, _ = create_access_token(subject=test_user.id)
+    client.headers = {
+        **client.headers,
+        "Authorization": f"Bearer {token}"
+    }
+    return client
