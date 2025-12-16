@@ -40,22 +40,11 @@ class Post(Base):
 
     user = relationship("User", backref="posts")
 
-    # TODO: 要検討
-    # Asset との紐付け。Asset側が owner_id = post.id, owner_type = 'post' を持つ想定
-    # もしくは 1:N で post_id を Asset が持つ？
-    # -> `Asset` モデルは `owner_id` (String) を持つ汎用設計。 `owner_type`='post' で紐付ける。
-    # しかし、SQLAlchemy の relationship で直接引くには primaryjoin が必要。
-    # ここでは単純化のため、またはパフォーマンスのために別途取得、あるいは primaryjoin を定義する。
-    # 今回は primaryjoin を定義してみる。
-
-    # images = relationship(
-    #     "Asset",
-    #     primaryjoin="and_(foreign(Asset.owner_id) == Post.id, Asset.owner_type == 'post')",
-    #     viewonly=True, # Asset側からownerを設定するため
-    # )
-
     products = relationship("Product", secondary=post_products, backref="posts")
     tags = relationship("Tag", secondary=post_tags, backref="posts")
+
+    # Asset とのリレーション (1:N)
+    # Asset.post_id を外部キーとして紐付ける
     assets = relationship("Asset", backref="post", lazy="joined")
 
 

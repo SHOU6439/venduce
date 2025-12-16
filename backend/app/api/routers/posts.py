@@ -81,23 +81,20 @@ def create_post(
     db.add(post)
     db.commit()
 
-    # TODO: 要検討
-
-    # 5. アセットの紐付け
-    # 5. アセットの紐付け
-    # Assetモデルに `post_id` (ForeignKey) を設定して紐付ける（1対多）。
-    # Asset.owner_id はユーザーIDのまま保持する。
+    # 5. アセットの紐付け (1:N)
+    # Assetの post_id を設定して投稿に紐付ける。owner_id (所有者) はユーザーのまま維持する。
     for asset in assets:
         asset.post_id = post.id
 
-    # 変更を検知させるため assets を add_all (SQLAlchemyの動作として、オブジェクトの変更は自動追跡されるが、明示しておくと安心)
+    # 明示的に更新を反映
     db.add_all(assets)
 
     db.commit()
     db.refresh(post)
 
-    # Note: `post.assets` はリレーションシップを通じて入力されています（`lazy="joined"` or refresh後）。
-    # Pydantic の `PostRead` は `images` を期待しています。
+    # レスポンス形成
+    # post.assets はリレーション (lazy="joined") でロード済み。
+    # Pydanticスキーマ (PostRead) の `images` フィールドにマッピングする。
     post.images = post.assets
 
     return post
