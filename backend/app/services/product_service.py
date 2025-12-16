@@ -5,21 +5,14 @@ from sqlalchemy.exc import IntegrityError
 from typing import Any
 from app.models.product import Product
 from app.schemas.product import ProductCreate
-from app.models.user import User
-from app.exceptions import AuthenticationError
 
 
 class ProductService:
     def create_product(
-        self, db: Session, *, payload: ProductCreate, created_by: str | None = None
+        self, db: Session, *, payload: ProductCreate
     ) -> Product:
 
         sku = payload.sku.strip().upper() if payload.sku else None
-
-        if created_by:
-            creator = db.query(User).filter(User.id == created_by).first()
-            if not creator or not creator.is_admin:
-                raise AuthenticationError("forbidden", "admin required", status_code=403)
 
         existing = db.query(Product).filter(Product.sku == sku).first()
         if existing:
