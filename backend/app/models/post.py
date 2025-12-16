@@ -56,6 +56,7 @@ class Post(Base):
 
     products = relationship("Product", secondary=post_products, backref="posts")
     tags = relationship("Tag", secondary=post_tags, backref="posts")
+    assets = relationship("Asset", backref="post", lazy="joined")
 
 
 __all__ = ["Post"]

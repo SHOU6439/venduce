@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, String, Text, Integer, BigInteger, DateTime, func
+from sqlalchemy import Column, String, Text, Integer, BigInteger, DateTime, func, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from ulid import ULID
 
@@ -35,6 +35,9 @@ class Asset(Base):
     purpose = Column(String(32), nullable=False, index=True)
     status = Column(String(16), nullable=False, default="pending", index=True)
 
+    # Relations
+    post_id = Column(String(26), ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True)
+
     storage_key = Column(Text, nullable=False, unique=True)
     content_type = Column(String(100), nullable=False)
     extension = Column(String(10), nullable=False)
@@ -53,5 +56,6 @@ class Asset(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+
 
 __all__ = ["Asset"]

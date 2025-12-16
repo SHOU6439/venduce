@@ -48,10 +48,14 @@ def test_create_post_success(client, db_session: Session, authorized_client, tes
     assert "shows" in tag_names  # normalized to lowercase? we implemented .strip().lower()
     assert "fashion" in tag_names
 
-    # Check Asset linkage (if we implemented it)
+    # Check Asset linkage
     reloaded_asset = db_session.query(Asset).get(asset.id)
-    assert reloaded_asset.owner_id == post.id
-    assert reloaded_asset.owner_type == "post"
+    # The requirement changed: Owner ID remains the USER's ID.
+    assert reloaded_asset.owner_id == test_user.id
+
+    # Check if the post has the asset via the relationship
+    assert len(post.assets) == 1
+    assert post.assets[0].id == asset.id
 
 
 def test_create_post_asset_not_found(authorized_client):
