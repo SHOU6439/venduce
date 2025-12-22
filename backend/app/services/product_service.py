@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from typing import Optional
+
+from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from typing import Any
+from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.models.product import Product
 from app.schemas.product import ProductCreate
 
@@ -36,6 +39,32 @@ class ProductService:
             raise ValueError("sku already exists")
         db.refresh(product)
         return product
+
+    def get_by_id(self, db: Session, product_id: str) -> Product:
+        product = (
+            db.query(Product)
+            .options(
+                joinedload(Product.brand),
+                selectinload(Product.categories),
+                selectinload(Product.images),
+            )
+            .filter(Product.id == product_id)
+            .first()
+        )
+        
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found",
+            )
+        return product
+
+    def is_visible_to_user(self, product: Product, is_superuser: bool = False) -> bool:
+        if product.status == "published":
+            return True
+        if is_superuser:
+            return True
+        return False
 
 
 product_service = ProductService()

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from app.admin.sqladmin import setup_admin
-from app.api.routers import auth as auth_router
+from app.api.routers import auth, products
 from app.api.routers import users as users_router
 from app.api.routers import uploads as uploads_router
 from app.api.routers import admin_products as admin_products_router
@@ -23,53 +23,56 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router.router)
-app.include_router(users_router.router, prefix="/api/users", tags=["users"])
-app.include_router(uploads_router.router)
-app.include_router(admin_products_router.router)
-app.include_router(admin_categories_router.router)
-app.include_router(admin_brands_router.router)
-app.include_router(categories_router.router)
-app.include_router(brands_router.router)
+def get_application() -> FastAPI:
+    app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+    app.include_router(products.router, prefix="/api/products", tags=["products"])
+    app.include_router(users_router.router, prefix="/api/users", tags=["users"])
+    app.include_router(uploads_router.router)
+    app.include_router(admin_products_router.router)
+    app.include_router(admin_categories_router.router)
+    app.include_router(admin_brands_router.router)
+    app.include_router(categories_router.router)
+    app.include_router(brands_router.router)
 
-try:
-    setup_admin(app)
-except Exception as e:
-    print(f"SQLAdmin setup error: {e}")
+    try:
+        setup_admin(app)
+    except Exception as e:
+        print(f"SQLAdmin setup error: {e}")
 
-@app.get("/api/health")
-def health_check():
-    return {"status": "ok"}
+    @app.get("/api/health")
+    def health_check():
+        return {"status": "ok"}
 
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        openapi_schema = get_openapi(
+            title=settings.API_TITLE,
+            version=settings.API_VERSION,
+            description=settings.API_DESCRIPTION,
+            routes=app.routes,
+        )
+        if "components" not in openapi_schema:
+            openapi_schema["components"] = {}
+        if "securitySchemes" not in openapi_schema["components"]:
+            openapi_schema["components"]["securitySchemes"] = {}
 
-def custom_openapi():
-    if app.openapi_schema:
+        openapi_schema["components"]["securitySchemes"]["OAuth2PasswordBearer"] = {
+            "type": "oauth2",
+            "flows": {
+                "password": {
+                    "tokenUrl": "/api/auth/token",
+                    "scopes": {
+                        "remember": "Request refresh token with remember-me TTL",
+                    },
+                }
+            },
+        }
+
+        app.openapi_schema = openapi_schema
         return app.openapi_schema
-    openapi_schema = get_openapi(
-        title=settings.API_TITLE,
-        version=settings.API_VERSION,
-        description=settings.API_DESCRIPTION,
-        routes=app.routes,
-    )
-    if "components" not in openapi_schema:
-        openapi_schema["components"] = {}
-    if "securitySchemes" not in openapi_schema["components"]:
-        openapi_schema["components"]["securitySchemes"] = {}
 
-    openapi_schema["components"]["securitySchemes"]["OAuth2PasswordBearer"] = {
-        "type": "oauth2",
-        "flows": {
-            "password": {
-                "tokenUrl": "/api/auth/token",
-                "scopes": {
-                    "remember": "Request refresh token with remember-me TTL",
-                },
-            }
-        },
-    }
+    app.openapi = custom_openapi
+    return app
 
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi
+app = get_application()
