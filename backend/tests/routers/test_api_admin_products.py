@@ -31,7 +31,7 @@ def test_admin_create_product_success(client, db_session):
     data = r.json()
     assert data['sku'] == 'SKU123'
     assert data['title'] == 'New Product'
-    assert 'categories' not in data
+    assert data['categories'] == []
 
 
 def test_non_admin_cannot_create_product(client):

@@ -38,3 +38,5 @@ class ProductRead(ProductBase):
     updated_at: Optional[datetime] = None
     categories: List[CategoryBase] = []
     brand: Optional[BrandRead] = None
+
+    model_config = ConfigDict(from_attributes=True)
