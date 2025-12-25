@@ -46,7 +46,6 @@ class ProductService:
             .options(
                 joinedload(Product.brand),
                 selectinload(Product.categories),
-                selectinload(Product.images),
             )
             .filter(Product.id == product_id)
             .first()

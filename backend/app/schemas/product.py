@@ -6,7 +6,6 @@ from typing import List, Optional
 from datetime import datetime
 from app.models.enums import ProductStatus
 from app.schemas.brand import BrandRead
-from app.schemas.asset import AssetRead
 
 
 class CategoryBase(AppModel):
@@ -39,4 +38,3 @@ class ProductRead(ProductBase):
     updated_at: Optional[datetime] = None
     categories: List[CategoryBase] = []
     brand: Optional[BrandRead] = None
-    images: List[AssetRead] = []

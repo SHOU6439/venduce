@@ -1,17 +1,11 @@
 from __future__ import annotations
 
 from ulid import ULID
-from sqlalchemy import Column, String, Text, Integer, DateTime, func, ForeignKey, Table
+from sqlalchemy import Column, String, Text, Integer, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.db.database import Base
-
-product_categories = Table(
-    "product_categories",
-    Base.metadata,
-    Column("product_id", String(26), ForeignKey("products.id"), primary_key=True),
-    Column("category_id", String(26), ForeignKey("categories.id"), primary_key=True),
-)
+from app.models.product_category import product_categories
 
 
 class Product(Base):
@@ -49,15 +43,9 @@ class Product(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    # 下2行が必要な理由
     brand = relationship("Brand", backref="products")
     categories = relationship("Category", secondary=product_categories, backref="products")
-    
-    images = relationship(
-        "Asset",
-        primaryjoin="and_(foreign(Asset.owner_id) == Product.id, foreign(Asset.owner_type) == 'product')",
-        uselist=True,
-        viewonly=True,
-    )
 
 
 __all__ = ["Product"]
