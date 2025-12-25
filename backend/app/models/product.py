@@ -43,7 +43,6 @@ class Product(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    # 下2行が必要な理由
     brand = relationship("Brand", backref="products")
     categories = relationship("Category", secondary=product_categories, backref="products")
 
