@@ -1,7 +1,6 @@
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.security import OAuth2PasswordBearer
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -10,30 +9,10 @@ from app.core.config import settings
 from app.models.user import User
 from app.schemas.product import ProductRead
 from app.services.product_service import ProductService
-from app.deps import get_product_service
+from app.deps import get_product_service, get_current_user_optional
 from app.utils import jwt as jwt_utils
 
 router = APIRouter()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
-
-
-async def get_current_user_optional(
-    db: Session = Depends(get_db), token: Optional[str] = Depends(oauth2_scheme)
-) -> Optional[User]:
-    if not token:
-        return None
-
-    try:
-        payload = jwt_utils.decode_token(token)
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            return None
-    except Exception:
-        return None
-
-    user = db.query(User).filter(User.id == user_id).first()
-    return user
 
 
 @router.get("/{product_id}", response_model=ProductRead, summary="Get product details")
