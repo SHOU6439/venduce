@@ -6,7 +6,7 @@ from app.services.brand_service import BrandService
 from app.schemas.brand import BrandCreate, BrandRead
 from app.models.user import User
 
-router = APIRouter(prefix="/admin/brands", tags=["admin-brands"])
+router = APIRouter()
 
 
 @router.post("/", response_model=BrandRead, status_code=status.HTTP_201_CREATED)

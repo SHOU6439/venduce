@@ -24,15 +24,15 @@ app.add_middleware(
 )
 
 def get_application() -> FastAPI:
-    app.include_router(auth.router)
+    app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(products.router, prefix="/api/products", tags=["products"])
     app.include_router(users_router.router, prefix="/api/users", tags=["users"])
-    app.include_router(uploads_router.router)
-    app.include_router(admin_products_router.router)
-    app.include_router(admin_categories_router.router)
-    app.include_router(admin_brands_router.router)
-    app.include_router(categories_router.router)
-    app.include_router(brands_router.router)
+    app.include_router(uploads_router.router, prefix="/api/uploads", tags=["uploads"])
+    app.include_router(admin_products_router.router, prefix="/admin/products", tags=["admin-products"])
+    app.include_router(admin_categories_router.router, prefix="/admin/categories", tags=["admin-categories"])
+    app.include_router(admin_brands_router.router, prefix="/admin/brands", tags=["admin-brands"])
+    app.include_router(categories_router.router, prefix="/api/categories", tags=["categories"])
+    app.include_router(brands_router.router, prefix="/api/brands", tags=["brands"])
 
     try:
         setup_admin(app)
