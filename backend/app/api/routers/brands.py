@@ -6,7 +6,7 @@ from app.deps import get_brand_service
 from app.services.brand_service import BrandService
 from app.schemas.brand import BrandRead
 
-router = APIRouter(prefix="/api/brands", tags=["brands"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[BrandRead])
