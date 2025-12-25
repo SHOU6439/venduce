@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from app.services.product_service import product_service, ProductService
 from app.services.category_service import category_service, CategoryService
 from app.services.brand_service import brand_service, BrandService
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
 
 
 def get_user_service() -> UserService:
@@ -63,6 +63,24 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
+    return user
+
+
+def get_current_user_optional(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> Optional[User]:
+    if not token:
+        return None
+
+    try:
+        payload = jwt_utils.decode_token(token)
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except Exception:
+        return None
+
+    user = db.query(User).filter(User.id == user_id).first()
     return user
 
 
