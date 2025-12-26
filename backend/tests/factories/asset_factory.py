@@ -10,8 +10,8 @@ class AssetFactory(factory.alchemy.SQLAlchemyModelFactory):
         sqlalchemy_session_persistence = "commit"
 
     id = factory.LazyFunction(lambda: str(ULID()))
-    owner_id = factory.LazyAttribute(lambda o: str(ULID()))  # Default random, or passed in
-    owner_type = "user"
+    owner_id = factory.LazyAttribute(lambda o: str(ULID()))
+
     purpose = "post_image"
     status = "ready"
     storage_key = factory.Sequence(lambda n: f"assets/image_{n}.jpg")

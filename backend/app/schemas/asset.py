@@ -10,7 +10,7 @@ from app.schemas.base import AppModel
 class AssetRead(AppModel):
     id: str
     owner_id: str
-    owner_type: str
+
     purpose: str
     status: str
     storage_key: str
