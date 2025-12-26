@@ -32,7 +32,6 @@ class _DummySMTP:
 smtplib.SMTP = _DummySMTP
 
 
-# Use PostgreSQL for tests (same as production)
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql://pride_user:pride_password@postgres:5432/pride_db_test"
@@ -65,7 +64,6 @@ def db_session():
     try:
         UserFactory._meta.sqlalchemy_session = db
         RefreshTokenFactory._meta.sqlalchemy_session = db
-        # Lazy import to avoid circular issues or early read
         from tests.factories.asset_factory import AssetFactory
         AssetFactory._meta.sqlalchemy_session = db
         yield db
@@ -95,8 +93,10 @@ def override_db():
         yield
     finally:
         app.dependency_overrides.pop(get_db, None)
-        # Clean up: drop and recreate all tables after each test
-        Base.metadata.drop_all(bind=_engine)
+
+        meta = MetaData()
+        meta.reflect(bind=_engine)
+        meta.drop_all(bind=_engine)
         Base.metadata.create_all(bind=_engine)
 
 
@@ -117,9 +117,8 @@ def test_user(db_session):
 
 @pytest.fixture
 def authorized_client(client, test_user):
-    # Create a token for the user
     from app.utils.jwt import create_access_token
-    # Note: create_access_token returns tuple(token, expires_in) based on grep result
+
     token, _ = create_access_token(subject=test_user.id)
     client.headers = {
         **client.headers,

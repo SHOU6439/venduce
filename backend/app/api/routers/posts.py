@@ -21,8 +21,7 @@ def create_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # 1. アセットの検証
-    # アセットが存在し、かつユーザーが所有していることを確認して取得
+
     assets = db.query(Asset).filter(
         Asset.id.in_(post_in.asset_ids),
         Asset.owner_id == current_user.id
@@ -36,7 +35,6 @@ def create_post(
             detail=f"One or more assets not found or permission denied: {missing}"
         )
 
-    # 2. 商品の検証
     products = []
     if post_in.product_ids:
         products = db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
@@ -48,12 +46,10 @@ def create_post(
                 detail=f"One or more products not found: {missing}"
             )
 
-    # 3. タグの処理
     tags = []
     if post_in.tags:
         normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
 
-        # 既存タグの検索
         existing_tags = db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
         existing_map = {t.name: t for t in existing_tags}
 
@@ -67,7 +63,6 @@ def create_post(
                 db.add(new_tag)
                 tags.append(new_tag)
 
-    # 4. 投稿の作成
     post = Post(
         user_id=current_user.id,
         caption=post_in.caption,
@@ -81,20 +76,10 @@ def create_post(
     db.add(post)
     db.commit()
 
-    # 5. アセットの紐付け (1:N)
-    # Assetの post_id を設定して投稿に紐付ける。owner_id (所有者) はユーザーのまま維持する。
-    for asset in assets:
-        asset.post_id = post.id
-
-    # 明示的に更新を反映
     db.add_all(assets)
-
     db.commit()
     db.refresh(post)
 
-    # レスポンス形成
-    # post.assets はリレーション (lazy="joined") でロード済み。
-    # Pydanticスキーマ (PostRead) の `images` フィールドにマッピングする。
     post.images = post.assets
 
     return post

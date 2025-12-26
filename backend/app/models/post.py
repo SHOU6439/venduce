@@ -8,6 +8,7 @@ from ulid import ULID
 from app.db.database import Base
 from app.models.post_products import post_products
 from app.models.post_tags import post_tags
+from app.models.post_assets import post_assets
 
 
 class Post(Base):
@@ -43,9 +44,7 @@ class Post(Base):
     products = relationship("Product", secondary=post_products, backref="posts")
     tags = relationship("Tag", secondary=post_tags, backref="posts")
 
-    # Asset とのリレーション (1:N)
-    # Asset.post_id を外部キーとして紐付ける
-    assets = relationship("Asset", backref="post", lazy="joined")
+    assets = relationship("Asset", secondary=post_assets, backref="posts", lazy="joined")
 
 
 __all__ = ["Post"]

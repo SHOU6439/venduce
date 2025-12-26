@@ -36,18 +36,13 @@ class PostRead(PostBase):
     created_at: datetime
     updated_at: datetime
 
-    # Stats
     purchase_count: int
     view_count: int
     like_count: int
 
-    # Relations
     user: Optional[UserRead] = None
-    # images: List[AssetRead] = [] # Asset relationship needs better handling or explicit fetching
     products: List[ProductRead] = []
     tags: List[TagRead] = []
-
-    # Computed/Fetched separately
     images: List[AssetRead] = Field(default_factory=list)
 
     class Config:

@@ -7,19 +7,13 @@ from app.models.asset import Asset
 from tests.factories.user import UserFactory
 from tests.factories.asset_factory import AssetFactory
 
-# Assuming we have authentication fixtures or helpers
-# If not, we'll manually create tokens.
-# Looking at other tests would be ideal, but let's try a standard approach.
-
 
 def test_create_post_success(client, db_session: Session, authorized_client, test_user):
-    # 1. Setup Data
-    # Create an asset owned by the user
+
     asset = AssetFactory(owner_id=test_user.id)
     db_session.add(asset)
     db_session.commit()
 
-    # 2. Payload
     payload = {
         "caption": "My awesome new shoes!",
         "asset_ids": [asset.id],
@@ -27,33 +21,27 @@ def test_create_post_success(client, db_session: Session, authorized_client, tes
         "status": "public"
     }
 
-    # 3. Request
     response = authorized_client.post("/api/posts", json=payload)
 
-    # 4. Assertions
     assert response.status_code == status.HTTP_201_CREATED, response.text
     data = response.json()
     assert data["caption"] == "My awesome new shoes!"
     assert len(data["tags"]) == 3
     assert data["user_id"] == test_user.id
 
-    # Verify DB
     db_session.expire_all()
     post = db_session.query(Post).filter(Post.id == data["id"]).first()
     assert post is not None
     assert len(post.tags) == 3
 
-    # Check tags normalization
     tag_names = {t.name for t in post.tags}
-    assert "shows" in tag_names  # normalized to lowercase? we implemented .strip().lower()
+    assert "shows" in tag_names
     assert "fashion" in tag_names
 
-    # Check Asset linkage
-    reloaded_asset = db_session.query(Asset).get(asset.id)
-    # The requirement changed: Owner ID remains the USER's ID.
+    reloaded_asset = db_session.get(Asset, asset.id)
+
     assert reloaded_asset.owner_id == test_user.id
 
-    # Check if the post has the asset via the relationship
     assert len(post.assets) == 1
     assert post.assets[0].id == asset.id
 
