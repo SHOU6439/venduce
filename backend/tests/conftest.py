@@ -1,3 +1,4 @@
+from sqlalchemy import MetaData
 from app.core.config import settings
 from tests.factories import UserFactory
 from app.main import app
@@ -43,7 +44,9 @@ _engine = create_engine(
     pool_pre_ping=True,
 )
 
-Base.metadata.drop_all(bind=_engine)
+meta = MetaData()
+meta.reflect(bind=_engine)
+meta.drop_all(bind=_engine)
 Base.metadata.create_all(bind=_engine)
 
 TestingSessionLocal = sessionmaker(bind=_engine)
