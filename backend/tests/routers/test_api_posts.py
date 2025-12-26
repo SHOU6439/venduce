@@ -1,9 +1,7 @@
 from fastapi import status
 from sqlalchemy.orm import Session
 from app.models.post import Post
-
 from app.models.asset import Asset
-
 from tests.factories.asset_factory import AssetFactory
 
 
