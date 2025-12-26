@@ -71,11 +71,10 @@ def create_post(
     post.products = products
     post.tags = tags
 
+    post.assets = assets
     db.add(post)
     db.commit()
 
-    db.add_all(assets)
-    db.commit()
     db.refresh(post)
 
     post.images = post.assets
