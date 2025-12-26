@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetRead
 from app.schemas.product import ProductRead
 from app.schemas.user import UserRead
+from app.models.enums import PostStatus
 
 
 class TagRead(BaseModel):
@@ -20,14 +21,14 @@ class TagRead(BaseModel):
 
 class PostBase(BaseModel):
     caption: Optional[str] = None
-    status: str = "public"
+    status: PostStatus = PostStatus.PUBLIC
     extra_metadata: Optional[dict] = None
 
 
 class PostCreate(PostBase):
     asset_ids: List[str] = Field(..., min_length=1, max_length=10)
     product_ids: List[str] = Field(default_factory=list)
-    tags: List[str] = Field(default_factory=list, description="List of tag names")
+    tags: List[str] = Field(default_factory=list, max_length=10, description="List of tag names")
 
 
 class PostRead(PostBase):
@@ -45,5 +46,4 @@ class PostRead(PostBase):
     tags: List[TagRead] = []
     images: List[AssetRead] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
