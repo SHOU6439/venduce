@@ -16,8 +16,7 @@ class TagRead(AppModel):
     name: str
     usage_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PostBase(AppModel):
