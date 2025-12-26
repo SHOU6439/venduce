@@ -1,10 +1,9 @@
-import pytest
 from fastapi import status
 from sqlalchemy.orm import Session
 from app.models.post import Post
-from app.models.tag import Tag
+
 from app.models.asset import Asset
-from tests.factories.user import UserFactory
+
 from tests.factories.asset_factory import AssetFactory
 
 
