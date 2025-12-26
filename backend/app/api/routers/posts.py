@@ -1,7 +1,5 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.db.database import get_db
 from app.deps import get_current_user
