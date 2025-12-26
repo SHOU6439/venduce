@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
+from app.schemas.base import AppModel
 from app.schemas.asset import AssetRead
 from app.schemas.product import ProductRead
 from app.schemas.user import UserRead
 from app.models.enums import PostStatus
 
 
-class TagRead(BaseModel):
+class TagRead(AppModel):
     id: str
     name: str
     usage_count: int
@@ -19,7 +20,7 @@ class TagRead(BaseModel):
         from_attributes = True
 
 
-class PostBase(BaseModel):
+class PostBase(AppModel):
     caption: Optional[str] = None
     status: PostStatus = PostStatus.PUBLIC
     extra_metadata: Optional[dict] = None
