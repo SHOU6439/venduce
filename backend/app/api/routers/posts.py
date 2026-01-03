@@ -1,14 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, status
 
-from app.db.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, get_post_service
 from app.models.user import User
-from app.models.post import Post
-from app.models.tag import Tag
-from app.models.product import Product
-from app.models.asset import Asset
 from app.schemas.post import PostCreate, PostRead
+from app.services.post_service import PostService
 
 router = APIRouter(prefix="/api/posts", tags=["posts"])
 
@@ -16,67 +11,13 @@ router = APIRouter(prefix="/api/posts", tags=["posts"])
 @router.post("", response_model=PostRead, status_code=status.HTTP_201_CREATED)
 def create_post(
     post_in: PostCreate,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    post_service: PostService = Depends(get_post_service),
 ):
+    """投稿を作成します — バリデーションと永続化は PostService に委譲します。
 
-    assets = []
-    if post_in.asset_ids:
-        assets = db.query(Asset).filter(
-            Asset.id.in_(post_in.asset_ids),
-            Asset.owner_id == current_user.id
-        ).all()
-
-        if len(assets) != len(set(post_in.asset_ids)):
-            found_ids = {a.id for a in assets}
-            missing = set(post_in.asset_ids) - found_ids
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"One or more assets not found or permission denied: {missing}"
-            )
-
-    products = []
-    if post_in.product_ids:
-        products = db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
-        if len(products) != len(set(post_in.product_ids)):
-            found_ids = {p.id for p in products}
-            missing = set(post_in.product_ids) - found_ids
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"One or more products not found: {missing}"
-            )
-
-    tags = []
-    if post_in.tags:
-        normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
-
-        existing_tags = db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
-        existing_map = {t.name: t for t in existing_tags}
-
-        for name in normalized_names:
-            if name in existing_map:
-                tag = existing_map[name]
-                tag.usage_count += 1
-                tags.append(tag)
-            else:
-                new_tag = Tag(name=name, usage_count=1)
-                db.add(new_tag)
-                tags.append(new_tag)
-
-    post = Post(
-        user_id=current_user.id,
-        caption=post_in.caption,
-        status=post_in.status,
-        extra_metadata=post_in.extra_metadata,
-    )
-
-    post.products = products
-    post.tags = tags
-
-    post.assets = assets
-    db.add(post)
-    db.commit()
-
-    db.refresh(post)
-
+    アセット／製品の検証、タグの正規化、DB へのコミットなどのビジネスルールは
+    `PostService.create_post` に集約されており、ルーターは薄く保たれます。
+    """
+    post = post_service.create_post(post_in=post_in, current_user=current_user)
     return PostRead.model_validate(post)
