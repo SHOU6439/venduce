@@ -44,6 +44,6 @@ class PostRead(PostBase):
     user: Optional[UserRead] = None
     products: List[ProductRead] = []
     tags: List[TagRead] = []
-    images: List[AssetRead] = Field(default_factory=list)
+    images: List[AssetRead] = Field(default_factory=list, alias="assets")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

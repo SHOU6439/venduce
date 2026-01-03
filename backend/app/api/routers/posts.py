@@ -77,6 +77,4 @@ def create_post(
 
     db.refresh(post)
 
-    post.images = post.assets
-
-    return post
+    return PostRead.model_validate(post)
