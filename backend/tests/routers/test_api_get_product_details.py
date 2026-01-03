@@ -67,3 +67,20 @@ def test_get_product_draft_superuser(
     assert response.status_code == 200
     assert response.json()["id"] == draft_product.id
     assert response.headers["cache-control"] == "no-store"
+
+def test_list_products_user_cannot_filter_by_status(client, db_session):
+    """
+    一般ユーザーは status パラメータを指定しても published 以外は見えないことを検証
+    """
+    from app.models.product import Product
+    p1 = Product(title="公開商品", sku="PUB-001", price_cents=1000, stock_quantity=5, status="published")
+    p2 = Product(title="下書き商品", sku="DRF-001", price_cents=2000, stock_quantity=5, status="draft")
+    db_session.add_all([p1, p2])
+    db_session.commit()
+
+    resp = client.get("/api/products/?status=draft")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list) or "items" in data
+    items = data if isinstance(data, list) else data["items"]
+    assert all(item["status"] == "published" for item in items)
