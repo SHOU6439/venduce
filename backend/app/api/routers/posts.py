@@ -20,18 +20,20 @@ def create_post(
     current_user: User = Depends(get_current_user),
 ):
 
-    assets = db.query(Asset).filter(
-        Asset.id.in_(post_in.asset_ids),
-        Asset.owner_id == current_user.id
-    ).all()
+    assets = []
+    if post_in.asset_ids:
+        assets = db.query(Asset).filter(
+            Asset.id.in_(post_in.asset_ids),
+            Asset.owner_id == current_user.id
+        ).all()
 
-    if len(assets) != len(set(post_in.asset_ids)):
-        found_ids = {a.id for a in assets}
-        missing = set(post_in.asset_ids) - found_ids
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"One or more assets not found or permission denied: {missing}"
-        )
+        if len(assets) != len(set(post_in.asset_ids)):
+            found_ids = {a.id for a in assets}
+            missing = set(post_in.asset_ids) - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"One or more assets not found or permission denied: {missing}"
+            )
 
     products = []
     if post_in.product_ids:

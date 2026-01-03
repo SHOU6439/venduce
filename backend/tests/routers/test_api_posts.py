@@ -57,3 +57,25 @@ def test_create_post_asset_not_found(authorized_client):
 def test_create_post_unauthorized(client):
     response = client.post("/api/posts", json={})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_create_post_without_images_success(db_session: Session, authorized_client, test_user):
+    payload = {
+        "caption": "No images here",
+        "tags": ["misc"],
+        "product_ids": [],
+    }
+
+    response = authorized_client.post("/api/posts", json=payload)
+
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    data = response.json()
+    assert data["caption"] == "No images here"
+    assert data["user_id"] == test_user.id
+    assert isinstance(data.get("images"), list)
+    assert len(data.get("images")) == 0
+
+    db_session.expire_all()
+    post = db_session.query(Post).filter(Post.id == data["id"]).first()
+    assert post is not None
+    assert len(post.assets) == 0

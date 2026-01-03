@@ -26,7 +26,7 @@ class PostBase(AppModel):
 
 
 class PostCreate(PostBase):
-    asset_ids: List[str] = Field(..., min_length=1, max_length=10)
+    asset_ids: List[str] = Field(default_factory=list, max_length=10)
     product_ids: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list, max_length=10, description="List of tag names")
 
@@ -44,6 +44,6 @@ class PostRead(PostBase):
     user: Optional[UserRead] = None
     products: List[ProductRead] = []
     tags: List[TagRead] = []
-    images: List[AssetRead] = Field(default_factory=list, alias="assets")
+    assets: List[AssetRead] = Field(default_factory=list, alias="images")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
