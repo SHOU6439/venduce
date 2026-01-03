@@ -13,7 +13,7 @@ class ProductCreate(AppModel):
     description: Optional[str] = None
     price_cents: conint(ge=1) = 1
     currency: str = Field(default="JPY", min_length=3, max_length=8)
-    status: ProductStatus = Field(default=ProductStatus.draft)
+    status: ProductStatus = Field(default=ProductStatus.DRAFT)
     stock_quantity: conint(ge=1) = 1
     metadata: Optional[dict] = Field(default=None, alias="extra_metadata")
 

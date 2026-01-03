@@ -10,9 +10,9 @@ class AssetPurpose(str, Enum):
 
 
 class ProductStatus(str, Enum):
-    draft = "draft"
-    published = "published"
-    archived = "archived"
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
 
 
 class PostStatus(str, Enum):
