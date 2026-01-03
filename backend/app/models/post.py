@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import Column, String, Text, DateTime, func, ForeignKey, Enum, Integer
+from app.models.enums import PostStatus
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from ulid import ULID
@@ -26,7 +27,7 @@ class Post(Base):
     id = Column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
     user_id = Column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     caption = Column(Text, nullable=True)
-    status = Column(String(16), default="public", index=True, nullable=False)
+    status = Column(Enum(PostStatus, name="post_status"), default=PostStatus.PUBLIC, index=True, nullable=False)
 
     purchase_count = Column(Integer, default=0, nullable=False)
     view_count = Column(Integer, default=0, nullable=False)
