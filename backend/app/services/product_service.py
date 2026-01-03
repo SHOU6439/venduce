@@ -1,25 +1,21 @@
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from typing import Optional
+
+from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from typing import Any
+from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.models.product import Product
 from app.schemas.product import ProductCreate
-from app.models.user import User
-from app.exceptions import AuthenticationError
 
 
 class ProductService:
     def create_product(
-        self, db: Session, *, payload: ProductCreate, created_by: str | None = None
+        self, db: Session, *, payload: ProductCreate
     ) -> Product:
 
         sku = payload.sku.strip().upper() if payload.sku else None
-
-        if created_by:
-            creator = db.query(User).filter(User.id == created_by).first()
-            if not creator or not creator.is_admin:
-                raise AuthenticationError("forbidden", "admin required", status_code=403)
 
         existing = db.query(Product).filter(Product.sku == sku).first()
         if existing:
@@ -43,6 +39,31 @@ class ProductService:
             raise ValueError("sku already exists")
         db.refresh(product)
         return product
+
+    def get_by_id(self, db: Session, product_id: str) -> Product:
+        product = (
+            db.query(Product)
+            .options(
+                joinedload(Product.brand),
+                selectinload(Product.categories),
+            )
+            .filter(Product.id == product_id)
+            .first()
+        )
+        
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found",
+            )
+        return product
+
+    def is_visible_to_user(self, product: Product, is_superuser: bool = False) -> bool:
+        if product.status == "published":
+            return True
+        if is_superuser:
+            return True
+        return False
 
 
 product_service = ProductService()

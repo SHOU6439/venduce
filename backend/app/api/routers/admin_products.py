@@ -6,7 +6,7 @@ from app.services.product_service import ProductService
 from app.schemas.product import ProductCreate, ProductRead
 from app.models.user import User
 
-router = APIRouter(prefix="/admin/products", tags=["admin-products"])
+router = APIRouter()
 
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
@@ -17,7 +17,7 @@ def create_product(
     svc: ProductService = Depends(get_product_service),
 ):
     try:
-        product = svc.create_product(db, payload=payload, created_by=admin_user.id)
+        product = svc.create_product(db, payload=payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 

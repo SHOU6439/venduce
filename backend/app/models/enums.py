@@ -7,6 +7,8 @@ class AssetPurpose(str, Enum):
     AVATAR = "avatar"
     POST_IMAGE = "post_image"
     PRODUCT_IMAGE = "product_image"
+    CATEGORY_IMAGE = "category_image"
+    BRAND_IMAGE = "brand_image"
 
 
 class ProductStatus(str, Enum):
