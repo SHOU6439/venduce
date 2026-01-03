@@ -35,7 +35,7 @@ def list_products(
 ) -> Any:
     is_admin = current_user.is_admin if current_user else False
     user_id = current_user.id if current_user else "anonymous"
-    
+
     logger.info(
         f"Product list access: user={user_id} "
         f"params(q={q}, cat={category}, brand={brand}, page={page}, sort={sort})"
@@ -55,7 +55,7 @@ def list_products(
         is_admin=is_admin,
     )
     
-    if is_admin or status:
+    if is_admin:
         response.headers["Cache-Control"] = "no-store"
     else:
         response.headers["Cache-Control"] = "public, max-age=60"

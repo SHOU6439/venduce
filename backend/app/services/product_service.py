@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status as http_status
 from sqlalchemy import or_, desc, asc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.product import Product
 from app.models.category import Category
 from app.models.brand import Brand
+from app.models.enums import ProductStatus
 from app.schemas.product import ProductCreate
 
 
@@ -56,7 +57,7 @@ class ProductService:
         
         if not product:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Product not found",
             )
         return product
@@ -91,6 +92,11 @@ class ProductService:
         if not is_admin:
             query = query.filter(Product.status == "published")
         elif status:
+            if status not in [s.value for s in ProductStatus]:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid status: {status}"
+                )
             query = query.filter(Product.status == status)
 
         if q:
@@ -98,15 +104,15 @@ class ProductService:
             query = query.filter(
                 or_(Product.title.ilike(search), Product.description.ilike(search))
             )
-        
+
         if price_min is not None:
             query = query.filter(Product.price_cents >= price_min)
         if price_max is not None:
             query = query.filter(Product.price_cents <= price_max)
-            
+
         if category_slug:
             query = query.join(Product.categories).filter(Category.slug == category_slug)
-            
+
         if brand_slug:
             query = query.join(Product.brand).filter(Brand.slug == brand_slug)
 
