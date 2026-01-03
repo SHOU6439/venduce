@@ -11,5 +11,6 @@ Usage:
 
 from .user import UserFactory
 from .refresh_token import RefreshTokenFactory
+from .asset_factory import AssetFactory
 
-__all__ = ["UserFactory", "RefreshTokenFactory"]
+__all__ = ["UserFactory", "RefreshTokenFactory", "AssetFactory"]

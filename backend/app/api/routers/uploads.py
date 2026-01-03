@@ -57,7 +57,7 @@ async def upload_image(
     asset = asset_service.create_asset(
         db,
         owner_id=current_user.id,
-        owner_type="user",
+
         purpose=purpose_enum.value,
         filename=file.filename or "upload.bin",
         content_type=content_type,

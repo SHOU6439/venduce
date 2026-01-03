@@ -5,6 +5,7 @@ from app.admin.sqladmin import setup_admin
 from app.api.routers import auth, products
 from app.api.routers import users as users_router
 from app.api.routers import uploads as uploads_router
+from app.api.routers import posts as posts_router
 from app.api.routers import admin_products as admin_products_router
 from app.api.routers import admin_categories as admin_categories_router
 from app.api.routers import admin_brands as admin_brands_router
@@ -33,11 +34,13 @@ def get_application() -> FastAPI:
     app.include_router(admin_brands_router.router, prefix="/admin/brands", tags=["admin-brands"])
     app.include_router(categories_router.router, prefix="/api/categories", tags=["categories"])
     app.include_router(brands_router.router, prefix="/api/brands", tags=["brands"])
+    app.include_router(posts_router.router)
 
     try:
         setup_admin(app)
     except Exception as e:
         print(f"SQLAdmin setup error: {e}")
+
 
     @app.get("/api/health")
     def health_check():

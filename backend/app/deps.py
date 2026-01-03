@@ -8,6 +8,7 @@ from app.services.user_service import user_service, UserService
 from app.services.asset_service import asset_service, AssetService
 from app.utils import jwt as jwt_utils
 from app.services.product_service import product_service, ProductService
+from app.services.post_service import PostService, post_service
 from app.services.category_service import category_service, CategoryService
 from app.services.brand_service import brand_service, BrandService
 
@@ -28,6 +29,10 @@ def get_product_service() -> ProductService:
     return product_service
 
 
+def get_post_service(db: Session = Depends(get_db)) -> PostService:
+    """Dependency provider that constructs a PostService with a DB session."""
+    return PostService(db)
+  
 def get_category_service() -> CategoryService:
     return category_service
 

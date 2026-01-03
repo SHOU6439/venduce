@@ -29,7 +29,6 @@ class AssetAdmin(ModelView, model=Asset):
     column_list = [
         "id",
         "owner_id",
-        "owner_type",
         "purpose",
         "status",
         "content_type",

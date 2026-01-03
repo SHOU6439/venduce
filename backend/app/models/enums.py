@@ -12,9 +12,15 @@ class AssetPurpose(str, Enum):
 
 
 class ProductStatus(str, Enum):
-    draft = "draft"
-    published = "published"
-    archived = "archived"
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
 
 
-__all__ = ["AssetPurpose", "ProductStatus"]
+class PostStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLIC = "public"
+    ARCHIVED = "archived"
+
+
+__all__ = ["AssetPurpose", "ProductStatus", "PostStatus"]

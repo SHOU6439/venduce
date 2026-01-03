@@ -19,7 +19,6 @@ class AssetService:
         db: Session,
         *,
         owner_id: str,
-        owner_type: str,
         purpose: str,
         filename: str,
         content_type: str,
@@ -35,7 +34,6 @@ class AssetService:
         asset = Asset(
             id=asset_id,
             owner_id=owner_id,
-            owner_type=owner_type,
             purpose=purpose,
             status="processing",
             content_type=content_type,
@@ -50,7 +48,6 @@ class AssetService:
         db.add(asset)
         relative_path = build_asset_path(
             purpose=purpose,
-            owner_type=owner_type,
             owner_id=owner_id,
             asset_id=asset_id,
             variant="original",

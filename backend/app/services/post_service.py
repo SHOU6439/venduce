@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+from typing import List
+from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
+
+from app.models.post import Post
+from app.models.asset import Asset
+from app.models.product import Product
+from app.models.tag import Tag
+from app.models.user import User
+from app.schemas.post import PostCreate
+
+
+class PostService:
+    def __init__(self, db: Session) -> None:
+        self.db = db
+
+    def create_post(self, *, post_in: PostCreate, current_user: User) -> Post:
+        """`PostCreate` から `Post` を作成して返します。
+
+        実行内容（ビジネスルール）:
+        - `asset_ids` が与えられた場合、アセットが存在し、かつ現在のユーザーの所有であることを検証します。
+        - `product_ids` が与えられた場合、該当する製品が存在することを検証します。
+        - `tags` はトリム・小文字化して正規化し、既存タグがあれば `usage_count` を増やして再利用、なければ新規作成します。
+        - 関連（products/tags/assets）を設定し、DB に保存（commit）、作成した `Post` を返します。
+
+        すべての検証はここに集約され、ルーターは薄く保たれます。
+        """
+        assets: List[Asset] = []
+        if post_in.asset_ids:
+            assets = (
+                self.db.query(Asset)
+                .filter(Asset.id.in_(post_in.asset_ids), Asset.owner_id == current_user.id)
+                .all()
+            )
+            if len(assets) != len(set(post_in.asset_ids)):
+                found_ids = {a.id for a in assets}
+                missing = set(post_in.asset_ids) - found_ids
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"One or more assets not found or permission denied: {missing}",
+                )
+
+        products: List[Product] = []
+        if post_in.product_ids:
+            products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
+            if len(products) != len(set(post_in.product_ids)):
+                found_ids = {p.id for p in products}
+                missing = set(post_in.product_ids) - found_ids
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"One or more products not found: {missing}",
+                )
+
+        tags: List[Tag] = []
+        if post_in.tags:
+            normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
+
+            existing_tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
+            existing_map = {t.name: t for t in existing_tags}
+
+            for name in normalized_names:
+                if name in existing_map:
+                    tag = existing_map[name]
+                    tag.usage_count += 1
+                    tags.append(tag)
+                else:
+                    new_tag = Tag(name=name, usage_count=1)
+                    self.db.add(new_tag)
+                    tags.append(new_tag)
+
+        post = Post(
+            user_id=current_user.id,
+            caption=post_in.caption,
+            status=post_in.status,
+            extra_metadata=post_in.extra_metadata,
+        )
+
+        post.products = products
+        post.tags = tags
+        post.assets = assets
+
+        self.db.add(post)
+        self.db.commit()
+        self.db.refresh(post)
+        return post
+
+
+# simple module-level factory used by deps.get_post_service
+def post_service_factory(db: Session) -> PostService:
+    return PostService(db)
+
+
+post_service = None
