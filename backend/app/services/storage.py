@@ -72,7 +72,6 @@ def sanitize_segment(segment: str | None) -> str:
 def build_asset_path(
     *,
     purpose: str,
-    owner_type: str,
     owner_id: str,
     asset_id: str,
     variant: str = "original",
@@ -80,7 +79,7 @@ def build_asset_path(
 ) -> str:
     """保存用の相対パスを生成する。"""
     safe_extension = extension.lower().lstrip(".") or "bin"
-    segments = [purpose, owner_type, owner_id, asset_id]
+    segments = [purpose, owner_id, asset_id]
     safe_segments = [sanitize_segment(seg) for seg in segments]
     safe_variant = sanitize_segment(variant) or "original"
     return "/".join(safe_segments + [f"{safe_variant}.{safe_extension}"])

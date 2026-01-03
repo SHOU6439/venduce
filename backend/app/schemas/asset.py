@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 from app.schemas.base import AppModel
 
@@ -23,6 +23,8 @@ class AssetRead(AppModel):
     public_url: str | None = None
     variants: dict[str, Any] | None = None
     metadata: dict[str, Any] | None = Field(default=None, alias="extra_metadata")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 __all__ = ["AssetRead"]
