@@ -102,3 +102,11 @@ test-db:
 test:
 	@echo "テストを実行中..."
 	docker compose exec backend python -m pytest tests/ -v
+
+db-merge:
+	@echo "マイグレーションの競合を解消（merge heads）します..."
+	docker compose run --rm backend alembic merge heads -m "merge_heads"
+
+alembic:
+	@# 使い方: make alembic cmd="history"
+	docker compose run --rm backend alembic $(cmd)
