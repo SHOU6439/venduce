@@ -35,7 +35,7 @@ smtplib.SMTP = _DummySMTP
 
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql://pride_user:pride_password@postgres:5432/pride_db_test"
+    "postgresql://venduce_user:venduce_password@postgres:5432/venduce_db_test"
 )
 
 _engine = create_engine(

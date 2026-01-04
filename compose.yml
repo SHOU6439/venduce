@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: pride_user
-      POSTGRES_PASSWORD: pride_password
-      POSTGRES_DB: pride_db
+      POSTGRES_USER: venduce_user
+      POSTGRES_PASSWORD: venduce_password
+      POSTGRES_DB: venduce_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U pride_user -d pride_db']
+      test: ['CMD-SHELL', 'pg_isready -U venduce_user -d venduce_db']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
     ports:
       - '8000:8000'
     environment:
-      DATABASE_URL: postgresql://pride_user:pride_password@postgres:5432/pride_db
+      DATABASE_URL: postgresql://venduce_user:venduce_password@postgres:5432/venduce_db
       MAIL_ENABLED: 'true'
       MAIL_HOST: mailhog
       MAIL_PORT: '1025'

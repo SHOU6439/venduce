@@ -56,7 +56,7 @@ alembic history --verbose
 ### 1. モデルを変更
 
 ```python
-# pride/backend/models.py
+# venduce/backend/models.py
 class User(Base):
     __tablename__ = "users"
 
@@ -71,7 +71,7 @@ class User(Base):
 ### 2. マイグレーションファイルを生成
 
 ```bash
-docker exec -it pride-backend-1 bash
+docker exec -it venduce-backend-1 bash
 cd /app
 alembic revision --autogenerate -m "Add updated_at to users table"
 ```
@@ -85,11 +85,11 @@ cat migrations/versions/<revision_id>_*.py
 
 **確認ポイント:**
 
-- [ ] `upgrade()` 関数の内容が正しいか
-- [ ] `downgrade()` 関数で完全に元に戻せるか
-- [ ] インデックス・制約が適切に設定されているか
-- [ ] デフォルト値が正しいか
-- [ ] NOT NULL 制約が適切か（既存データがある場合は注意）
+-   [ ] `upgrade()` 関数の内容が正しいか
+-   [ ] `downgrade()` 関数で完全に元に戻せるか
+-   [ ] インデックス・制約が適切に設定されているか
+-   [ ] デフォルト値が正しいか
+-   [ ] NOT NULL 制約が適切か（既存データがある場合は注意）
 
 ### 4. マイグレーションを適用
 
@@ -105,10 +105,10 @@ alembic upgrade head
 
 ```bash
 # テーブル構造を確認
-docker exec -it pride-postgres-1 psql -U pride_user -d pride_db -c "\d users"
+docker exec -it venduce-postgres-1 psql -U venduce_user -d venduce_db -c "\d users"
 
 # データを確認
-docker exec -it pride-postgres-1 psql -U pride_user -d pride_db -c "SELECT * FROM users;"
+docker exec -it venduce-postgres-1 psql -U venduce_user -d venduce_db -c "SELECT * FROM users;"
 ```
 
 ## 注意事項
@@ -117,35 +117,35 @@ docker exec -it pride-postgres-1 psql -U pride_user -d pride_db -c "SELECT * FRO
 
 1. **必ずバックアップを取る**
 
-   ```bash
-   docker exec pride-postgres-1 pg_dump -U pride_user pride_db > backup_$(date +%Y%m%d_%H%M%S).sql
-   ```
+    ```bash
+    docker exec venduce-postgres-1 pg_dump -U venduce_user venduce_db > backup_$(date +%Y%m%d_%H%M%S).sql
+    ```
 
 2. **downgrade の動作確認**
 
-   - 開発環境で必ず `downgrade` をテストする
-   - ロールバック手順を準備する
+    - 開発環境で必ず `downgrade` をテストする
+    - ロールバック手順を準備する
 
 3. **データ損失のリスク**
-   - カラム削除
-   - NOT NULL 制約の追加（既存データが NULL の場合）
-   - UNIQUE 制約の追加（重複データがある場合）
+    - カラム削除
+    - NOT NULL 制約の追加（既存データが NULL の場合）
+    - UNIQUE 制約の追加（重複データがある場合）
 
 ### 🚫 やってはいけないこと
 
-- ❌ 適用済みのマイグレーションファイルを直接編集
-- ❌ リビジョン ID を手動で変更
-- ❌ `down_revision` を手動で変更
-- ❌ マイグレーションファイルの削除（履歴を保持）
-- ❌ 本番環境で直接 `alembic downgrade`（緊急時以外）
+-   ❌ 適用済みのマイグレーションファイルを直接編集
+-   ❌ リビジョン ID を手動で変更
+-   ❌ `down_revision` を手動で変更
+-   ❌ マイグレーションファイルの削除（履歴を保持）
+-   ❌ 本番環境で直接 `alembic downgrade`（緊急時以外）
 
 ### ✅ ベストプラクティス
 
-- ✅ マイグレーションファイルは Git にコミット
-- ✅ わかりやすいメッセージを付ける
-- ✅ 1 つのマイグレーションで 1 つの変更のみ
-- ✅ 必ず `downgrade` の動作確認を行う
-- ✅ 本番適用前にステージング環境でテスト
+-   ✅ マイグレーションファイルは Git にコミット
+-   ✅ わかりやすいメッセージを付ける
+-   ✅ 1 つのマイグレーションで 1 つの変更のみ
+-   ✅ 必ず `downgrade` の動作確認を行う
+-   ✅ 本番適用前にステージング環境でテスト
 
 ## トラブルシューティング
 
@@ -186,12 +186,12 @@ alembic upgrade head
 マイグレーションは以下の環境変数を使用します:
 
 ```bash
-DATABASE_URL=postgresql://pride_user:pride_pass@postgres:5432/pride_db
+DATABASE_URL=postgresql://venduce_user:venduce_pass@postgres:5432/venduce_db
 ```
 
 設定場所: `backend/.env` または Docker 環境変数
 
 ## 参考リンク
 
-- [Alembic 公式ドキュメント](https://alembic.sqlalchemy.org/)
-- [SQLAlchemy 公式ドキュメント](https://www.sqlalchemy.org/)
+-   [Alembic 公式ドキュメント](https://alembic.sqlalchemy.org/)
+-   [SQLAlchemy 公式ドキュメント](https://www.sqlalchemy.org/)

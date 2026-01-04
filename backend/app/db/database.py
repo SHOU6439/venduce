@@ -4,7 +4,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://pride_user:pride_password@postgres:5432/pride_db"
+    "postgresql://venduce_user:venduce_password@postgres:5432/venduce_db"
 )
 
 engine = create_engine(
