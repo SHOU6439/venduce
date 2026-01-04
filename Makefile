@@ -27,6 +27,10 @@ env-file:
 		echo "'.env' が見つかりません。'.env.example' をコピーして作成します..."; \
 		cp .env.example .env; \
 	fi
+	@if [ -d frontend ] && [ ! -f frontend/.env.local ]; then \
+		echo "'frontend/.env.local' が見つかりません。'frontend/.env.local.example' をコピーして作成します..."; \
+		cp frontend/.env.local.example frontend/.env.local; \
+	fi
 
 keys:
 	@JWT_ALG=$$(grep -E '^JWT_ALGORITHM=' .env | cut -d'=' -f2 | tr -d '"'); \
