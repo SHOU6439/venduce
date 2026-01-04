@@ -23,7 +23,7 @@ class ProductBase(AppModel):
     price_cents: conint(ge=0) = 0
     currency: str = Field(default="JPY", min_length=3, max_length=8)
     status: ProductStatus = Field(default=ProductStatus.DRAFT)
-    stock_quantity: conint(ge=1) = 1
+    stock_quantity: conint(ge=0) = 0
     metadata: Optional[dict] = Field(default=None, alias="extra_metadata")
 
 
