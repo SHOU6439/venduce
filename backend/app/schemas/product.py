@@ -40,3 +40,14 @@ class ProductRead(ProductBase):
     brand: Optional[BrandRead] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductList(AppModel):
+    items: List[ProductRead]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+__all__ = ["CategoryBase", "ProductBase", "ProductCreate", "ProductRead", "ProductList"]
