@@ -1,25 +1,25 @@
-"""Shared domain exceptions for the Pride backend."""
+"""Shared domain exceptions for the venduce backend."""
 
 from __future__ import annotations
 
 
-class PrideError(Exception):
+class VenduceError(Exception):
     """Base class for domain-specific exceptions."""
 
 
-class UserAlreadyExists(PrideError):
+class UserAlreadyExists(VenduceError):
     """Raised when a user registers with an email/username that already exists."""
 
 
-class ConfirmationError(PrideError):
+class ConfirmationError(VenduceError):
     """Raised when account confirmation fails."""
 
 
-class RefreshTokenError(PrideError):
+class RefreshTokenError(VenduceError):
     """Raised when refresh token handling encounters an invalid or revoked token."""
 
 
-class AuthenticationError(PrideError):
+class AuthenticationError(VenduceError):
     """Authentication/authorization failure that carries HTTP-friendly metadata."""
 
     def __init__(self, code: str, message: str, status_code: int = 401):
@@ -35,7 +35,7 @@ class AuthenticationError(PrideError):
 __all__ = [
     "AuthenticationError",
     "ConfirmationError",
-    "PrideError",
+    "VenduceError",
     "RefreshTokenError",
     "UserAlreadyExists",
 ]

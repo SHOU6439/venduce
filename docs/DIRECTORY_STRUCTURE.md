@@ -3,8 +3,9 @@
 ---
 
 ## 全体像
+
 ```
-pride/
+venduce/
   backend/            # FastAPI + SQLAlchemy + Alembic
   frontend/           # Next.js (App Router, TS, Tailwind)
   .github/            # Issue/PRテンプレ、ワークフロー、ガイド
@@ -94,9 +95,9 @@ backend/
     -   Repository: データアクセス（ORM クエリ/永続化）
 -   最初は `models.py`/`schemas.py` を 1 ファイルで始め、増えたら分割でも OK
 -   Enum
-  -   ドメイン共通で使う列挙値（例: 画像用途）は `app/models/enums.py` にまとめ、`str, Enum` 継承クラスとして宣言
-  -   Router / Service / Schema は必ず Enum を参照し、文字列リテラルをハードコードしない
-  -   DB へ保存するときは `enum.value` を使い、入力チェックは `AssetPurpose(value)` のようにキャストして ValueError を捕捉
+-   ドメイン共通で使う列挙値（例: 画像用途）は `app/models/enums.py` にまとめ、`str, Enum` 継承クラスとして宣言
+-   Router / Service / Schema は必ず Enum を参照し、文字列リテラルをハードコードしない
+-   DB へ保存するときは `enum.value` を使い、入力チェックは `AssetPurpose(value)` のようにキャストして ValueError を捕捉
 
 運用ルール（Backend）
 
