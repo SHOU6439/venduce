@@ -94,10 +94,11 @@ migrate:
 	docker compose run --rm backend sh -c "alembic upgrade head || true"
 
 test-db:
-	@echo "テスト用データベースを作成中..."
-	docker compose exec postgres createdb -U venduce_user venduce_db_test || true
+	@echo "テスト用データベースを再構築中..."
+	docker compose exec postgres dropdb -U venduce_user --if-exists venduce_db_test
+	docker compose exec postgres createdb -U venduce_user venduce_db_test
 	@echo "テスト用データベースにマイグレーションを適用中..."
-	docker compose exec backend bash -c "DATABASE_URL=postgresql://venduce_user:venduce_password@postgres:5432/venduce_db_test alembic upgrade head || true"
+	docker compose exec backend bash -c "DATABASE_URL=postgresql://venduce_user:venduce_password@postgres:5432/venduce_db_test alembic upgrade head"
 
 test:
 	@echo "テストを実行中..."
