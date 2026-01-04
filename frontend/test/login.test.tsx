@@ -1,4 +1,4 @@
-import Login from '@/app/login/page';
+import Login from '@/app/(auth)/login/page';
 import { useAuthStore } from '@/stores/auth';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
