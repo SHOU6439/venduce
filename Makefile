@@ -115,3 +115,12 @@ db-merge:
 alembic:
 	@# 使い方: make alembic cmd="history"
 	docker compose run --rm backend alembic $(cmd)
+
+ps:
+	docker compose ps
+
+back:
+	docker exec -it venduce-backend-1 bash
+
+front:
+	docker exec -it venduce-frontend-1 bash
