@@ -1,5 +1,4 @@
 """Tests for PostService.get_public_posts() method."""
-import pytest
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 

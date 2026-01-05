@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional, Tuple
-from datetime import datetime
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.post import Post

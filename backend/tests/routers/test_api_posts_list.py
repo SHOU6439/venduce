@@ -1,5 +1,4 @@
 """Tests for GET /api/posts endpoint."""
-import pytest
 from fastapi import status
 from sqlalchemy.orm import Session
 
