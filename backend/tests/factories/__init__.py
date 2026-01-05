@@ -1,16 +1,18 @@
-"""Factory module for creating test data.
+"""Test factories for model instances.
 
-Factories use factory_boy to create model instances for testing.
-
-Usage:
-    from tests.factories import UserFactory, RefreshTokenFactory
-    
-    user = UserFactory(email="test@example.com", is_confirmed=True)
-    refresh_token = RefreshTokenFactory(user=user)
+This module provides factory-boy factories for creating test data.
+All factories use SQLAlchemyModelFactory and will automatically
+commit instances to the test database.
 """
 
-from .user import UserFactory
-from .refresh_token import RefreshTokenFactory
-from .asset_factory import AssetFactory
+from tests.factories.user import UserFactory
+from tests.factories.refresh_token import RefreshTokenFactory
+from tests.factories.asset_factory import AssetFactory
+from tests.factories.post_factory import PostFactory
 
-__all__ = ["UserFactory", "RefreshTokenFactory", "AssetFactory"]
+__all__ = [
+    "UserFactory",
+    "RefreshTokenFactory",
+    "AssetFactory",
+    "PostFactory",
+]
