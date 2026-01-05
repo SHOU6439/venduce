@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import List
-from sqlalchemy.orm import Session
+from typing import List, Optional, Tuple
+from datetime import datetime
+from sqlalchemy.orm import Session, selectinload
 from fastapi import HTTPException, status
 
 from app.models.post import Post
@@ -9,7 +10,9 @@ from app.models.asset import Asset
 from app.models.product import Product
 from app.models.tag import Tag
 from app.models.user import User
+from app.models.enums import PostStatus
 from app.schemas.post import PostCreate
+from app.utils.cursor import encode_cursor, decode_cursor
 
 
 class PostService:
@@ -86,8 +89,57 @@ class PostService:
         self.db.refresh(post)
         return post
 
+    def get_public_posts(
+        self,
+        *,
+        cursor: Optional[str] = None,
+        limit: int = 20
+    ) -> Tuple[List[Post], Optional[str], bool]:
+        """公開投稿の一覧を cursor ベースのページネーションで取得します。
 
-# simple module-level factory used by deps.get_post_service
+        Args:
+            cursor: 継続取得用のカーソル（Base64 エンコード済み）
+            limit: 取得件数（1-100）
+
+        Returns:
+            (posts, next_cursor, has_more) のタプル
+            - posts: 投稿リスト
+            - next_cursor: 次ページのカーソル（なければ None）
+            - has_more: 次ページがあるか
+        """
+        query = (
+            self.db.query(Post)
+            .filter(Post.status == 'public')
+            .order_by(Post.created_at.desc(), Post.id.desc())
+        )
+
+        if cursor:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+            query = query.filter(
+                (Post.created_at < cursor_created_at) |
+                ((Post.created_at == cursor_created_at) & (Post.id < cursor_id))
+            )
+
+        posts = query.limit(limit + 1).all()
+
+        has_more = len(posts) > limit
+        if has_more:
+            posts = posts[:limit]
+
+        for post in posts:
+            _ = post.user
+            _ = post.assets
+            _ = post.products
+            _ = post.tags
+
+        next_cursor = None
+        if has_more and posts:
+            last_post = posts[-1]
+            next_cursor = encode_cursor(last_post.created_at, last_post.id)
+
+        return posts, next_cursor, has_more
+
+
 def post_service_factory(db: Session) -> PostService:
     return PostService(db)
 
