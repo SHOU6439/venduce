@@ -27,7 +27,16 @@ class Post(Base):
     id = Column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
     user_id = Column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     caption = Column(Text, nullable=True)
-    status = Column(Enum(PostStatus, name="post_status"), default=PostStatus.PUBLIC, index=True, nullable=False)
+    status = Column(
+        Enum(
+            PostStatus,
+            name="post_status",
+            values_callable=lambda x: [e.value for e in x]
+        ),
+        default=PostStatus.PUBLIC,
+        index=True,
+        nullable=False
+    )
 
     purchase_count = Column(Integer, default=0, nullable=False)
     view_count = Column(Integer, default=0, nullable=False)
