@@ -106,8 +106,13 @@ def generate_jwt_keys():
     has_private_path = read_env_value("JWT_PRIVATE_KEY_PATH")
     has_private_inline = read_env_value("JWT_PRIVATE_KEY")
     if has_private_path and has_private_path not in ['', '""']:
-        print(".env に既に JWT_PRIVATE_KEY_PATH が設定されています。鍵の生成はスキップします。")
-        return
+        host_key_path = Path("backend") / has_private_path
+        if host_key_path.exists():
+            print(f".env に JWT_PRIVATE_KEY_PATH が設定されており、鍵ファイルも存在します ({host_key_path})。")
+            return
+        else:
+            print(f"警告: .env に JWT_PRIVATE_KEY_PATH ({has_private_path}) が設定されていますが、")
+            print(f"      ホスト上にファイルが見つかりません ({host_key_path})。再生成を試みます...")
 
     if has_private_inline and has_private_inline not in ['', '""']:
         print(".env に既に JWT_PRIVATE_KEY が設定されています。鍵の生成はスキップします。")
@@ -124,18 +129,20 @@ def generate_jwt_keys():
     try:
         print("秘密鍵を生成中...")
         subprocess.run([
+            "docker", "compose", "run", "--rm", "--no-deps", "backend",
             "openssl", "genpkey",
             "-algorithm", "RSA",
-            "-out", str(private_key_path),
+            "-out", "keys/private.pem",
             "-pkeyopt", "rsa_keygen_bits:2048"
         ], check=True, capture_output=True)
 
         print("公開鍵を生成中...")
         subprocess.run([
+            "docker", "compose", "run", "--rm", "--no-deps", "backend",
             "openssl", "rsa",
-            "-in", str(private_key_path),
+            "-in", "keys/private.pem",
             "-pubout",
-            "-out", str(public_key_path)
+            "-out", "keys/public.pem"
         ], check=True, capture_output=True)
 
         print(f"✓ RSA鍵ペアを生成しました:")
@@ -146,22 +153,15 @@ def generate_jwt_keys():
         update_env_value("JWT_PUBLIC_KEY_PATH", "keys/public.pem")
 
         print("✓ .env に鍵パスを設定しました")
-        print("Note: backend/keys/ is not committed if it's in .gitignore.")
 
     except subprocess.CalledProcessError as e:
-        print(f"エラー: openssl コマンドの実行に失敗しました")
+        print(f"エラー: コマンドの実行に失敗しました")
         print(f"stderr: {e.stderr.decode() if e.stderr else 'N/A'}")
-        print("\nopensslがインストールされているか確認してください:")
-        print("  Windows: https://slproweb.com/products/Win32OpenSSL.html")
-        print("  macOS: brew install openssl")
-        print("  Linux: sudo apt-get install openssl")
+        print("\nDockerが起動しているか確認してください。")
         sys.exit(1)
     except FileNotFoundError:
-        print("エラー: openssl コマンドが見つかりません")
-        print("\nopensslをインストールしてください:")
-        print("  Windows: https://slproweb.com/products/Win32OpenSSL.html")
-        print("  macOS: brew install openssl")
-        print("  Linux: sudo apt-get install openssl")
+        print("エラー: docker コマンドが見つかりません")
+        print("\nDockerをインストールしてください。")
         sys.exit(1)
 
 
