@@ -108,7 +108,7 @@ class PostService:
         """
         query = (
             self.db.query(Post)
-            .filter(Post.status == 'public')
+            .filter(Post.status == PostStatus.PUBLIC)
             .order_by(Post.created_at.desc(), Post.id.desc())
         )
 
