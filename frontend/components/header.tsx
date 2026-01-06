@@ -11,11 +11,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
-              {/* <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <ShoppingBag className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-primary">Venduce</span> */}
-              <Image src="/title.png" alt="Venduce Title" width={110} height={341} className="rounded-lg" />
+              <Image src="/title.webp" alt="Venduce Title" width={110} height={341} className="rounded-lg" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
