@@ -1,6 +1,16 @@
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/+$/, '');
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+function getStoredToken(explicitToken?: string | null): string | null {
+  if (explicitToken) {
+    return explicitToken;
+  }
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return window.localStorage.getItem('token');
+}
 
 function resolveUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -44,6 +54,12 @@ function stripBody(init?: RequestInit): RequestInit | undefined {
 
 async function request<TResponse>(path: string, init: RequestInit = {}): Promise<TResponse> {
   const headers = ensureHeaders(init.headers, { Accept: 'application/json' });
+  if (!headers.has('Authorization')) {
+    const token = getStoredToken(null);
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
 
   const response = await fetch(resolveUrl(path), {
     ...init,
@@ -122,6 +138,43 @@ async function send<TResponse>(method: HttpMethod, path: string, body?: unknown,
   });
 }
 
+type RequestOptions = RequestInit & {
+  token?: string;
+};
+
+async function fetchAPI<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const { token, headers, body, ...customConfig } = options as RequestInit & { token?: string };
+  const resolvedBody = body instanceof FormData || typeof body === 'string' ? body : body !== undefined ? JSON.stringify(body) : undefined;
+
+  const mergedHeaders = new Headers(headers ?? undefined);
+  if (!(resolvedBody instanceof FormData) && !mergedHeaders.has('Content-Type')) {
+    mergedHeaders.set('Content-Type', 'application/json');
+  }
+
+  const authToken = getStoredToken(token ?? null);
+  if (authToken && !mergedHeaders.has('Authorization')) {
+    mergedHeaders.set('Authorization', `Bearer ${authToken}`);
+  }
+
+  const response = await fetch(resolveUrl(endpoint), {
+    ...customConfig,
+    body: resolvedBody,
+    headers: mergedHeaders,
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.detail || `API Error: ${response.statusText}`);
+  }
+
+  // 204 No Content などの場合のハンドリング
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json();
+}
+
 export const apiClient: ApiClient = {
   request,
   get: (path, init) => {
@@ -135,4 +188,12 @@ export const apiClient: ApiClient = {
     const rest = stripBody(init);
     return request(path, { ...(rest ?? {}), method: 'DELETE' });
   },
+};
+
+export const client = {
+  get: <T>(url: string, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'GET' }),
+  post: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'POST', body }),
+  put: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'PUT', body }),
+  patch: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'PATCH', body }),
+  delete: <T>(url: string, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'DELETE' }),
 };

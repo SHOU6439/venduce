@@ -1,53 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Share2, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 
-const MOCK_PRODUCTS: Record<
-  string,
-  {
-    id: string;
-    name: string;
-    brand: string;
-    price: number;
-    description: string;
-    images: string[];
-    category: string;
-    relatedPosts: any[];
-  }
-> = {};
+import { productsApi } from '@/lib/api/products';
+import { postsApi } from '@/lib/api/posts';
+import { Product, Post } from '@/types/api';
+import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
 
 export function ProductDetails({ productId }: { productId: string }) {
-  const product = MOCK_PRODUCTS[productId];
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [liked, setLiked] = useState(false);
 
-  if (!product) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">商品が見つかりませんでした</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        // 並行取得
+        const [prodData, postsData] = await Promise.all([productsApi.getProduct(productId), postsApi.getRelatedPosts(productId)]);
+        setProduct(prodData);
+        setRelatedPosts(postsData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [productId]);
+
+  if (loading) return <div className="p-10 text-center">Loading...</div>;
+  if (!product) return <div className="p-10 text-center">商品が見つかりません</div>;
+
+  const displayImages = product.images && product.images.length > 0 ? product.images : [''];
 
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="flex h-16 items-center gap-4 px-4">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/feed">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
+          <Link href="/feed">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
           <h1 className="flex-1 font-semibold text-lg">商品詳細</h1>
-          <Button variant="ghost" size="icon" onClick={() => setLiked(!liked)}>
-            <Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
-          </Button>
           <Button variant="ghost" size="icon">
             <Share2 className="h-5 w-5" />
           </Button>
@@ -58,12 +59,12 @@ export function ProductDetails({ productId }: { productId: string }) {
         {/* Image Gallery */}
         <div className="space-y-4 p-4">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-            <img src={product.images[selectedImage] || '/placeholder.svg'} alt={product.name} className="h-full w-full object-cover" />
+            <img src={getImageUrl(displayImages[selectedImage])} alt={product.title} className="h-full w-full object-cover" />
           </div>
           <div className="flex gap-2 overflow-x-auto">
-            {product.images.map((image, index) => (
+            {displayImages.map((image, index) => (
               <button key={index} onClick={() => setSelectedImage(index)} className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
-                <img src={image || '/placeholder.svg'} alt={`${product.name} ${index + 1}`} className="h-full w-full object-cover" />
+                <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -72,35 +73,31 @@ export function ProductDetails({ productId }: { productId: string }) {
         {/* Product Info */}
         <div className="space-y-6 p-4">
           <div>
-            <p className="text-sm text-muted-foreground">{product.brand}</p>
-            <h2 className="mt-1 text-2xl font-bold text-balance">{product.name}</h2>
-            <p className="mt-2 text-3xl font-bold text-primary">¥{product.price.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">{product.brand?.name ?? 'ブランド未登録'}</p>
+            <h2 className="mt-1 text-2xl font-bold text-balance">{product.title}</h2>
+            <p className="mt-2 text-3xl font-bold text-primary">{formatCurrencyFromMinorUnit(product.price_cents, product.currency ?? 'JPY')}</p>
           </div>
 
           <div>
             <h3 className="mb-2 font-semibold">商品説明</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-muted-foreground">カテゴリー: {product.category}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{product.description ?? '説明が登録されていません。'}</p>
           </div>
 
           {/* Related Posts */}
           <div>
             <h3 className="mb-4 font-semibold">この商品を購入した人の投稿</h3>
             <div className="grid grid-cols-2 gap-4">
-              {product.relatedPosts.map((post) => (
-                <Link key={post.id} href="/feed">
+              {relatedPosts.map((post) => (
+                <Link key={post.id} href={`/posts/${post.id}`}>
                   <Card className="overflow-hidden transition-all hover:shadow-md">
-                    <img src={post.image || '/placeholder.svg'} alt="関連投稿" className="aspect-square w-full object-cover" />
+                    <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? undefined)} alt="関連投稿" className="aspect-square w-full object-cover" />
                     <CardContent className="p-3">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={post.user.avatar || '/placeholder.svg'} />
-                          <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
+                          <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
+                          <AvatarFallback>{post.user?.username?.charAt(0) ?? '?'}</AvatarFallback>
                         </Avatar>
-                        <p className="text-xs font-medium">{post.user.name}</p>
+                        <p className="text-xs font-medium">{post.user?.username ?? '匿名ユーザー'}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -110,14 +107,6 @@ export function ProductDetails({ productId }: { productId: string }) {
           </div>
         </div>
       </main>
-
-      {/* Sticky Buy Button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <Button className="w-full" size="lg">
-          <ShoppingBag className="mr-2 h-5 w-5" />
-          購入する
-        </Button>
-      </div>
     </div>
   );
 }

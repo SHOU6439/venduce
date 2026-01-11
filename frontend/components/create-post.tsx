@@ -1,64 +1,101 @@
 'use client';
 
-import type React from 'react';
-
 import { useState } from 'react';
-import { ArrowLeft, Upload, Search, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Upload, X, Search, ShoppingBag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-const MOCK_PRODUCTS: any[] = [];
+// API
+import { uploadsApi } from '@/lib/api/uploads';
+import { postsApi } from '@/lib/api/posts';
+import { productsApi } from '@/lib/api/products';
+import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
+import { Product, Asset } from '@/types/api';
 
 export function CreatePost() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [image, setImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State
+  const [uploadedAsset, setUploadedAsset] = useState<Asset | null>(null);
   const [caption, setCaption] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState<typeof MOCK_PRODUCTS>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
-  const filteredProducts = MOCK_PRODUCTS.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase()) || product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 1. 画像アップロード
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
+      try {
+        setIsUploading(true);
+        const asset = await uploadsApi.uploadImage(file, 'post_image');
+        setUploadedAsset(asset);
         setStep(2);
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('画像のアップロードに失敗しました');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  const toggleProduct = (product: (typeof MOCK_PRODUCTS)[0]) => {
-    setSelectedProducts((prev) => (prev.find((p) => p.id === product.id) ? prev.filter((p) => p.id !== product.id) : [...prev, product]));
+  // 2. 商品検索 (簡易Debounceなし実装)
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    try {
+      const results = await productsApi.searchProducts(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+    }
   };
 
-  const handlePublish = () => {
-    // Mock publish action
-    router.push('/feed');
+  const toggleProduct = (product: Product) => {
+    if (selectedProducts.find((p) => p.id === product.id)) {
+      setSelectedProducts(selectedProducts.filter((p) => p.id !== product.id));
+    } else {
+      setSelectedProducts([...selectedProducts, product]);
+    }
+  };
+
+  // 3. 投稿作成
+  const handleSubmit = async () => {
+    if (!uploadedAsset) return;
+
+    try {
+      setIsSubmitting(true);
+      await postsApi.createPost({
+        caption,
+        asset_ids: [uploadedAsset.id],
+        product_ids: selectedProducts.map((p) => p.id),
+      });
+      router.push('/feed');
+      router.refresh();
+    } catch (error) {
+      console.error('Post creation failed:', error);
+      alert('投稿の作成に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="flex h-16 items-center gap-4 px-4">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/feed">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <h1 className="flex-1 font-semibold text-lg">新規投稿</h1>
-          {step === 3 && (
-            <Button onClick={handlePublish} size="sm">
-              投稿する
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 border-b border-border bg-card p-4">
+        <div className="mx-auto flex max-w-2xl items-center justify-between">
+          <h1 className="text-lg font-semibold">{step === 1 ? '写真を選択' : '投稿を作成'}</h1>
+          {step === 2 && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              シェアする
             </Button>
           )}
         </div>
@@ -69,38 +106,44 @@ export function CreatePost() {
         {step === 1 && (
           <Card>
             <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8">
-              <Upload className="mb-4 h-16 w-16 text-muted-foreground" />
-              <h2 className="mb-2 text-xl font-semibold">写真をアップロード</h2>
-              <p className="mb-6 text-center text-sm text-muted-foreground">購入した商品の写真を選択してください</p>
-              <label htmlFor="image-upload">
-                <Button asChild>
-                  <span className="cursor-pointer">写真を選択</span>
-                </Button>
-              </label>
-              <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              {isUploading ? (
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+              ) : (
+                <>
+                  <Upload className="mb-4 h-16 w-16 text-muted-foreground" />
+                  <h2 className="mb-2 text-xl font-semibold">写真をアップロード</h2>
+                  <p className="mb-6 text-center text-sm text-muted-foreground">購入した商品の写真を選択してください</p>
+                  <label htmlFor="image-upload">
+                    <Button asChild>
+                      <span className="cursor-pointer">写真を選択</span>
+                    </Button>
+                  </label>
+                  <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Step 2: Tag Products */}
-        {step === 2 && (
+        {/* Step 2: Tag Products & Caption */}
+        {step === 2 && uploadedAsset && (
           <div className="space-y-4">
-            {image && (
-              <Card className="overflow-hidden">
-                <img src={image || '/placeholder.svg'} alt="アップロード画像" className="aspect-square w-full object-cover" />
-              </Card>
-            )}
+            <Card className="overflow-hidden">
+              <img src={getImageUrl(uploadedAsset.public_url || uploadedAsset.id)} alt="アップロード画像" className="aspect-square w-full object-cover" />
+            </Card>
 
             <Card>
               <CardContent className="p-4">
+                <Textarea placeholder="購入した商品について説明してください..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={4} className="mb-4" />
+
                 <h2 className="mb-4 font-semibold">商品をタグ付け</h2>
 
-                {/* Selected Products */}
+                {/* Selected Products Badges */}
                 {selectedProducts.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">
                     {selectedProducts.map((product) => (
                       <Badge key={product.id} variant="secondary" className="gap-1">
-                        {product.brand} - {product.name}
+                        {product.title}
                         <button onClick={() => toggleProduct(product)} className="ml-1 hover:text-destructive">
                           <X className="h-3 w-3" />
                         </button>
@@ -109,60 +152,36 @@ export function CreatePost() {
                   </div>
                 )}
 
-                {/* Search Products */}
+                {/* Search Box */}
                 <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="商品やブランドを検索..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="商品を検索..." className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+                  <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={handleSearch}>
+                    検索
+                  </Button>
                 </div>
 
-                {/* Product List */}
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {filteredProducts.map((product) => (
-                    <button key={product.id} onClick={() => toggleProduct(product)} className={`flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent ${selectedProducts.find((p) => p.id === product.id) ? 'border-primary bg-accent' : 'border-border'}`}>
-                      <div>
-                        <p className="font-medium text-sm">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.brand}</p>
+                {/* Search Results */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {searchResults.map((product) => (
+                    <div key={product.id} className="flex items-center justify-between rounded-lg border p-2" onClick={() => toggleProduct(product)}>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 overflow-hidden rounded bg-muted">
+                          <img src={getImageUrl(product.images?.[0])} alt={product.title} className="h-full w-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{product.title}</p>
+                          <p className="text-xs text-muted-foreground">{product.brand?.name ?? 'ブランド未登録'}</p>
+                          <p className="text-xs text-primary">{formatCurrencyFromMinorUnit(product.price_cents, product.currency ?? 'JPY')}</p>
+                        </div>
                       </div>
-                      <p className="font-semibold text-sm">¥{product.price.toLocaleString()}</p>
-                    </button>
-                  ))}
-                </div>
-
-                <Button className="mt-4 w-full" onClick={() => setStep(3)} disabled={selectedProducts.length === 0}>
-                  次へ
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Step 3: Add Caption */}
-        {step === 3 && (
-          <div className="space-y-4">
-            {image && (
-              <Card className="overflow-hidden">
-                <img src={image || '/placeholder.svg'} alt="アップロード画像" className="aspect-square w-full object-cover" />
-              </Card>
-            )}
-
-            <Card>
-              <CardContent className="p-4">
-                <h2 className="mb-4 font-semibold">キャプションを追加</h2>
-
-                <Textarea placeholder="購入した商品について説明してください..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} className="mb-4" />
-
-                {selectedProducts.length > 0 && (
-                  <div className="mb-4">
-                    <p className="mb-2 text-sm font-medium">タグ付けされた商品</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProducts.map((product) => (
-                        <Badge key={product.id} variant="secondary">
-                          {product.brand} - {product.name}
-                        </Badge>
-                      ))}
+                      <Button variant="ghost" size="icon" disabled={selectedProducts.some((p) => p.id === product.id)}>
+                        <ShoppingBag className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                )}
+                  ))}
+                  {searchQuery && searchResults.length === 0 && <p className="text-sm text-center text-gray-500 py-2">商品が見つかりません</p>}
+                </div>
               </CardContent>
             </Card>
           </div>
