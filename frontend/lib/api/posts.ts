@@ -9,9 +9,9 @@ const normalizePost = (post: Post): Post => ({
 
 export const postsApi = {
   getPosts: async (cursor?: string): Promise<Post[]> => {
-    // 実際の実装ではページネーション対応が必要
-    const response = await client.get<Post[]>('/api/posts');
-    return response.map(normalizePost);
+    const response = await client.get<Post[] | { items: Post[] }>('/api/posts');
+    const items = Array.isArray(response) ? response : response.items || [];
+    return items.map(normalizePost);
   },
 
   getPost: async (id: string): Promise<Post> => {
@@ -24,13 +24,13 @@ export const postsApi = {
     return normalizePost(created);
   },
 
-  // 簡易実装: 全投稿からフィルタリング（サーバー実装待ちの場合はこれ）または専用エンドポイント
   getRelatedPosts: async (productId: string): Promise<Post[]> => {
-    // 将来的には `/products/${productId}/posts` など
-    const allPosts = await client.get<Post[]>('/api/posts');
+    const response = await client.get<Post[] | { items: Post[] }>('/api/posts');
+    const allPosts = Array.isArray(response) ? response : response.items || [];
+
     return allPosts
       .map(normalizePost)
-      .filter((p) => p.products.some((prod) => prod.id === productId))
+      .filter((p) => p.products?.some((prod) => prod.id === productId))
       .slice(0, 4);
   },
 };

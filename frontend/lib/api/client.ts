@@ -87,10 +87,8 @@ async function request<TResponse>(path: string, init: RequestInit = {}): Promise
         if (typeof detail === 'string') {
           message = detail;
         } else if (Array.isArray(detail)) {
-          // Handle Pydantic validation errors
           message = detail.map((err) => err.msg || JSON.stringify(err)).join(', ');
         } else if (typeof detail === 'object' && detail !== null) {
-          // Handle structured error objects
           message = String((detail as Record<string, unknown>).message) || JSON.stringify(detail);
         } else {
           message = String(detail);
@@ -164,10 +162,9 @@ async function fetchAPI<T>(endpoint: string, options: RequestOptions = {}): Prom
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.detail || `API Error: ${response.statusText}`);
+    throw new ApiError(response.status, errorBody.detail || `API Error: ${response.statusText}`, errorBody);
   }
 
-  // 204 No Content などの場合のハンドリング
   if (response.status === 204) {
     return {} as T;
   }

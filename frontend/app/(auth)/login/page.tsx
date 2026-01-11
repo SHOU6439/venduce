@@ -36,7 +36,6 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear field error on change
     if (fieldErrors[name as keyof typeof fieldErrors]) {
       setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
     }

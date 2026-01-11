@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
-// API
 import { uploadsApi } from '@/lib/api/uploads';
 import { postsApi } from '@/lib/api/posts';
 import { productsApi } from '@/lib/api/products';
@@ -22,14 +21,12 @@ export function CreatePost() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // State
   const [uploadedAsset, setUploadedAsset] = useState<Asset | null>(null);
   const [caption, setCaption] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
-  // 1. 画像アップロード
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -47,7 +44,6 @@ export function CreatePost() {
     }
   };
 
-  // 2. 商品検索 (簡易Debounceなし実装)
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     try {
@@ -66,7 +62,6 @@ export function CreatePost() {
     }
   };
 
-  // 3. 投稿作成
   const handleSubmit = async () => {
     if (!uploadedAsset) return;
 
@@ -129,7 +124,9 @@ export function CreatePost() {
         {step === 2 && uploadedAsset && (
           <div className="space-y-4">
             <Card className="overflow-hidden">
-              <img src={getImageUrl(uploadedAsset.public_url || uploadedAsset.id)} alt="アップロード画像" className="aspect-square w-full object-cover" />
+              <div className="h-[400px] w-full bg-muted">
+                <img src={getImageUrl(uploadedAsset.public_url || uploadedAsset.id)} alt="アップロード画像" className="h-full w-full object-cover" />
+              </div>
             </Card>
 
             <Card>

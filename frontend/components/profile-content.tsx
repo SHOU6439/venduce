@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Grid3x3 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usersApi } from '@/lib/api/users';
 import { postsApi } from '@/lib/api/posts';
+import { ApiError } from '@/lib/api/client';
 import { Post, UserProfile } from '@/types/api';
 import { getImageUrl } from '@/lib/utils';
 
 export function ProfileContent() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +27,10 @@ export function ProfileContent() {
         setPosts(postList.filter((post) => post.user_id === user.id));
         setError(null);
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push('/login');
+          return;
+        }
         console.error('Failed to load profile', err);
         setError(err instanceof Error ? err.message : 'プロフィール情報を取得できませんでした');
       } finally {
@@ -32,7 +39,7 @@ export function ProfileContent() {
     };
 
     load();
-  }, []);
+  }, [router]);
 
   if (loading) return <div className="p-8 text-center">プロフィールを読み込み中です...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
@@ -94,7 +101,7 @@ export function ProfileContent() {
             <div className="grid grid-cols-3 gap-1">
               {posts.map((post) => (
                 <div key={post.id} className="relative aspect-square bg-muted">
-                  <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? undefined)} className="h-full w-full object-cover" alt="ユーザー投稿" />
+                  <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? post.assets?.[0]?.id)} className="h-full w-full object-cover" alt="ユーザー投稿" />
                 </div>
               ))}
             </div>

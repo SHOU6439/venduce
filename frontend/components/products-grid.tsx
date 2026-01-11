@@ -71,10 +71,12 @@ export function ProductsGrid() {
                 <Heart className="h-4 w-4" />
                 {(product.like_count ?? 0).toLocaleString()}
               </span>
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                詳細
-              </Button>
+              <Link href={`/product/${product.id}`}>
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  <ShoppingCart className="h-4 w-4 mr-1" />
+                  詳細
+                </Button>
+              </Link>
             </div>
           </div>
         </Card>

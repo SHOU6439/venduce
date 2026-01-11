@@ -22,7 +22,6 @@ export function ProductDetails({ productId }: { productId: string }) {
     async function loadData() {
       try {
         setLoading(true);
-        // 並行取得
         const [prodData, postsData] = await Promise.all([productsApi.getProduct(productId), postsApi.getRelatedPosts(productId)]);
         setProduct(prodData);
         setRelatedPosts(postsData);
@@ -58,12 +57,12 @@ export function ProductDetails({ productId }: { productId: string }) {
       <main className="mx-auto max-w-4xl">
         {/* Image Gallery */}
         <div className="space-y-4 p-4">
-          <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-            <img src={getImageUrl(displayImages[selectedImage])} alt={product.title} className="h-full w-full object-cover" />
+          <div className="relative aspect-square max-h-[360px] w-full overflow-hidden rounded-lg bg-muted mx-auto">
+            <img src={getImageUrl(displayImages[selectedImage])} alt={product.title} className="h-full w-full object-contain" />
           </div>
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-2 justify-center overflow-x-auto">
             {displayImages.map((image, index) => (
-              <button key={index} onClick={() => setSelectedImage(index)} className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
+              <button key={index} onClick={() => setSelectedImage(index)} className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
                 <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
@@ -90,7 +89,7 @@ export function ProductDetails({ productId }: { productId: string }) {
               {relatedPosts.map((post) => (
                 <Link key={post.id} href={`/posts/${post.id}`}>
                   <Card className="overflow-hidden transition-all hover:shadow-md">
-                    <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? undefined)} alt="関連投稿" className="aspect-square w-full object-cover" />
+                    <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? post.assets?.[0]?.id)} alt="関連投稿" className="aspect-square w-full object-cover" />
                     <CardContent className="p-3">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">

@@ -27,8 +27,6 @@ export const productsApi = {
   },
 
   getProduct: async (id: string): Promise<Product> => {
-    // バックエンド実装が完了していない場合、モック的な挙動を書いておく必要があるかもしれんが
-    // ここでは実装済みと仮定してエンドポイントをコール
     const product = await client.get<Product>(`/api/products/${id}`);
     return mapProduct(product);
   },

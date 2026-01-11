@@ -43,7 +43,6 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: response.refresh_token,
           isAuthenticated: true,
         });
-        // ここでlocalStorageにも保存
         localStorage.setItem('token', response.access_token);
       },
 
@@ -76,11 +75,8 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// ここからが変更部分
 try {
   await login({ ...formData, remember: rememberMe });
   router.push('/');
   window.location.reload(); // トークン反映のためリロード
-} catch (err) {
-  // ...エラーハンドリング...
-}
+} catch (err) {}

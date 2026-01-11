@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 
 import { postsApi } from '@/lib/api/posts';
 import { Post } from '@/types/api';
-import { getImageUrl } from '@/lib/utils';
+import { getImageUrl, cn } from '@/lib/utils';
 
 export function FeedContent() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -40,9 +40,9 @@ export function FeedContent() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 flex flex-col items-center mt-6 mb-6">
       {posts.map((post) => (
-        <article key={post.id} className="overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
+        <article key={post.id} className="w-[50%] overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
           {/* Header */}
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-3">
@@ -58,14 +58,13 @@ export function FeedContent() {
 
           {/* Post Image */}
           <div className="relative">
-            <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? undefined)} alt="投稿画像" className="w-full aspect-square object-cover" />
+            <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? post.assets?.[0]?.id)} alt="投稿画像" className="w-full aspect-video object-cover" />
 
             {/* Tagged Products Overlay */}
             {post.products && post.products.length > 0 && (
-              <Link href={`/product/${post.products[0].id}`} className="absolute bottom-4 right-4 group">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110">
-                  <ShoppingBag className="h-5 w-5" />
-                </div>
+              <Link href={`/product/${post.products[0].id}`} className={cn(buttonVariants({ size: 'sm' }), 'absolute bottom-4 right-4 gap-1.5 px-3 z-10 shadow-md')}>
+                <ShoppingCart className="h-4 w-4 mr-1" />
+                詳細
               </Link>
             )}
           </div>

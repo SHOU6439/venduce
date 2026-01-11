@@ -7,7 +7,6 @@ export const uploadsApi = {
     formData.append('file', file);
     formData.append('purpose', purpose);
 
-    // マルチパートフォームデータとして送信
     return client.post<Asset>('/api/uploads', formData);
   },
 };

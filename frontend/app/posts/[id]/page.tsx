@@ -1,5 +1,3 @@
-// 投稿詳細ページ
-
 interface PostDetailPageProps {
   params: Promise<{
     id: string;
