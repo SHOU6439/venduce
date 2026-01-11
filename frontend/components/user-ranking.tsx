@@ -1,55 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { TrendingUp, ShoppingBag } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, ShoppingBag } from 'lucide-react';
 
-const topUsers = [
-  {
-    id: 1,
-    name: "田中さくら",
-    username: "@sakura_t",
-    avatar: "/diverse-woman-portrait.png",
-    contribution: 2340000, // 貢献金額
-    sales: 456, // 販売数
-    rank: 1,
-  },
-  {
-    id: 2,
-    name: "佐藤ケン",
-    username: "@ken_sato",
-    avatar: "/man.jpg",
-    contribution: 1890000,
-    sales: 342,
-    rank: 2,
-  },
-  {
-    id: 3,
-    name: "鈴木ユイ",
-    username: "@yui_style",
-    avatar: "/woman-style.jpg",
-    contribution: 1560000,
-    sales: 289,
-    rank: 3,
-  },
-  {
-    id: 4,
-    name: "高橋タクヤ",
-    username: "@takuya_h",
-    avatar: "/stylish-man.png",
-    contribution: 1250000,
-    sales: 234,
-    rank: 4,
-  },
-  {
-    id: 5,
-    name: "伊藤マイ",
-    username: "@mai_ito",
-    avatar: "/woman-shopping.jpg",
-    contribution: 980000,
-    sales: 189,
-    rank: 5,
-  },
-]
+const topUsers: any[] = [];
 
 export function UserRanking() {
   return (
@@ -59,12 +13,10 @@ export function UserRanking() {
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
               <Avatar className="h-12 w-12 border-2 border-primary/20">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                <AvatarImage src={user.avatar || '/placeholder.svg'} alt={user.name} />
                 <AvatarFallback>{user.name[0]}</AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                {user.rank}
-              </div>
+              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">{user.rank}</div>
             </div>
 
             <div className="flex-1 min-w-0">
@@ -94,5 +46,5 @@ export function UserRanking() {
         </Card>
       ))}
     </div>
-  )
+  );
 }

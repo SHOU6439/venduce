@@ -1,75 +1,10 @@
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Heart, ShoppingCart } from "lucide-react"
-import Link from "next/link"
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Heart, ShoppingCart } from 'lucide-react';
+import Link from 'next/link';
 
-const allProducts = [
-  {
-    id: 1,
-    name: "ワイヤレスイヤホン Pro",
-    price: 12800,
-    image: "/wireless-earphones.png",
-    category: "オーディオ",
-    likes: 2340,
-  },
-  {
-    id: 2,
-    name: "スマートウォッチ X1",
-    price: 24800,
-    image: "/modern-smartwatch.png",
-    category: "ウェアラブル",
-    likes: 1890,
-  },
-  {
-    id: 3,
-    name: "ミニマルバックパック",
-    price: 8900,
-    image: "/minimal-backpack.jpg",
-    category: "バッグ",
-    likes: 1560,
-  },
-  {
-    id: 4,
-    name: "モバイルバッテリー 20000mAh",
-    price: 4980,
-    image: "/portable-power-bank.png",
-    category: "アクセサリー",
-    likes: 1450,
-  },
-  {
-    id: 5,
-    name: "ノイキャンヘッドホン",
-    price: 19800,
-    image: "/diverse-people-listening-headphones.png",
-    category: "オーディオ",
-    likes: 1340,
-  },
-  {
-    id: 6,
-    name: "スマホスタンド 折りたたみ式",
-    price: 2980,
-    image: "/phone-stand.jpg",
-    category: "アクセサリー",
-    likes: 1220,
-  },
-  {
-    id: 7,
-    name: "Bluetoothスピーカー",
-    price: 7800,
-    image: "/bluetooth-speaker.jpg",
-    category: "オーディオ",
-    likes: 980,
-  },
-  {
-    id: 8,
-    name: "ワイヤレスマウス",
-    price: 5900,
-    image: "/wireless-mouse.png",
-    category: "PC周辺機器",
-    likes: 890,
-  },
-]
+const allProducts: any[] = [];
 
 export function ProductsGrid() {
   return (
@@ -78,11 +13,7 @@ export function ProductsGrid() {
         <Card key={product.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
           <Link href={`/product/${product.id}`}>
             <div className="aspect-square overflow-hidden bg-muted">
-              <img
-                src={product.image || "/placeholder.svg"}
-                alt={product.name}
-                className="h-full w-full object-cover transition-transform hover:scale-105"
-              />
+              <img src={product.image || '/placeholder.svg'} alt={product.name} className="h-full w-full object-cover transition-transform hover:scale-105" />
             </div>
           </Link>
 
@@ -111,5 +42,5 @@ export function ProductsGrid() {
         </Card>
       ))}
     </div>
-  )
+  );
 }

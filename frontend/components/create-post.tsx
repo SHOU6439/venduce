@@ -1,62 +1,49 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState } from "react"
-import { ArrowLeft, Upload, Search, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useState } from 'react';
+import { ArrowLeft, Upload, Search, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
-const MOCK_PRODUCTS = [
-  { id: "p1", name: "エアフォース 1", brand: "Nike", price: 13200 },
-  { id: "p2", name: "サブマリーナー", brand: "Rolex", price: 1280000 },
-  { id: "p3", name: "ジャッキー 1961", brand: "Gucci", price: 385000 },
-  { id: "p4", name: "ワイヤレスヘッドセット", brand: "Sony", price: 24800 },
-  { id: "p5", name: "スタンスミス", brand: "Adidas", price: 15400 },
-  { id: "p6", name: "AirPods Pro", brand: "Apple", price: 39800 },
-]
+const MOCK_PRODUCTS: any[] = [];
 
 export function CreatePost() {
-  const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [image, setImage] = useState<string | null>(null)
-  const [caption, setCaption] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedProducts, setSelectedProducts] = useState<typeof MOCK_PRODUCTS>([])
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [image, setImage] = useState<string | null>(null);
+  const [caption, setCaption] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState<typeof MOCK_PRODUCTS>([]);
 
-  const filteredProducts = MOCK_PRODUCTS.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredProducts = MOCK_PRODUCTS.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase()) || product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setImage(reader.result as string)
-        setStep(2)
-      }
-      reader.readAsDataURL(file)
+        setImage(reader.result as string);
+        setStep(2);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const toggleProduct = (product: (typeof MOCK_PRODUCTS)[0]) => {
-    setSelectedProducts((prev) =>
-      prev.find((p) => p.id === product.id) ? prev.filter((p) => p.id !== product.id) : [...prev, product],
-    )
-  }
+    setSelectedProducts((prev) => (prev.find((p) => p.id === product.id) ? prev.filter((p) => p.id !== product.id) : [...prev, product]));
+  };
 
   const handlePublish = () => {
     // Mock publish action
-    router.push("/feed")
-  }
+    router.push('/feed');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,11 +87,7 @@ export function CreatePost() {
           <div className="space-y-4">
             {image && (
               <Card className="overflow-hidden">
-                <img
-                  src={image || "/placeholder.svg"}
-                  alt="アップロード画像"
-                  className="aspect-square w-full object-cover"
-                />
+                <img src={image || '/placeholder.svg'} alt="アップロード画像" className="aspect-square w-full object-cover" />
               </Card>
             )}
 
@@ -129,24 +112,13 @@ export function CreatePost() {
                 {/* Search Products */}
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="商品やブランドを検索..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
+                  <Input placeholder="商品やブランドを検索..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                 </div>
 
                 {/* Product List */}
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {filteredProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      onClick={() => toggleProduct(product)}
-                      className={`flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent ${
-                        selectedProducts.find((p) => p.id === product.id) ? "border-primary bg-accent" : "border-border"
-                      }`}
-                    >
+                    <button key={product.id} onClick={() => toggleProduct(product)} className={`flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-accent ${selectedProducts.find((p) => p.id === product.id) ? 'border-primary bg-accent' : 'border-border'}`}>
                       <div>
                         <p className="font-medium text-sm">{product.name}</p>
                         <p className="text-xs text-muted-foreground">{product.brand}</p>
@@ -169,11 +141,7 @@ export function CreatePost() {
           <div className="space-y-4">
             {image && (
               <Card className="overflow-hidden">
-                <img
-                  src={image || "/placeholder.svg"}
-                  alt="アップロード画像"
-                  className="aspect-square w-full object-cover"
-                />
+                <img src={image || '/placeholder.svg'} alt="アップロード画像" className="aspect-square w-full object-cover" />
               </Card>
             )}
 
@@ -181,13 +149,7 @@ export function CreatePost() {
               <CardContent className="p-4">
                 <h2 className="mb-4 font-semibold">キャプションを追加</h2>
 
-                <Textarea
-                  placeholder="購入した商品について説明してください..."
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  rows={5}
-                  className="mb-4"
-                />
+                <Textarea placeholder="購入した商品について説明してください..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} className="mb-4" />
 
                 {selectedProducts.length > 0 && (
                   <div className="mb-4">
@@ -207,5 +169,5 @@ export function CreatePost() {
         )}
       </main>
     </div>
-  )
+  );
 }

@@ -1,65 +1,21 @@
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Heart } from "lucide-react"
-import Link from "next/link"
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Heart } from 'lucide-react';
+import Link from 'next/link';
 
-const likedProducts = [
-  {
-    id: 1,
-    name: "デザイナーズバッグ",
-    price: 15800,
-    image: "/luxury-quilted-handbag.jpg",
-    likes: 3240,
-  },
-  {
-    id: 2,
-    name: "スニーカー Limited",
-    price: 18900,
-    image: "/modern-sneakers.jpg",
-    likes: 2890,
-  },
-  {
-    id: 3,
-    name: "高級腕時計",
-    price: 45800,
-    image: "/luxury-watch.jpg",
-    likes: 2560,
-  },
-  {
-    id: 4,
-    name: "ワイヤレスイヤホン",
-    price: 12800,
-    image: "/wireless-earphones.png",
-    likes: 2340,
-  },
-  {
-    id: 5,
-    name: "スマートウォッチ",
-    price: 24800,
-    image: "/modern-smartwatch.png",
-    likes: 1890,
-  },
-]
+const LIKED_PRODUCTS: any[] = [];
 
 export function LikedProducts() {
   return (
     <div className="space-y-3">
-      {likedProducts.map((product, index) => (
+      {LIKED_PRODUCTS.map((product, index) => (
         <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
           <Link href={`/product/${product.id}`}>
             <div className="flex gap-3 p-3">
               <div className="relative flex-shrink-0">
-                {index < 3 && (
-                  <Badge className="absolute -top-1 -left-1 bg-pink-500 text-white z-10 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                    {index + 1}
-                  </Badge>
-                )}
+                {index < 3 && <Badge className="absolute -top-1 -left-1 bg-pink-500 text-white z-10 h-5 w-5 p-0 flex items-center justify-center text-xs">{index + 1}</Badge>}
                 <div className="w-20 h-20 overflow-hidden bg-muted rounded">
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={product.image || '/placeholder.svg'} alt={product.name} className="h-full w-full object-cover" />
                 </div>
               </div>
 
@@ -78,5 +34,5 @@ export function LikedProducts() {
         </Card>
       ))}
     </div>
-  )
+  );
 }

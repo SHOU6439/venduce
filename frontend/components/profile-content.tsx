@@ -1,32 +1,20 @@
-"use client"
-import { ArrowLeft, Settings, Grid3x3, Heart } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
+'use client';
+import { ArrowLeft, Settings, Grid3x3, Heart } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
 
 const MOCK_USER = {
-  name: "田中 美咲",
-  username: "misaki_tanaka",
-  avatar: "/diverse-woman-portrait.png",
-  bio: "ファッションとライフスタイルを愛する東京在住。素敵な商品を見つけるのが趣味です✨",
-  followers: 1234,
-  following: 567,
-  posts: [
-    { id: "1", image: "/diverse-sneaker-collection.png", likes: 234 },
-    { id: "2", image: "/stylish-streetwear-outfit.png", likes: 456 },
-    { id: "3", image: "/fashion-accessories-flatlay.png", likes: 189 },
-    { id: "4", image: "/bag.jpg", likes: 892 },
-    { id: "5", image: "/assorted-shoes.png", likes: 345 },
-    { id: "6", image: "/wrist-watch-close-up.png", likes: 567 },
-  ],
-  likedPosts: [
-    { id: "7", image: "/luxury-watch.jpg", likes: 567 },
-    { id: "8", image: "/luxury-handbag.png", likes: 892 },
-    { id: "9", image: "/diverse-people-listening-headphones.png", likes: 445 },
-    { id: "10", image: "/stylish-sunglasses.png", likes: 234 },
-  ],
-}
+  name: '',
+  username: '',
+  avatar: '',
+  bio: '',
+  followers: 0,
+  following: 0,
+  posts: [] as any[],
+  likedPosts: [] as any[],
+};
 
 export function ProfileContent() {
   return (
@@ -53,7 +41,7 @@ export function ProfileContent() {
         <div className="space-y-6 p-4">
           <div className="flex flex-col items-center text-center md:flex-row md:items-start md:gap-8 md:text-left">
             <Avatar className="h-24 w-24 md:h-32 md:w-32">
-              <AvatarImage src={MOCK_USER.avatar || "/placeholder.svg"} />
+              <AvatarImage src={MOCK_USER.avatar || '/placeholder.svg'} />
               <AvatarFallback>{MOCK_USER.name.charAt(0)}</AvatarFallback>
             </Avatar>
 
@@ -86,17 +74,11 @@ export function ProfileContent() {
         {/* Posts Tabs */}
         <Tabs defaultValue="posts" className="mt-6">
           <TabsList className="w-full justify-center border-b border-border rounded-none bg-transparent h-auto p-0">
-            <TabsTrigger
-              value="posts"
-              className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
+            <TabsTrigger value="posts" className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               <Grid3x3 className="h-4 w-4" />
               <span className="hidden sm:inline">投稿</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="liked"
-              className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
-            >
+            <TabsTrigger value="liked" className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               <Heart className="h-4 w-4" />
               <span className="hidden sm:inline">いいね</span>
             </TabsTrigger>
@@ -106,11 +88,7 @@ export function ProfileContent() {
             <div className="grid grid-cols-3 gap-1">
               {MOCK_USER.posts.map((post) => (
                 <Link key={post.id} href="/feed" className="group relative aspect-square overflow-hidden bg-muted">
-                  <img
-                    src={post.image || "/placeholder.svg"}
-                    alt="投稿"
-                    className="h-full w-full object-cover transition-all group-hover:scale-105"
-                  />
+                  <img src={post.image || '/placeholder.svg'} alt="投稿" className="h-full w-full object-cover transition-all group-hover:scale-105" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                     <div className="flex items-center gap-2 text-white">
                       <Heart className="h-5 w-5 fill-white" />
@@ -126,11 +104,7 @@ export function ProfileContent() {
             <div className="grid grid-cols-3 gap-1">
               {MOCK_USER.likedPosts.map((post) => (
                 <Link key={post.id} href="/feed" className="group relative aspect-square overflow-hidden bg-muted">
-                  <img
-                    src={post.image || "/placeholder.svg"}
-                    alt="いいねした投稿"
-                    className="h-full w-full object-cover transition-all group-hover:scale-105"
-                  />
+                  <img src={post.image || '/placeholder.svg'} alt="いいねした投稿" className="h-full w-full object-cover transition-all group-hover:scale-105" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                     <div className="flex items-center gap-2 text-white">
                       <Heart className="h-5 w-5 fill-white" />
@@ -144,5 +118,5 @@ export function ProfileContent() {
         </Tabs>
       </main>
     </div>
-  )
+  );
 }

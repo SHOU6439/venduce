@@ -1,96 +1,37 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { ArrowLeft, Heart, Share2, ShoppingBag } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import Link from "next/link"
+import { useState } from 'react';
+import { ArrowLeft, Heart, Share2, ShoppingBag } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import Link from 'next/link';
 
-const MOCK_PRODUCTS = {
-  p1: {
-    id: "p1",
-    name: "エアフォース 1",
-    brand: "Nike",
-    price: 13200,
-    description:
-      "クラシックなデザインと快適な履き心地を兼ね備えた定番スニーカー。どんなスタイルにも合わせやすい一足です。",
-    images: ["/nike-air-force-white.jpg", "/nike-air-force-side.jpg", "/nike-air-force-detail.jpg"],
-    category: "シューズ",
-    relatedPosts: [
-      {
-        id: "1",
-        user: { name: "田中 美咲", avatar: "/diverse-woman-portrait.png" },
-        image: "/sneakers-outfit.jpg",
-      },
-      {
-        id: "5",
-        user: { name: "鈴木 翔太", avatar: "/casual-man.png" },
-        image: "/white-sneakers.png",
-      },
-    ],
-  },
-  p2: {
-    id: "p2",
-    name: "サブマリーナー",
-    brand: "Rolex",
-    price: 1280000,
-    description: "世界中で愛される伝統のダイバーズウォッチ。洗練されたデザインと卓越した機能性を持つタイムピース。",
-    images: ["/luxury-watch.jpg", "/rolex-submariner-detail.jpg", "/luxury-watch-wrist.jpg"],
-    category: "時計",
-    relatedPosts: [
-      {
-        id: "2",
-        user: { name: "佐藤 健太", avatar: "/man.jpg" },
-        image: "/watch-lifestyle.jpg",
-      },
-    ],
-  },
-  p3: {
-    id: "p3",
-    name: "ジャッキー 1961",
-    brand: "Gucci",
-    price: 385000,
-    description: "アイコニックなホースビットディテールが特徴的なショルダーバッグ。エレガントで実用的なデザイン。",
-    images: ["/luxury-quilted-handbag.png", "/gucci-bag-detail.jpg", "/luxury-bag.png"],
-    category: "バッグ",
-    relatedPosts: [
-      {
-        id: "3",
-        user: { name: "山田 さくら", avatar: "/diverse-woman-smiling.png" },
-        image: "/handbag-style.jpg",
-      },
-    ],
-  },
-  p4: {
-    id: "p4",
-    name: "ワイヤレスヘッドセット",
-    brand: "Sony",
-    price: 24800,
-    description: "業界最高クラスのノイズキャンセリング機能を搭載。長時間の使用でも快適なワイヤレスヘッドホン。",
-    images: ["/gaming-headset.png", "/sony-headphones-detail.jpg", "/wireless-headphones.png"],
-    category: "オーディオ",
-    relatedPosts: [
-      {
-        id: "4",
-        user: { name: "小林 太郎", avatar: "/young-man-contemplative.png" },
-        image: "/ultimate-gaming-setup.png",
-      },
-    ],
-  },
-}
+const MOCK_PRODUCTS: Record<
+  string,
+  {
+    id: string;
+    name: string;
+    brand: string;
+    price: number;
+    description: string;
+    images: string[];
+    category: string;
+    relatedPosts: any[];
+  }
+> = {};
 
 export function ProductDetails({ productId }: { productId: string }) {
-  const product = MOCK_PRODUCTS[productId as keyof typeof MOCK_PRODUCTS]
-  const [selectedImage, setSelectedImage] = useState(0)
-  const [liked, setLiked] = useState(false)
+  const product = MOCK_PRODUCTS[productId];
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [liked, setLiked] = useState(false);
 
   if (!product) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">商品が見つかりませんでした</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -105,7 +46,7 @@ export function ProductDetails({ productId }: { productId: string }) {
           </Button>
           <h1 className="flex-1 font-semibold text-lg">商品詳細</h1>
           <Button variant="ghost" size="icon" onClick={() => setLiked(!liked)}>
-            <Heart className={`h-5 w-5 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+            <Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
           </Button>
           <Button variant="ghost" size="icon">
             <Share2 className="h-5 w-5" />
@@ -117,26 +58,12 @@ export function ProductDetails({ productId }: { productId: string }) {
         {/* Image Gallery */}
         <div className="space-y-4 p-4">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-            <img
-              src={product.images[selectedImage] || "/placeholder.svg"}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
+            <img src={product.images[selectedImage] || '/placeholder.svg'} alt={product.name} className="h-full w-full object-cover" />
           </div>
           <div className="flex gap-2 overflow-x-auto">
             {product.images.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                  selectedImage === index ? "border-primary" : "border-transparent"
-                }`}
-              >
-                <img
-                  src={image || "/placeholder.svg"}
-                  alt={`${product.name} ${index + 1}`}
-                  className="h-full w-full object-cover"
-                />
+              <button key={index} onClick={() => setSelectedImage(index)} className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
+                <img src={image || '/placeholder.svg'} alt={`${product.name} ${index + 1}`} className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -166,15 +93,11 @@ export function ProductDetails({ productId }: { productId: string }) {
               {product.relatedPosts.map((post) => (
                 <Link key={post.id} href="/feed">
                   <Card className="overflow-hidden transition-all hover:shadow-md">
-                    <img
-                      src={post.image || "/placeholder.svg"}
-                      alt="関連投稿"
-                      className="aspect-square w-full object-cover"
-                    />
+                    <img src={post.image || '/placeholder.svg'} alt="関連投稿" className="aspect-square w-full object-cover" />
                     <CardContent className="p-3">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={post.user.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={post.user.avatar || '/placeholder.svg'} />
                           <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <p className="text-xs font-medium">{post.user.name}</p>
@@ -196,5 +119,5 @@ export function ProductDetails({ productId }: { productId: string }) {
         </Button>
       </div>
     </div>
-  )
+  );
 }
