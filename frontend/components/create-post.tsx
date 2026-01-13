@@ -21,19 +21,22 @@ export function CreatePost() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [uploadedAsset, setUploadedAsset] = useState<Asset | null>(null);
+  const [uploadedAssets, setUploadedAssets] = useState<Asset[]>([]); // 変更: 配列で管理
   const [caption, setCaption] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (files && files.length > 0) {
       try {
         setIsUploading(true);
-        const asset = await uploadsApi.uploadImage(file, 'post_image');
-        setUploadedAsset(asset);
+        // 複数ファイルを並列アップロード
+        const uploadPromises = Array.from(files).map((file) => uploadsApi.uploadImage(file, 'post_image'));
+        const newAssets = await Promise.all(uploadPromises);
+
+        setUploadedAssets((prev) => [...prev, ...newAssets]);
         setStep(2);
       } catch (error) {
         console.error('Upload failed:', error);
@@ -42,6 +45,16 @@ export function CreatePost() {
         setIsUploading(false);
       }
     }
+  };
+
+  const handleRemoveAsset = (indexToRemove: number) => {
+    setUploadedAssets((prev) => {
+      const newAssets = prev.filter((_, index) => index !== indexToRemove);
+      if (newAssets.length === 0) {
+        setStep(1); // 全画像削除されたらステップ1に戻る
+      }
+      return newAssets;
+    });
   };
 
   const handleSearch = async () => {
@@ -63,13 +76,13 @@ export function CreatePost() {
   };
 
   const handleSubmit = async () => {
-    if (!uploadedAsset) return;
+    if (uploadedAssets.length === 0) return;
 
     try {
       setIsSubmitting(true);
       await postsApi.createPost({
         caption,
-        asset_ids: [uploadedAsset.id],
+        asset_ids: uploadedAssets.map((asset) => asset.id),
         product_ids: selectedProducts.map((p) => p.id),
       });
       router.push('/feed');
@@ -110,10 +123,10 @@ export function CreatePost() {
                   <p className="mb-6 text-center text-sm text-muted-foreground">購入した商品の写真を選択してください</p>
                   <label htmlFor="image-upload">
                     <Button asChild>
-                      <span className="cursor-pointer">写真を選択</span>
+                      <span className="cursor-pointer">写真を選択（複数可）</span>
                     </Button>
                   </label>
-                  <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  <input id="image-upload" type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
                 </>
               )}
             </CardContent>
@@ -121,13 +134,30 @@ export function CreatePost() {
         )}
 
         {/* Step 2: Tag Products & Caption */}
-        {step === 2 && uploadedAsset && (
+        {step === 2 && uploadedAssets.length > 0 && (
           <div className="space-y-4">
-            <Card className="overflow-hidden">
-              <div className="h-[400px] w-full bg-muted">
-                <img src={getImageUrl(uploadedAsset.public_url || uploadedAsset.id)} alt="アップロード画像" className="h-full w-full object-cover" />
-              </div>
-            </Card>
+            {/* 複数画像のプレビュー表示（横スクロール） */}
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {uploadedAssets.map((asset, index) => (
+                <div key={asset.id} className="relative h-[300px] w-auto flex-shrink-0">
+                  <Card className="h-full overflow-hidden">
+                    <img src={getImageUrl(asset.public_url || asset.id)} alt={`アップロード画像 ${index + 1}`} className="h-full w-auto object-cover min-w-[200px]" />
+                    <button onClick={() => handleRemoveAsset(index)} className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </Card>
+                </div>
+              ))}
+              {/* 追加アップロードボタンが必要な場合はここに配置 */}
+              <label htmlFor="add-more-images" className="flex h-[300px] w-[100px] flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <div className="text-center text-sm text-muted-foreground">
+                  <span className="text-2xl">+</span>
+                  <br />
+                  追加
+                </div>
+                <input id="add-more-images" type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+              </label>
+            </div>
 
             <Card>
               <CardContent className="p-4">
