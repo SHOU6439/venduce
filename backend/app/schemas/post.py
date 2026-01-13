@@ -45,5 +45,6 @@ class PostRead(PostBase):
     products: List[ProductRead] = []
     tags: List[TagRead] = []
     assets: List[AssetRead] = Field(default_factory=list, alias="images")
+    is_liked: bool = False
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
