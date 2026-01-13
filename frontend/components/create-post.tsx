@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, Search, ShoppingBag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,18 +21,40 @@ export function CreatePost() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [uploadedAssets, setUploadedAssets] = useState<Asset[]>([]); // 変更: 配列で管理
+  const [uploadedAssets, setUploadedAssets] = useState<Asset[]>([]);
   const [caption, setCaption] = useState('');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+
+  // 検索クエリやステップが変わった時に商品を検索・取得
+  useEffect(() => {
+    if (step !== 2) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        if (searchQuery.trim()) {
+          const results = await productsApi.searchProducts(searchQuery);
+          setSearchResults(results);
+        } else {
+          // 検索ワードがない場合はランダムに商品を表示（一覧から取得してシャッフル）
+          const results = await productsApi.listProducts({ per_page: 10 });
+          setSearchResults(results.sort(() => Math.random() - 0.5));
+        }
+      } catch (error) {
+        console.error('Product fetch failed:', error);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, step]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       try {
         setIsUploading(true);
-        // 複数ファイルを並列アップロード
         const uploadPromises = Array.from(files).map((file) => uploadsApi.uploadImage(file, 'post_image'));
         const newAssets = await Promise.all(uploadPromises);
 
@@ -51,20 +73,10 @@ export function CreatePost() {
     setUploadedAssets((prev) => {
       const newAssets = prev.filter((_, index) => index !== indexToRemove);
       if (newAssets.length === 0) {
-        setStep(1); // 全画像削除されたらステップ1に戻る
+        setStep(1);
       }
       return newAssets;
     });
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    try {
-      const results = await productsApi.searchProducts(searchQuery);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Search failed:', error);
-    }
   };
 
   const toggleProduct = (product: Product) => {
@@ -136,7 +148,7 @@ export function CreatePost() {
         {/* Step 2: Tag Products & Caption */}
         {step === 2 && uploadedAssets.length > 0 && (
           <div className="space-y-4">
-            {/* 複数画像のプレビュー表示（横スクロール） */}
+            {/* 複数画像のプレビュー表示 */}
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {uploadedAssets.map((asset, index) => (
                 <div key={asset.id} className="relative h-[300px] w-auto flex-shrink-0">
@@ -148,7 +160,7 @@ export function CreatePost() {
                   </Card>
                 </div>
               ))}
-              {/* 追加アップロードボタンが必要な場合はここに配置 */}
+              {/* 追加アップロードボタン */}
               <label htmlFor="add-more-images" className="flex h-[300px] w-[100px] flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
                 <div className="text-center text-sm text-muted-foreground">
                   <span className="text-2xl">+</span>
@@ -165,7 +177,7 @@ export function CreatePost() {
 
                 <h2 className="mb-4 font-semibold">商品をタグ付け</h2>
 
-                {/* Selected Products Badges */}
+                {/* 選択済み商品のバッジ表示 */}
                 {selectedProducts.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">
                     {selectedProducts.map((product) => (
@@ -179,31 +191,25 @@ export function CreatePost() {
                   </div>
                 )}
 
-                {/* Search Box */}
+                {/* 商品検索ボックス */}
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="商品を検索..." className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-                  <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={handleSearch}>
-                    検索
-                  </Button>
+                  <Input placeholder="商品を検索..." className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
 
-                {/* Search Results */}
+                {/* 検索結果リスト */}
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {searchResults.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between rounded-lg border p-2" onClick={() => toggleProduct(product)}>
+                    <div key={product.id} className="cursor-pointer flex items-center justify-between rounded-lg border p-2 hover:bg-accent" onClick={() => toggleProduct(product)}>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 overflow-hidden rounded bg-muted">
-                          <img src={getImageUrl(product.images?.[0])} alt={product.title} className="h-full w-full object-cover" />
-                        </div>
                         <div>
                           <p className="font-medium text-sm">{product.title}</p>
                           <p className="text-xs text-muted-foreground">{product.brand?.name ?? 'ブランド未登録'}</p>
                           <p className="text-xs text-primary">{formatCurrencyFromMinorUnit(product.price_cents, product.currency ?? 'JPY')}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" disabled={selectedProducts.some((p) => p.id === product.id)}>
-                        <ShoppingBag className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" disabled={selectedProducts.some((p) => p.id === product.id)} className="shrink-0">
+                        <ShoppingBag className={`h-4 w-4 ${selectedProducts.some((p) => p.id === product.id) ? 'text-primary fill-primary' : ''}`} />
                       </Button>
                     </div>
                   ))}
