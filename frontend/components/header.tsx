@@ -1,10 +1,27 @@
+'use client';
+
 import Link from 'next/link';
-import { Search, ShoppingBag, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Search, ShoppingBag, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import { useAuthStore } from '@/stores/auth';
 
 export function Header() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+    router.refresh();
+  };
+
+  // プロフィール詳細ページかどうかを判定 (/profile または /profile/...)
+  const isProfilePage = pathname?.startsWith('/profile');
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container mx-auto px-4">
@@ -40,6 +57,12 @@ export function Header() {
                 <User className="h-5 w-5" />
               </Button>
             </Link>
+
+            {isProfilePage && (
+              <Button variant="ghost" size="icon" onClick={handleLogout} title="ログアウト">
+                <LogOut className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
