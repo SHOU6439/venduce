@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Grid3x3 } from 'lucide-react';
+import { Grid3x3, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,9 +11,11 @@ import { postsApi } from '@/lib/api/posts';
 import { ApiError } from '@/lib/api/client';
 import { Post, UserProfile } from '@/types/api';
 import { getImageUrl } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
 
 export function ProfileContent() {
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,12 @@ export function ProfileContent() {
 
     load();
   }, [router]);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+    router.refresh();
+  };
 
   if (loading) return <div className="p-8 text-center">プロフィールを読み込み中です...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
