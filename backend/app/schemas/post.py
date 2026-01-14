@@ -45,6 +45,8 @@ class PostRead(PostBase):
     products: List[ProductRead] = []
     tags: List[TagRead] = []
     assets: List[AssetRead] = Field(default_factory=list, alias="images")
+    # TODO: 現在のユーザーがこの投稿を「いいね」しているかどうかをサービス層で計算して設定する
+    #       likes テーブルや like 機能実装後は、固定値ではなく実データで上書きされることを想定
     is_liked: bool = False
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
