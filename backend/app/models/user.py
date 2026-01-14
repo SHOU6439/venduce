@@ -35,5 +35,9 @@ class User(Base):
     confirmation_sent_at = Column(DateTime(timezone=True), nullable=True)
     confirmation_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    bio = Column(String(1000), nullable=True)
+    avatar_url = Column(String(1024), nullable=True)
+    display_name = Column(String(100), nullable=True)
+
 
 __all__ = ["User"]
