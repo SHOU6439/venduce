@@ -92,10 +92,14 @@ export function CreatePost() {
 
     try {
       setIsSubmitting(true);
+
+      const tags = caption.match(/#[^\s#]+/g)?.map((tag) => tag.slice(1)) || [];
+
       await postsApi.createPost({
         caption,
         asset_ids: uploadedAssets.map((asset) => asset.id),
         product_ids: selectedProducts.map((p) => p.id),
+        tags: tags,
       });
       router.push('/feed');
       router.refresh();

@@ -74,9 +74,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-
-try {
-  await login({ ...formData, remember: rememberMe });
-  router.push('/');
-  window.location.reload(); // トークン反映のためリロード
-} catch (err) {}

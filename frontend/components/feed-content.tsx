@@ -19,7 +19,6 @@ interface PostItemProps {
 function PostItem({ post, onLikeToggle }: PostItemProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // 互換性のため、assets または images をマージして使用
   const assets = post.assets && post.assets.length > 0 ? post.assets : post.images && post.images.length > 0 ? post.images : [];
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -87,11 +86,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
       <div className="px-3 pt-3">
         <div className="mb-2 flex gap-4 items-center">
           <div className="-ml-3">
-            <LikeAnimation
-              isLiked={post.liked_by_me ?? false}
-              onToggle={(isLiked) => onLikeToggle(post.id, isLiked)}
-              sizeClass="w-7 h-7" // Adjusted size to match typical icon size
-            />
+            <LikeAnimation isLiked={post.liked_by_me ?? false} onToggle={(isLiked) => onLikeToggle(post.id, isLiked)} sizeClass="w-7 h-7" />
           </div>
           {/* 他のアクションボタンが必要な場合はここに追加 */}
         </div>
@@ -100,7 +95,16 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
         <div className="space-y-1">
           <p className="text-sm">
             <span className="font-semibold mr-2">{post.user?.username ?? 'ユーザー'}</span>
-            {post.caption}
+            {post.caption?.split(/(\s+|#[^\s#]+)/g).map((part, i) => {
+              if (part.startsWith('#')) {
+                return (
+                  <span key={i} className="text-blue-500 font-medium mr-0.5">
+                    {part}
+                  </span>
+                );
+              }
+              return part;
+            })}
           </p>
         </div>
       </div>
@@ -114,7 +118,6 @@ export function FeedContent() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLikeToggle = (postId: string, isLiked: boolean) => {
-    // 楽観的UI更新: APIレスポンスを待たずにUIを更新
     setPosts((prevPosts) =>
       prevPosts.map((post) => {
         if (post.id === postId) {
@@ -128,7 +131,6 @@ export function FeedContent() {
         return post;
       })
     );
-    // TODO: ここでAPI呼び出しを行う (例: postsApi.likePost(postId))
   };
 
   useEffect(() => {

@@ -14,6 +14,11 @@ export function getImageUrl(pathOrUrl?: string): string {
   return `${API_BASE_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
 }
 
+export function parseHashtags(text: string): string[] {
+  const matches = text.match(/#[^\s#]+/g);
+  return matches ? matches.map((tag) => tag.slice(1)) : [];
+}
+
 export function formatCurrencyFromMinorUnit(amountInMinor: number, currency = 'JPY'): string {
   const fractionDigits = currency === 'JPY' ? 0 : 2;
   const value = amountInMinor / 100;
