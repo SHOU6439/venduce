@@ -12,10 +12,7 @@ def setup_admin(application):
     for name in model_names:
         model_cls = getattr(app.models, name)
 
-        if not isinstance(model_cls, type):
-            continue
-
-        if not hasattr(model_cls, "__table__"):
+        if not hasattr(model_cls, "__mapper__") or not hasattr(model_cls, "__tablename__"):
             continue
 
         try:
