@@ -46,6 +46,14 @@ clean:
 	docker system prune -f
 	@echo "クリーンアップが完了しました！"
 
+destroy:
+	@echo "【警告】データベースのボリュームを含む全データを削除します。"
+	@echo "本当によろしいですか？ (y/N)"
+	@python -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
+	docker compose down --volumes
+	docker system prune -f
+	@echo "全データの削除（初期化）が完了しました。"
+
 restart: down up
 
 rebuild: down build up
