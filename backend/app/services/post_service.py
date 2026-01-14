@@ -138,6 +138,55 @@ class PostService:
 
         return posts, next_cursor, has_more
 
+    def get_post_by_id(
+        self,
+        *,
+        post_id: str,
+        current_user: Optional[User] = None
+    ) -> Post:
+        """投稿を ID で取得します（公開範囲と権限をチェック）。
+
+        Args:
+            post_id: 投稿 ID
+            current_user: 現在のユーザー（認証済みの場合）
+
+        Returns:
+            Post: 投稿オブジェクト
+
+        Raises:
+            HTTPException: 404（投稿が存在しない）、403（アクセス権限がない）
+        """
+        from sqlalchemy.orm import selectinload
+
+        post = (
+            self.db.query(Post)
+            .options(
+                selectinload(Post.user),
+                selectinload(Post.assets),
+                selectinload(Post.products),
+                selectinload(Post.tags)
+            )
+            .filter(Post.id == post_id)
+            .first()
+        )
+
+        if not post:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+
+        if post.status == PostStatus.PUBLIC:
+            return post
+
+        if not current_user or current_user.id != post.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this post"
+            )
+
+        return post
+
 
 def post_service_factory(db: Session) -> PostService:
     return PostService(db)
