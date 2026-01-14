@@ -77,4 +77,6 @@ def get_post_detail(
     Raises:
         HTTPException: 404（投稿が存在しない）、403（アクセス権限がない）
     """
-    return post_service.get_post_by_id(post_id=id, current_user=current_user)
+    return PostRead.model_validate(
+        post_service.get_post_by_id(post_id=id, current_user=current_user)
+    )
