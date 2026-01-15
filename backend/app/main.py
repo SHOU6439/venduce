@@ -11,6 +11,8 @@ from app.api.routers import admin_categories as admin_categories_router
 from app.api.routers import admin_brands as admin_brands_router
 from app.api.routers import categories as categories_router
 from app.api.routers import brands as brands_router
+from app.api.routers import payment_methods as payment_methods_router
+from app.api.routers import purchases as purchases_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -34,6 +36,8 @@ def get_application() -> FastAPI:
     app.include_router(admin_brands_router.router, prefix="/admin/brands", tags=["admin-brands"])
     app.include_router(categories_router.router, prefix="/api/categories", tags=["categories"])
     app.include_router(brands_router.router, prefix="/api/brands", tags=["brands"])
+    app.include_router(payment_methods_router.router, prefix="/api/payment-methods", tags=["payment-methods"])
+    app.include_router(purchases_router.router, prefix="/api/purchases", tags=["purchases"])
     app.include_router(posts_router.router)
 
     try:
