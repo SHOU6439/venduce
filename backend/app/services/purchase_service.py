@@ -64,7 +64,7 @@ class PurchaseService:
             currency=payload.currency,
             payment_method_id=payload.payment_method_id,
             referring_post_id=payload.referring_post_id,
-            status="completed",
+            status=PurchaseStatus.COMPLETED,
         )
 
         db.add(purchase)
