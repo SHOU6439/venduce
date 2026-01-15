@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from ulid import ULID
-from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer
+from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer, Enum
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.models.enums import PurchaseStatus
 
 
 class Purchase(Base):
@@ -36,7 +37,7 @@ class Purchase(Base):
     currency = Column(String(8), nullable=False, default="JPY")
     payment_method_id = Column(String(26), ForeignKey("payment_methods.id", ondelete="SET NULL"), nullable=True, index=True)
     referring_post_id = Column(String(26), ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True)
-    status = Column(String(32), nullable=False, default="completed", index=True)
+    status = Column(Enum(PurchaseStatus), nullable=False, default=PurchaseStatus.COMPLETED, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(

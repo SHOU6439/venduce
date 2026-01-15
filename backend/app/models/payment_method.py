@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from ulid import ULID
-from sqlalchemy import Column, String, DateTime, func, ForeignKey, Boolean
+from sqlalchemy import Column, String, DateTime, func, ForeignKey, Boolean, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.db.database import Base
+from app.models.enums import PaymentType
 
 
 class PaymentMethod(Base):
@@ -25,7 +26,7 @@ class PaymentMethod(Base):
 
     id = Column(String(26), primary_key=True, index=True, default=lambda: str(ULID()))
     user_id = Column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    payment_type = Column(String(32), nullable=False, index=True)
+    payment_type = Column(Enum(PaymentType), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     details = Column(JSONB, nullable=True)
     is_default = Column(Boolean, default=False, nullable=False)
