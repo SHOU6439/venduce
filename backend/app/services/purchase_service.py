@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from app.models.purchase import Purchase
 from app.models.post import Post
 from app.models.user import User
+from app.models.payment_method import PaymentMethod
 from app.models.enums import PostStatus, PurchaseStatus
 from app.schemas.purchase import PurchaseCreate
 from app.utils.cursor import encode_cursor, decode_cursor
@@ -29,7 +30,7 @@ class PurchaseService:
         """
 
         payment_method = (
-            db.query("PaymentMethod")
+            db.query(PaymentMethod)
             .filter_by(id=payload.payment_method_id, user_id=buyer.id)
             .first()
         )

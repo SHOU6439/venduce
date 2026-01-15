@@ -13,7 +13,7 @@ class PurchaseBase(AppModel):
     price_cents: conint(ge=0)
     total_amount_cents: conint(ge=0)
     currency: str = Field(default="JPY", min_length=3, max_length=8)
-    payment_method_id: str
+    payment_method_id: Optional[str] = None
     referring_post_id: Optional[str] = None
     status: PurchaseStatus = PurchaseStatus.COMPLETED
 
