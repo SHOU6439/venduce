@@ -18,7 +18,6 @@ from app.models.asset import Asset
 from app.models.enums import PostStatus
 from app.core.security import hash_password
 
-# Database setup
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://venduce_user:venduce_password@postgres:5432/venduce_db"
@@ -27,7 +26,37 @@ DATABASE_URL = os.getenv(
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 
-# Seed data: Categories (hierarchical) and Brands
+TAGS = [
+    "トレンド", "おしゃれ", "可愛い", "かっこいい", "新商品",
+    "セール", "限定", "推し活", "推しの子", "推しを推す",
+    "美容", "スキンケア", "コスメ", "メイク", "ヘアケア",
+    "ファッション", "コーデ", "着回し", "大人っぽい", "フェミニン",
+    "グルメ", "カフェ", "スイーツ", "ランチ", "ディナー",
+    "旅行", "国内旅行", "海外旅行", "観光", "温泉",
+    "家電", "ガジェット", "テック", "IT", "スマート家電",
+    "インテリア", "家具", "植物", "DIY", "模様替え",
+    "スポーツ", "フィットネス", "ヨガ", "ジム", "トレーニング",
+    "ペット", "犬", "猫", "うさぎ", "ハムスター",
+    "子育て", "赤ちゃん", "キッズ", "親子コーデ", "育児用品",
+    "ビジネス", "仕事", "キャリア", "スーツ", "デスク周り",
+    "環境配慮", "エコ", "サステナブル", "オーガニック", "ナチュラル",
+    "推しの推しを推す", "推し活支援", "推しグッズ", "推し活写真", "推し活動",
+    "自撮り", "自撮り構図", "盛れるアングル", "映え", "インスタ映え",
+]
+
+POST_CAPTIONS = [
+    "このアイテム、本当に好きです！✨",
+    "今日のおすすめはこれ👍",
+    "これ、めっちゃいいですよ！",
+    "買ってから毎日使ってます😊",
+    "この季節にぴったり🌸",
+    "友達にも勧めちゃった💕",
+    "コスパ最高です🤑",
+    "品質が素晴らしい🎉",
+    "リピート確定！",
+    "初心者でも使いやすい👌",
+]
+
 CATEGORIES_HIERARCHICAL = {
     "ファッション": [
         {"name": "メンズファッション", "slug": "mens-fashion"},
@@ -547,52 +576,14 @@ PRODUCT_TEMPLATES = {
     ],
 }
 
-# タグデータ
-TAGS = [
-    "トレンド", "おしゃれ", "可愛い", "かっこいい", "新商品",
-    "セール", "限定", "推し活", "推しの子", "推しを推す",
-    "美容", "スキンケア", "コスメ", "メイク", "ヘアケア",
-    "ファッション", "コーデ", "着回し", "大人っぽい", "フェミニン",
-    "グルメ", "カフェ", "スイーツ", "ランチ", "ディナー",
-    "旅行", "国内旅行", "海外旅行", "観光", "温泉",
-    "家電", "ガジェット", "テック", "IT", "スマート家電",
-    "インテリア", "家具", "植物", "DIY", "模様替え",
-    "スポーツ", "フィットネス", "ヨガ", "ジム", "トレーニング",
-    "ペット", "犬", "猫", "うさぎ", "ハムスター",
-    "子育て", "赤ちゃん", "キッズ", "親子コーデ", "育児用品",
-    "ビジネス", "仕事", "キャリア", "スーツ", "デスク周り",
-    "環境配慮", "エコ", "サステナブル", "オーガニック", "ナチュラル",
-    "推しの推しを推す", "推し活支援", "推しグッズ", "推し活写真", "推し活動",
-    "自撮り", "自撮り構図", "盛れるアングル", "映え", "インスタ映え",
-]
-
-POST_CAPTIONS = [
-    "このアイテム、本当に好きです！✨",
-    "今日のおすすめはこれ👍",
-    "これ、めっちゃいいですよ！",
-    "買ってから毎日使ってます😊",
-    "この季節にぴったり🌸",
-    "友達にも勧めちゃった💕",
-    "コスパ最高です🤑",
-    "品質が素晴らしい🎉",
-    "リピート確定！",
-    "初心者でも使いやすい👌",
-]
-
 
 def generate_seed_data():
-    """
-    seedデータを生成し、データベースに保存します。
-    親カテゴリと子カテゴリの階層構造を作成します。
-    """
     db = SessionLocal()
     
     try:
-        # テストユーザーを生成
         print("👤 テストユーザーを作成中...")
         users_created = 0
         
-        # 既存ユーザー数を確認
         existing_users = db.query(User).count()
         if existing_users >= 1000:
             print(f"✅ テストユーザーはすでに{existing_users}名存在しています\n")
@@ -632,14 +623,12 @@ def generate_seed_data():
         all_brands = {}
         products_created = 0
 
-        # カテゴリが既に存在するか確認
         existing_categories = db.query(Category).count()
         if existing_categories >= 25:
             print(f"✅ カテゴリはすでに{existing_categories}個存在しています\n")
             parent_categories = db.query(Category).filter(Category.parent_id == None).all()
             child_categories = db.query(Category).filter(Category.parent_id != None).all()
             
-            # ブランドが既に存在するか確認
             existing_brands = db.query(Brand).count()
             if existing_brands < 85:
                 print("📁 親カテゴリを作成中...")
@@ -697,6 +686,60 @@ def generate_seed_data():
                 print(f"✅ {brand_count}個のブランドを作成\n")
             else:
                 print(f"✅ ブランドはすでに{existing_brands}個存在しています\n")
+        else:
+            print("📁 親カテゴリを作成中...")
+            for parent_name in CATEGORIES_HIERARCHICAL.keys():
+                parent_category = Category(
+                    name=parent_name,
+                    slug=parent_name.lower().replace(" ", "-"),
+                    parent_id=None,
+                )
+                db.add(parent_category)
+                db.flush()
+                parent_categories.append(parent_category)
+                print(f"  ✓ {parent_name}")
+
+            db.commit()
+            print(f"✅ {len(parent_categories)}個の親カテゴリを作成\n")
+
+            print("📁 子カテゴリを作成中...")
+            for parent_category in parent_categories:
+                parent_name = parent_category.name
+                child_category_list = CATEGORIES_HIERARCHICAL.get(parent_name, [])
+
+                for child_data in child_category_list:
+                    child_category = Category(
+                        name=child_data["name"],
+                        slug=child_data["slug"],
+                        parent_id=parent_category.id,
+                    )
+                    db.add(child_category)
+                    db.flush()
+                    child_categories.append(child_category)
+                    print(f"  ✓ {child_data['name']} (親: {parent_name})")
+
+            db.commit()
+            print(f"✅ {len(child_categories)}個の子カテゴリを作成\n")
+
+            print("🏢 ブランドを作成中...")
+            brand_count = 0
+            for child_category_name, brand_list in BRANDS_BY_CATEGORY.items():
+                for brand_data in brand_list:
+                    brand_key = brand_data["slug"]
+                    if brand_key in all_brands:
+                        continue
+                    
+                    brand = Brand(
+                        name=brand_data["name"],
+                        slug=brand_data["slug"],
+                    )
+                    db.add(brand)
+                    db.flush()
+                    all_brands[brand_key] = brand
+                    brand_count += 1
+
+            db.commit()
+            print(f"✅ {brand_count}個のブランドを作成\n")
 
         print("📦 商品を作成中...")
         for child_category in child_categories:
@@ -800,7 +843,7 @@ def generate_seed_data():
         assets_created = 0
         existing_assets = db.query(Asset).count()
         if existing_assets == 0:
-            csv_path = os.path.join(os.path.dirname(__file__), "../csv/asset_images.csv")
+            csv_path = os.path.join(os.path.dirname(__file__), "../csv/dummy_asset_images.csv")
             if os.path.exists(csv_path):
                 all_users = db.query(User).all()
                 with open(csv_path, "r", encoding="utf-8") as f:
