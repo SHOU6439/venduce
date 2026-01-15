@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import app
-from app.models.enums import PostStatus, PurchaseStatus
+from app.models.enums import PostStatus
 from app.utils.jwt import create_access_token
 from tests.factories import (
     UserFactory,
