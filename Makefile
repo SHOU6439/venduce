@@ -1,4 +1,4 @@
-.PHONY: help setup up down logs clean rebuild nocache test
+.PHONY: help setup up down logs clean rebuild nocache test seed
 
 help:
 	@echo "使い方: make [コマンド]"
@@ -14,6 +14,7 @@ help:
 	@echo "  rebuild  - コンテナを再ビルドして起動"
 	@echo "  nocache  - キャッシュを使わずにDockerイメージをビルド"
 	@echo "  test	 - テストを実行"
+	@echo "  seed	 - seedデータを生成"
 
 setup: build env-file keys up migrate test-db
 	@echo ""
@@ -80,6 +81,10 @@ test-db:
 test:
 	@echo "テストを実行中..."
 	docker compose exec backend python -m pytest tests/ -v
+
+seed:
+	@echo "seedデータを生成中..."
+	docker compose exec -T backend python -c "import sys; sys.path.insert(0, '/app'); from scripts.seed_data import generate_seed_data; generate_seed_data()"
 
 db-merge:
 	@echo "マイグレーションの競合を解消（merge heads）します..."
