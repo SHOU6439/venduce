@@ -5,8 +5,8 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.purchase import PurchaseCreate, PurchaseRead
 from app.schemas.pagination import PaginatedResponse, CursorMeta
-from app.services.purchase_service import PurchaseService, purchase_service
-from app.deps import get_current_user
+from app.services.purchase_service import PurchaseService
+from app.deps import get_current_user, get_purchase_service
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -17,7 +17,7 @@ def create_purchase(
     payload: PurchaseCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    service: PurchaseService = Depends(purchase_service),
+    service: PurchaseService = Depends(get_purchase_service),
 ):
     """支払い方法選択後に購入記録を作成します。
     
@@ -39,7 +39,7 @@ def list_user_purchases(
     limit: int = Query(default=20, ge=1, le=100, description="Number of items to return"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    service: PurchaseService = Depends(purchase_service),
+    service: PurchaseService = Depends(get_purchase_service),
 ):
     """ユーザーの購入履歴を cursor ベースのページネーションで取得します。
     
