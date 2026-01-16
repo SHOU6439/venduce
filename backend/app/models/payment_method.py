@@ -26,7 +26,11 @@ class PaymentMethod(Base):
 
     id = Column(String(26), primary_key=True, index=True, default=lambda: str(ULID()))
     user_id = Column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    payment_type = Column(Enum(PaymentType), nullable=False, index=True)
+    payment_type = Column(
+        Enum(PaymentType, name="paymenttype", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(255), nullable=False)
     details = Column(JSONB, nullable=True)
     is_default = Column(Boolean, default=False, nullable=False)
