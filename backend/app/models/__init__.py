@@ -10,21 +10,7 @@ from .post_assets import PostAsset, post_assets
 from .product_category import ProductCategory
 from .category import Category
 from .brand import Brand
+from .payment_method import PaymentMethod
+from .purchase import Purchase
 
-__all__ = [
-    "User",
-    "RefreshToken",
-    "Asset",
-    "Product",
-    "Category",
-    "Brand",
-    "Tag",
-    "Post",
-    "PostTag",
-    "post_tags",
-    "PostAsset",
-    "post_assets",
-    "PostProduct",
-    "post_products",
-    "ProductCategory",
-]
+__all__ = ["User", "RefreshToken", "Asset", "Product", "Category", "Brand", "Tag", "Post", "PostTag", "post_tags", "PostAsset", "post_assets", "post_products", "PostProduct", "post_products", "ProductCategory", "PaymentMethod", "Purchase"]

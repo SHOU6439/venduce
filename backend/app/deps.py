@@ -11,6 +11,8 @@ from app.services.product_service import product_service, ProductService
 from app.services.post_service import PostService, post_service
 from app.services.category_service import category_service, CategoryService
 from app.services.brand_service import brand_service, BrandService
+from app.services.payment_method_service import payment_method_service, PaymentMethodService
+from app.services.purchase_service import purchase_service, PurchaseService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
 
@@ -39,6 +41,16 @@ def get_category_service() -> CategoryService:
 
 def get_brand_service() -> BrandService:
     return brand_service
+
+
+def get_payment_method_service() -> PaymentMethodService:
+    """Dependency provider for PaymentMethodService."""
+    return payment_method_service
+
+
+def get_purchase_service() -> PurchaseService:
+    """Dependency provider for PurchaseService."""
+    return purchase_service
 
 
 def get_current_user(
