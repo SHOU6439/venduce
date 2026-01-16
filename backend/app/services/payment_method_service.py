@@ -57,7 +57,7 @@ class PaymentMethodService:
 
         if not payment_method:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Payment method not found",
             )
         return payment_method
