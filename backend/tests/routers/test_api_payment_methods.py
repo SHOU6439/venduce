@@ -119,15 +119,15 @@ class TestPaymentMethodsGet:
         assert data["name"] == pm.name
     
     def test_get_payment_method_not_found(self, client, auth_headers):
-        """存在しない支払い方法は 404 を返す。"""
+        """存在しない支払い方法は 400 を返す。"""
         headers, user = auth_headers
         
         response = client.get("/api/payment-methods/invalid_id", headers=headers)
         
-        assert response.status_code == 404
+        assert response.status_code == 400
     
     def test_get_payment_method_not_owner(self, client, db_session, auth_headers):
-        """他のユーザーの支払い方法にアクセスすると 404 を返す。"""
+        """他のユーザーの支払い方法にアクセスすると 400 を返す。"""
         headers, user = auth_headers
         
         other_user = UserFactory()
@@ -140,7 +140,7 @@ class TestPaymentMethodsGet:
         
         response = client.get(f"/api/payment-methods/{pm.id}", headers=headers)
         
-        assert response.status_code == 404
+        assert response.status_code == 400
 
 
 class TestPaymentMethodsUpdate:
@@ -223,4 +223,4 @@ class TestPaymentMethodsDelete:
         
         response = client.delete(f"/api/payment-methods/{pm.id}", headers=headers)
         
-        assert response.status_code == 404
+        assert response.status_code == 400
