@@ -37,7 +37,16 @@ class Purchase(Base):
     currency = Column(String(8), nullable=False, default="JPY")
     payment_method_id = Column(String(26), ForeignKey("payment_methods.id", ondelete="SET NULL"), nullable=True, index=True)
     referring_post_id = Column(String(26), ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True)
-    status = Column(Enum(PurchaseStatus), nullable=False, default=PurchaseStatus.COMPLETED, index=True)
+    status = Column(
+        Enum(
+            PurchaseStatus,
+            name="purchasestatus",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=PurchaseStatus.COMPLETED,
+        index=True,
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(
