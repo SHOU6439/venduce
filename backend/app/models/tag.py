@@ -15,9 +15,9 @@ class Tag(Base):
     """
     __tablename__ = "tags"
 
-    id = Column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
-    name = Column(String(64), nullable=False, unique=True, index=True)
-    usage_count = Column(Integer, nullable=False, default=0)
+    id: str = Column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
+    name: str = Column(String(64), nullable=False, unique=True, index=True)
+    usage_count: int = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(

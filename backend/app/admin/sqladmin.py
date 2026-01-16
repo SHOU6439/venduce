@@ -1,46 +1,32 @@
-from typing import Sequence
-
 from sqladmin import Admin, ModelView
-from app.models import User, Product, RefreshToken, Asset
+from sqlalchemy import inspect
 from app.db.database import engine
+import app.models
 
 
-class UserAdmin(ModelView, model=User):
-    column_list: Sequence[str] = ["id", "name", "email", "created_at"]
+def setup_admin(application):
+    admin = Admin(application, engine, title="Venduce")
 
+    model_names = getattr(app.models, "__all__", [])
 
-class ProductAdmin(ModelView, model=Product):
-    column_list = ["id", "title", "sku", "price_cents", "currency", "stock_quantity", "status"]
+    for name in model_names:
+        model_cls = getattr(app.models, name)
 
+        if not hasattr(model_cls, "__mapper__") or not hasattr(model_cls, "__tablename__"):
+            continue
 
-class RefreshTokenAdmin(ModelView, model=RefreshToken):
-    column_list = [
-        "id",
-        "user_id",
-        "created_at",
-        "expires_at",
-        "revoked_at",
-        "ip_address",
-        "last_used_at",
-    ]
+        try:
+            mapper = inspect(model_cls)
+            columns = [c.key for c in mapper.columns]
+        except Exception:
+            columns = []
 
+        class DynamicAdmin(ModelView, model=model_cls):
+            column_list = columns
+            icon = "fa-solid fa-table"
+            name_plural = f"{name}s"
 
-class AssetAdmin(ModelView, model=Asset):
-    column_list = [
-        "id",
-        "owner_id",
-        "purpose",
-        "status",
-        "content_type",
-        "size_bytes",
-        "created_at",
-        "public_url",
-    ]
+        DynamicAdmin.__name__ = f"{name}Admin"
+        DynamicAdmin.name = name
 
-
-def setup_admin(app):
-    admin = Admin(app, engine)
-    admin.add_view(UserAdmin)
-    admin.add_view(ProductAdmin)
-    admin.add_view(RefreshTokenAdmin)
-    admin.add_view(AssetAdmin)
+        admin.add_view(DynamicAdmin)
