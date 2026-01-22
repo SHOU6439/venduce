@@ -32,7 +32,6 @@ class UserService:
                 db.commit()
             except Exception as e:
                 db.rollback()
-                # 必要に応じて独自例外へラップ可
                 raise e
             db.refresh(user)
         return user

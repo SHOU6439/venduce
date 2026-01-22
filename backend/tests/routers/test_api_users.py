@@ -64,7 +64,6 @@ def test_update_user_profile_success(client, db_session):
     token = login_resp.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 事前にAssetを作成し、そのIDをavatar_asset_idに指定
     from tests.factories.asset_factory import AssetFactory
     asset = AssetFactory(id="01HZYXJQKZJ8YQ2V7K8Q2V7K8Q", owner_id=user.id)
     db_session.commit()
