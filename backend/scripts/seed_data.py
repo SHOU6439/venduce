@@ -65,6 +65,10 @@ POST_CAPTIONS = [
     "初心者でも使いやすい👌",
 ]
 
+POST_PRODUCT_PROBABILITY = 0.7  # 70% probability that a post includes related products
+POST_TAG_PROBABILITY = 0.8
+POST_ASSET_PROBABILITY = 0.7
+
 CATEGORIES_HIERARCHICAL = {
     "ファッション": [
         {"name": "メンズファッション", "slug": "mens-fashion"},
@@ -810,12 +814,12 @@ def generate_seed_data():
                     db.flush()
                     posts_created += 1
                     
-                    if all_products and random.random() > 0.3:
+                    if all_products and random.random() < POST_PRODUCT_PROBABILITY:
                         selected_products = random.sample(all_products, min(3, len(all_products)))
                         for product in selected_products:
                             post.products.append(product)
                     
-                    if all_tags and random.random() > 0.2:
+                    if all_tags and random.random() < POST_TAG_PROBABILITY:
                         selected_tags = random.sample(all_tags, min(3, len(all_tags)))
                         for tag in selected_tags:
                             post.tags.append(tag)
@@ -871,7 +875,7 @@ def generate_seed_data():
                         print("📎 アセットを投稿に関連付け中...")
                         assets_linked = 0
                         for post in all_posts:
-                            if random.random() > 0.3 and all_assets:
+                            if random.random() < POST_ASSET_PROBABILITY and all_assets:
                                 selected_assets = random.sample(all_assets, min(2, len(all_assets)))
                                 for asset in selected_assets:
                                     post.assets.append(asset)
