@@ -585,6 +585,92 @@ PRODUCT_TEMPLATES = {
 }
 
 
+def create_categories_and_brands(db):
+    """Create parent/child categories and brands if they don't exist.
+    
+    Returns:
+        tuple: (parent_categories, child_categories, all_brands)
+    """
+    parent_categories = []
+    child_categories = []
+    all_brands = {}
+    
+    existing_categories = db.query(Category).count()
+    existing_brands = db.query(Brand).count()
+    
+    if existing_categories >= 25 and existing_brands >= 85:
+        print(f"✅ カテゴリはすでに{existing_categories}個存在しています\n")
+        print(f"✅ ブランドはすでに{existing_brands}個存在しています\n")
+        parent_categories = db.query(Category).filter(Category.parent_id == None).all()
+        child_categories = db.query(Category).filter(Category.parent_id != None).all()
+        return parent_categories, child_categories, all_brands
+    
+    if existing_categories == 0:
+        print("📁 親カテゴリを作成中...")
+        for parent_name in CATEGORIES_HIERARCHICAL.keys():
+            parent_category = Category(
+                name=parent_name,
+                slug=parent_name.lower().replace(" ", "-"),
+                parent_id=None,
+            )
+            db.add(parent_category)
+            db.flush()
+            parent_categories.append(parent_category)
+            print(f"  ✓ {parent_name}")
+
+        db.commit()
+        print(f"✅ {len(parent_categories)}個の親カテゴリを作成\n")
+    else:
+        parent_categories = db.query(Category).filter(Category.parent_id == None).all()
+    
+    if existing_categories < 25:
+        print("📁 子カテゴリを作成中...")
+        for parent_category in parent_categories:
+            parent_name = parent_category.name
+            child_category_list = CATEGORIES_HIERARCHICAL.get(parent_name, [])
+
+            for child_data in child_category_list:
+                child_category = Category(
+                    name=child_data["name"],
+                    slug=child_data["slug"],
+                    parent_id=parent_category.id,
+                )
+                db.add(child_category)
+                db.flush()
+                child_categories.append(child_category)
+                print(f"  ✓ {child_data['name']} (親: {parent_name})")
+
+        db.commit()
+        print(f"✅ {len(child_categories)}個の子カテゴリを作成\n")
+    else:
+        child_categories = db.query(Category).filter(Category.parent_id != None).all()
+    
+    if existing_brands < 85:
+        print("🏢 ブランドを作成中...")
+        brand_count = 0
+        for child_category_name, brand_list in BRANDS_BY_CATEGORY.items():
+            for brand_data in brand_list:
+                brand_key = brand_data["slug"]
+                if brand_key in all_brands:
+                    continue
+                
+                brand = Brand(
+                    name=brand_data["name"],
+                    slug=brand_data["slug"],
+                )
+                db.add(brand)
+                db.flush()
+                all_brands[brand_key] = brand
+                brand_count += 1
+
+        db.commit()
+        print(f"✅ {brand_count}個のブランドを作成\n")
+    else:
+        print(f"✅ ブランドはすでに{existing_brands}個存在しています\n")
+    
+    return parent_categories, child_categories, all_brands
+
+
 def generate_seed_data():
     db = SessionLocal()
     
@@ -593,6 +679,7 @@ def generate_seed_data():
         users_created = 0
         
         existing_users = db.query(User).count()
+
         if existing_users >= 1000:
             print(f"✅ テストユーザーはすでに{existing_users}名存在しています\n")
         else:
@@ -638,123 +725,7 @@ def generate_seed_data():
         all_brands = {}
         products_created = 0
 
-        existing_categories = db.query(Category).count()
-        if existing_categories >= 25:
-            print(f"✅ カテゴリはすでに{existing_categories}個存在しています\n")
-            parent_categories = db.query(Category).filter(Category.parent_id == None).all()
-            child_categories = db.query(Category).filter(Category.parent_id != None).all()
-            
-            existing_brands = db.query(Brand).count()
-            if existing_brands < 85:
-                print("📁 親カテゴリを作成中...")
-                for parent_name in CATEGORIES_HIERARCHICAL.keys():
-                    parent_category = Category(
-                        name=parent_name,
-                        slug=parent_name.lower().replace(" ", "-"),
-                        parent_id=None,
-                    )
-                    db.add(parent_category)
-                    db.flush()
-                    parent_categories.append(parent_category)
-                    print(f"  ✓ {parent_name}")
-
-                db.commit()
-                print(f"✅ {len(parent_categories)}個の親カテゴリを作成\n")
-
-                print("📁 子カテゴリを作成中...")
-                for parent_category in parent_categories:
-                    parent_name = parent_category.name
-                    child_category_list = CATEGORIES_HIERARCHICAL.get(parent_name, [])
-
-                    for child_data in child_category_list:
-                        child_category = Category(
-                            name=child_data["name"],
-                            slug=child_data["slug"],
-                            parent_id=parent_category.id,
-                        )
-                        db.add(child_category)
-                        db.flush()
-                        child_categories.append(child_category)
-                        print(f"  ✓ {child_data['name']} (親: {parent_name})")
-
-                db.commit()
-                print(f"✅ {len(child_categories)}個の子カテゴリを作成\n")
-
-                print("🏢 ブランドを作成中...")
-                brand_count = 0
-                for child_category_name, brand_list in BRANDS_BY_CATEGORY.items():
-                    for brand_data in brand_list:
-                        brand_key = brand_data["slug"]
-                        if brand_key in all_brands:
-                            continue
-                        
-                        brand = Brand(
-                            name=brand_data["name"],
-                            slug=brand_data["slug"],
-                        )
-                        db.add(brand)
-                        db.flush()
-                        all_brands[brand_key] = brand
-                        brand_count += 1
-
-                db.commit()
-                print(f"✅ {brand_count}個のブランドを作成\n")
-            else:
-                print(f"✅ ブランドはすでに{existing_brands}個存在しています\n")
-        else:
-            print("📁 親カテゴリを作成中...")
-            for parent_name in CATEGORIES_HIERARCHICAL.keys():
-                parent_category = Category(
-                    name=parent_name,
-                    slug=parent_name.lower().replace(" ", "-"),
-                    parent_id=None,
-                )
-                db.add(parent_category)
-                db.flush()
-                parent_categories.append(parent_category)
-                print(f"  ✓ {parent_name}")
-
-            db.commit()
-            print(f"✅ {len(parent_categories)}個の親カテゴリを作成\n")
-
-            print("📁 子カテゴリを作成中...")
-            for parent_category in parent_categories:
-                parent_name = parent_category.name
-                child_category_list = CATEGORIES_HIERARCHICAL.get(parent_name, [])
-
-                for child_data in child_category_list:
-                    child_category = Category(
-                        name=child_data["name"],
-                        slug=child_data["slug"],
-                        parent_id=parent_category.id,
-                    )
-                    db.add(child_category)
-                    db.flush()
-                    child_categories.append(child_category)
-                    print(f"  ✓ {child_data['name']} (親: {parent_name})")
-
-            db.commit()
-            print(f"✅ {len(child_categories)}個の子カテゴリを作成\n")
-
-            print("🏢 ブランドを作成中...")
-            brand_count = 0
-            for child_category_name, brand_list in BRANDS_BY_CATEGORY.items():
-                for brand_data in brand_list:
-                    brand_key = brand_data["slug"]
-                    if brand_key in all_brands:
-                        continue
-                    
-                    brand = Brand(
-                        name=brand_data["name"],
-                        slug=brand_data["slug"],
-                    )
-                    db.add(brand)
-                    db.flush()
-                    all_brands[brand_key] = brand
-                    brand_count += 1
-
-            db.commit()
-            print(f"✅ {brand_count}個のブランドを作成\n")
+        parent_categories, child_categories, all_brands = create_categories_and_brands(db)
 
         print("📦 商品を作成中...")
         for child_category in child_categories:
