@@ -9,6 +9,7 @@ help:
 	@echo "  down	 - Dockerコンテナを停止"
 	@echo "  logs	 - コンテナのログを表示"
 	@echo "  clean	- コンテナを停止し、不要なリソースを削除"
+	@echo "  destroy	- データベースを含む全データを完全削除（初期化）"
 	@echo "  restart	- コンテナを再起動"
 	@echo "  rebuild  - コンテナを再ビルドして起動"
 	@echo "  nocache  - キャッシュを使わずにDockerイメージをビルド"
@@ -45,6 +46,14 @@ clean:
 	docker compose down
 	docker system prune -f
 	@echo "クリーンアップが完了しました！"
+
+destroy:
+	@echo "【警告】データベースのボリュームを含む全データを削除します。"
+	@echo "本当によろしいですか？ (y/N)"
+	@python -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
+	docker compose down --volumes
+	docker system prune -f
+	@echo "全データの削除（初期化）が完了しました。"
 
 restart: down up
 

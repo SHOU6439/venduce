@@ -1,18 +1,23 @@
-"""Test factories for model instances.
+"""テスト用のファクトリ群。
 
-This module provides factory-boy factories for creating test data.
-All factories use SQLAlchemyModelFactory and will automatically
-commit instances to the test database.
+このモジュールは factory-boy を用いたテストデータ生成ファクトリを提供します。
+すべてのファクトリは SQLAlchemyModelFactory を利用し、テストデータベースへ自動でコミットされます。
 """
 
 from tests.factories.user import UserFactory
 from tests.factories.refresh_token import RefreshTokenFactory
 from tests.factories.asset_factory import AssetFactory
 from tests.factories.post_factory import PostFactory
+from tests.factories.product_factory import ProductFactory
+from tests.factories.payment_method_factory import PaymentMethodFactory
+from tests.factories.purchase_factory import PurchaseFactory
 
 __all__ = [
     "UserFactory",
     "RefreshTokenFactory",
     "AssetFactory",
     "PostFactory",
+    "ProductFactory",
+    "PaymentMethodFactory",
+    "PurchaseFactory",
 ]
