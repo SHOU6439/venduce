@@ -7,6 +7,7 @@ from uuid import uuid4
 import random
 import csv
 import hashlib
+import secrets
 from app.models.category import Category
 from app.models.brand import Brand
 from app.models.product import Product
@@ -17,6 +18,13 @@ from app.models.post import Post
 from app.models.asset import Asset
 from app.models.enums import PostStatus
 from app.core.security import hash_password
+
+
+DEFAULT_SEED_PASSWORD = "password123"
+
+def generate_random_password(length=16):
+    """Generate a cryptographically secure random password."""
+    return secrets.token_urlsafe(length)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -593,7 +601,11 @@ def generate_seed_data():
                 username = f"user{existing_users + i + 1:04d}"
                 first_name = f"テスト{existing_users + i + 1}"
                 last_name = "ユーザー"
-                password_hash = hash_password("password123")
+                if existing_users + i == 0:
+                    plain_password = DEFAULT_SEED_PASSWORD
+                else:
+                    plain_password = generate_random_password()
+                password_hash = hash_password(plain_password)
                 
                 user = User(
                     email=email,
@@ -614,7 +626,10 @@ def generate_seed_data():
             
             if users_created > 0:
                 db.commit()
-                print(f"✅ {users_created}名のテストユーザーを追加\n")
+                print(f"✅ {users_created}名のテストユーザーを追加")
+                print(f"📌 Test login (first user):")
+                print(f"   Email: user0001@example.com")
+                print(f"   Password: {DEFAULT_SEED_PASSWORD}\n")
             else:
                 print(f"✅ テストユーザーはすでに1000名存在しています\n")
         
