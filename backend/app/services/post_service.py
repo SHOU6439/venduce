@@ -286,7 +286,6 @@ class PostService:
                 detail="You do not have permission to delete this post",
             )
 
-        # 論理削除
         post.deleted_at = datetime.now(timezone.utc)
 
         # タグカウント減算
