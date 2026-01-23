@@ -69,8 +69,10 @@ def db_session():
         RefreshTokenFactory._meta.sqlalchemy_session = db
         from tests.factories.asset_factory import AssetFactory
         from tests.factories.post_factory import PostFactory
+        from tests.factories.tag_factory import TagFactory
         AssetFactory._meta.sqlalchemy_session = db
         PostFactory._meta.sqlalchemy_session = db
+        TagFactory._meta.sqlalchemy_session = db
         yield db
     finally:
         db.close()

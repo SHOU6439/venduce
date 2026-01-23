@@ -9,10 +9,12 @@ from tests.factories.user import UserFactory
 from tests.factories.refresh_token import RefreshTokenFactory
 from tests.factories.asset_factory import AssetFactory
 from tests.factories.post_factory import PostFactory
+from tests.factories.tag_factory import TagFactory
 
 __all__ = [
     "UserFactory",
     "RefreshTokenFactory",
     "AssetFactory",
     "PostFactory",
+    "TagFactory",
 ]
