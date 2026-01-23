@@ -1,4 +1,4 @@
-.PHONY: help setup up down logs clean rebuild nocache test
+.PHONY: help setup up down logs clean rebuild nocache test seed
 
 help:
 	@echo "使い方: make [コマンド]"
@@ -9,10 +9,12 @@ help:
 	@echo "  down	 - Dockerコンテナを停止"
 	@echo "  logs	 - コンテナのログを表示"
 	@echo "  clean	- コンテナを停止し、不要なリソースを削除"
+	@echo "  destroy	- データベースを含む全データを完全削除（初期化）"
 	@echo "  restart	- コンテナを再起動"
 	@echo "  rebuild  - コンテナを再ビルドして起動"
 	@echo "  nocache  - キャッシュを使わずにDockerイメージをビルド"
 	@echo "  test	 - テストを実行"
+	@echo "  seed	 - seedデータを生成"
 
 setup: build env-file keys up migrate test-db
 	@echo ""
@@ -46,6 +48,14 @@ clean:
 	docker system prune -f
 	@echo "クリーンアップが完了しました！"
 
+destroy:
+	@echo "【警告】データベースのボリュームを含む全データを削除します。"
+	@echo "本当によろしいですか？ (y/N)"
+	@python -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
+	docker compose down --volumes
+	docker system prune -f
+	@echo "全データの削除（初期化）が完了しました。"
+
 restart: down up
 
 rebuild: down build up
@@ -71,6 +81,10 @@ test-db:
 test:
 	@echo "テストを実行中..."
 	docker compose exec backend python -m pytest tests/ -v
+
+seed:
+	@echo "seedデータを生成中..."
+	docker compose exec -T backend python -c "import sys; sys.path.insert(0, '/app'); from scripts.seed_data import generate_seed_data; generate_seed_data()"
 
 db-merge:
 	@echo "マイグレーションの競合を解消（merge heads）します..."
