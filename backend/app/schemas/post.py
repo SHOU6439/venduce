@@ -31,6 +31,15 @@ class PostCreate(PostBase):
     tags: List[str] = Field(default_factory=list, max_length=10, description="List of tag names")
 
 
+class PostUpdate(PostBase):
+    caption: Optional[str] = None
+    status: Optional[PostStatus] = None
+    extra_metadata: Optional[dict] = None
+    asset_ids: Optional[List[str]] = None
+    product_ids: Optional[List[str]] = None
+    tags: Optional[List[str]] = Field(default=None, max_length=10, description="List of tag names")
+
+
 class PostRead(PostBase):
     id: str
     user_id: str
