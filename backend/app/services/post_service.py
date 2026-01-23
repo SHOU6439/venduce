@@ -10,7 +10,7 @@ from app.models.product import Product
 from app.models.tag import Tag
 from app.models.user import User
 from app.models.enums import PostStatus
-from app.schemas.post import PostCreate
+from app.schemas.post import PostCreate, PostUpdate
 from app.utils.cursor import encode_cursor, decode_cursor
 
 
@@ -109,6 +109,7 @@ class PostService:
         query = (
             self.db.query(Post)
             .filter(Post.status == PostStatus.PUBLIC)
+            .filter(Post.deleted_at.is_(None))
             .order_by(Post.created_at.desc(), Post.id.desc())
         )
 
@@ -167,6 +168,7 @@ class PostService:
                 selectinload(Post.tags)
             )
             .filter(Post.id == post_id)
+            .filter(Post.deleted_at.is_(None))
             .first()
         )
 
@@ -186,6 +188,115 @@ class PostService:
             )
 
         return post
+
+    def update_post(
+        self,
+        *,
+        post_id: str,
+        post_in: PostUpdate,
+        current_user: User,
+        etag: Optional[str] = None,
+    ) -> Post:
+        """投稿を更新します。楽観的ロックと関連リソースの整合性を管理します。"""
+        post = self.get_post_by_id(post_id=post_id, current_user=current_user)
+
+        if post.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to edit this post",
+            )
+
+        if etag:
+            current_etag = str(post.updated_at.timestamp())
+            if etag.strip('"') != current_etag:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Post has been modified by another process",
+                )
+
+        if post_in.caption is not None:
+            post.caption = post_in.caption
+        if post_in.status is not None:
+            post.status = post_in.status
+        if post_in.extra_metadata is not None:
+            post.extra_metadata = post_in.extra_metadata
+
+        if post_in.asset_ids is not None:
+            assets = (
+                self.db.query(Asset)
+                .filter(Asset.id.in_(post_in.asset_ids), Asset.owner_id == current_user.id)
+                .all()
+            )
+            if len(assets) != len(set(post_in.asset_ids)):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="One or more assets not found or permission denied",
+                )
+            post.assets = assets
+
+        if post_in.product_ids is not None:
+            products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
+            if len(products) != len(set(post_in.product_ids)):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="One or more products not found",
+                )
+            post.products = products
+
+        if post_in.tags is not None:
+            current_tag_set = set(post.tags)
+            new_tag_names = {t.strip().lower() for t in post_in.tags if t.strip()}
+
+            existing_tags_query = self.db.query(Tag).filter(Tag.name.in_(new_tag_names)).all()
+            existing_tags_map = {t.name: t for t in existing_tags_query}
+
+            new_tags_list = []
+            for name in new_tag_names:
+                if name in existing_tags_map:
+                    tag = existing_tags_map[name]
+                    if tag not in current_tag_set:
+                        tag.usage_count += 1
+                    new_tags_list.append(tag)
+                else:
+                    new_tag = Tag(name=name, usage_count=1)
+                    self.db.add(new_tag)
+                    new_tags_list.append(new_tag)
+
+            new_tag_set = set(new_tags_list)
+            for tag in current_tag_set:
+                if tag not in new_tag_set:
+                    tag.usage_count = max(0, tag.usage_count - 1)
+
+            post.tags = new_tags_list
+
+        self.db.add(post)
+        self.db.commit()
+        self.db.refresh(post)
+        return post
+
+    def delete_post(self, *, post_id: str, current_user: User) -> None:
+        """投稿を論理削除します。"""
+        from datetime import datetime, timezone
+
+        post = self.get_post_by_id(post_id=post_id, current_user=current_user)
+
+        if post.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this post",
+            )
+
+        # 論理削除
+        post.deleted_at = datetime.now(timezone.utc)
+
+        # タグカウント減算
+        # NOTE: 将来的に復元機能を実装する場合、ここで減算した usage_count を
+        #       復元時に再度加算する必要あり。
+        for tag in post.tags:
+            tag.usage_count = max(0, tag.usage_count - 1)
+
+        self.db.add(post)
+        self.db.commit()
 
 
 def post_service_factory(db: Session) -> PostService:
