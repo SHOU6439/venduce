@@ -1,5 +1,6 @@
 from ulid import ULID
-from sqlalchemy import Column, String, DateTime, func, Boolean
+from sqlalchemy import Column, String, DateTime, func, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 
@@ -15,6 +16,8 @@ class User(Base):
         confirmation_token: メール確認用トークン。
         confirmation_sent_at: 確認メール送信日時。
         confirmation_expires_at: 確認トークンの有効期限。
+        bio: 自己紹介文（最大1000文字、任意）。
+        avatar_asset_id: プロフィール画像AssetのID（assets.id, 任意, 1対1リレーション）。
     """
     __tablename__ = "users"
 
@@ -34,6 +37,10 @@ class User(Base):
     confirmation_token = Column(String(128), nullable=True, index=True)
     confirmation_sent_at = Column(DateTime(timezone=True), nullable=True)
     confirmation_expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    bio = Column(String(1000), nullable=True)
+    avatar_asset_id = Column(String(26), ForeignKey("assets.id"), nullable=True, unique=True)
+    avatar_asset = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
 
 
 __all__ = ["User"]

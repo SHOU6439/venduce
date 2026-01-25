@@ -22,6 +22,20 @@ import secrets
 
 class UserService:
 
+    def update_profile(self, db: Session, user: User, user_update: 'UserUpdate') -> User:
+        update_data = user_update.model_dump(exclude_unset=True)
+        if update_data:
+            for field, value in update_data.items():
+                setattr(user, field, value)
+            db.add(user)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+            db.refresh(user)
+        return user
+
     def _generate_token(self, length: int = 32) -> str:
         return secrets.token_urlsafe(length)
 
