@@ -1,5 +1,3 @@
-// 投稿一覧ページ
-
 import Link from 'next/link';
 
 export default function Posts() {

@@ -14,7 +14,6 @@ export default function SuccessModal({ isOpen, email, onClose }: SuccessModalPro
   const [message, setMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
 
-  // Load state from localStorage on mount
   useEffect(() => {
     if (!isOpen) return;
 
@@ -29,7 +28,6 @@ export default function SuccessModal({ isOpen, email, onClose }: SuccessModalPro
     }
   }, [isOpen]);
 
-  // Countdown timer
   useEffect(() => {
     if (countdown <= 0) return;
 
@@ -56,10 +54,9 @@ export default function SuccessModal({ isOpen, email, onClose }: SuccessModalPro
       await apiClient.post('/api/auth/resend-confirmation', { email });
       setMessage('確認メールを再送信しました。');
 
-      // Calculate next cooldown
       const storedRetryCount = parseInt(localStorage.getItem('resend_retry_count') || '0', 10);
       const nextRetryCount = storedRetryCount + 1;
-      const waitTime = 15 * Math.pow(2, storedRetryCount); // 15, 30, 60, 120...
+      const waitTime = 15 * Math.pow(2, storedRetryCount);
 
       const expiresAt = Date.now() + waitTime * 1000;
 

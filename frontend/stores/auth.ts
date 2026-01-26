@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: response.refresh_token,
           isAuthenticated: true,
         });
+        localStorage.setItem('token', response.access_token);
       },
 
       logout: () => {

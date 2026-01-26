@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+import os
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from app.admin.sqladmin import setup_admin
@@ -39,6 +41,11 @@ def get_application() -> FastAPI:
     app.include_router(payment_methods_router.router, prefix="/api/payment-methods", tags=["payment-methods"])
     app.include_router(purchases_router.router, prefix="/api/purchases", tags=["purchases"])
     app.include_router(posts_router.router)
+
+    if not os.path.exists(settings.ASSET_STORAGE_ROOT):
+        os.makedirs(settings.ASSET_STORAGE_ROOT)
+    
+    app.mount(settings.ASSET_PUBLIC_BASE_URL, StaticFiles(directory=settings.ASSET_STORAGE_ROOT), name="storage")
 
     try:
         setup_admin(app)
