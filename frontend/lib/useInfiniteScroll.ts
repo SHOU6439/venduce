@@ -14,11 +14,12 @@ export interface UseInfiniteScrollOptions<T> {
 
 export interface UseInfiniteScrollResult<T> {
   items: T[];
+  setItems: React.Dispatch<React.SetStateAction<T[]>>; // Add this
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
   error: Error | null;
-  sentinelRef: React.RefObject<HTMLDivElement>;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
   reset: () => void;
 }
 
@@ -173,6 +174,7 @@ export function useInfiniteScroll<T>({
 
   return {
     items,
+    setItems,
     isLoading,
     isLoadingMore,
     hasMore,
