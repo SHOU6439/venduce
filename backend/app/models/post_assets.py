@@ -12,7 +12,7 @@ class PostAsset(Base):
     asset_id = Column(String(26), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True)
     product_id = Column(String(26), ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
 
-    asset = relationship("Asset", foreign_keys=[asset_id])
+    asset = relationship("Asset", foreign_keys=[asset_id], overlaps="posts")
     product = relationship("Product", foreign_keys=[product_id])
 
 post_assets = PostAsset.__table__

@@ -84,92 +84,26 @@ class PostService:
         - `product_ids` が与えられた場合、該当する製品が存在することを検証します。
         - `tags` はトリム・小文字化して正規化し、既存タグがあれば `usage_count` を増やして再利用、なければ新規作成します。
         - PostAsset テーブルに各画像と商品の紐付けを記録します。
-        - 関連（products/tags/assets）を設定し、DB に保存（commit）、作成した `Post` を返します。
+        - 関連（products/tags）を設定し、DB に保存（commit）、作成した `Post` を返します。
 
         すべての検証はここに集約され、ルーターは薄く保たれます。
         """
+        asset_product_map = self._validate_and_map_asset_products(post_in, current_user)
+        products = self._validate_and_fetch_products(post_in)
+        tags = self._normalize_and_fetch_tags(post_in)
 
-
-        assets: List[Asset] = []
-        asset_product_map: dict = {}
-        
-        if post_in.asset_product_pairs:
-            asset_ids = [pair.asset_id for pair in post_in.asset_product_pairs]
-            assets = (
-                self.db.query(Asset)
-                .filter(Asset.id.in_(asset_ids), Asset.owner_id == current_user.id)
-                .all()
-            )
-            if len(assets) != len(set(asset_ids)):
-                found_ids = {a.id for a in assets}
-                missing = set(asset_ids) - found_ids
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"One or more assets not found or permission denied: {missing}",
-                )
-
-            for pair in post_in.asset_product_pairs:
-                asset_product_map[pair.asset_id] = pair.product_id
-
-        products: List[Product] = []
-        if post_in.product_ids:
-            products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
-            if len(products) != len(set(post_in.product_ids)):
-                found_ids = {p.id for p in products}
-                missing = set(post_in.product_ids) - found_ids
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"One or more products not found: {missing}",
-                )
-
-        if asset_product_map:
-            product_ids_in_pairs = {pid for pid in asset_product_map.values() if pid}
-            if product_ids_in_pairs:
-                existing_products = self.db.query(Product).filter(Product.id.in_(product_ids_in_pairs)).all()
-                existing_ids = {p.id for p in existing_products}
-                missing_ids = product_ids_in_pairs - existing_ids
-                if missing_ids:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"One or more products in asset pairs not found: {missing_ids}",
-                    )
-
-        tags: List[Tag] = []
-        if post_in.tags:
-            normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
-
-            existing_tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
-            existing_map = {t.name: t for t in existing_tags}
-
-            for name in normalized_names:
-                if name in existing_map:
-                    tag = existing_map[name]
-                    tag.usage_count += 1
-                    tags.append(tag)
-                else:
-                    new_tag = Tag(name=name, usage_count=1)
-                    self.db.add(new_tag)
-                    tags.append(new_tag)
-
-        post = Post(
-            user_id=current_user.id,
-            caption=post_in.caption,
-            status=post_in.status,
-            extra_metadata=post_in.extra_metadata,
-        )
-
+        post_data = post_in.model_dump(exclude_unset=True, exclude={'asset_product_pairs', 'product_ids', 'tags'})
+        post = Post(user_id=current_user.id, **post_data)
         post.products = products
         post.tags = tags
 
         self.db.add(post)
-        self.db.flush()  # post.id を取得するために flush を先に実行
+        self.db.flush()
 
-        # PostAsset テーブルに各画像と商品の紐付けを記録
-        for asset in assets:
-            product_id = asset_product_map.get(asset.id)
+        for asset_id, product_id in asset_product_map.items():
             post_asset = PostAsset(
                 post_id=post.id,
-                asset_id=asset.id,
+                asset_id=asset_id,
                 product_id=product_id
             )
             self.db.add(post_asset)
@@ -177,6 +111,92 @@ class PostService:
         self.db.commit()
         self.db.refresh(post)
         return post
+
+    def _validate_and_map_asset_products(
+        self,
+        post_in: PostCreate,
+        current_user: User
+    ) -> dict:
+        """アセット・商品ペアを検証し、マッピングを返す。
+        
+        Returns:
+            {asset_id: product_id} のマッピング
+        """
+        asset_product_map = {}
+        
+        if not post_in.asset_product_pairs:
+            return asset_product_map
+
+        asset_ids = [pair.asset_id for pair in post_in.asset_product_pairs]
+        assets = (
+            self.db.query(Asset)
+            .filter(Asset.id.in_(asset_ids), Asset.owner_id == current_user.id)
+            .all()
+        )
+
+        if len(assets) != len(set(asset_ids)):
+            found_ids = {a.id for a in assets}
+            missing = set(asset_ids) - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"One or more assets not found or permission denied: {missing}",
+            )
+
+        for pair in post_in.asset_product_pairs:
+            asset_product_map[pair.asset_id] = pair.product_id
+
+        product_ids_in_pairs = {pid for pid in asset_product_map.values() if pid}
+        if product_ids_in_pairs:
+            existing_products = self.db.query(Product).filter(Product.id.in_(product_ids_in_pairs)).all()
+            existing_ids = {p.id for p in existing_products}
+            missing_ids = product_ids_in_pairs - existing_ids
+            if missing_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"One or more products in asset pairs not found: {missing_ids}",
+                )
+
+        return asset_product_map
+
+    def _validate_and_fetch_products(self, post_in: PostCreate) -> List[Product]:
+        """product_ids を検証して Product リストを返す。"""
+        if not post_in.product_ids:
+            return []
+
+        products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
+        
+        if len(products) != len(set(post_in.product_ids)):
+            found_ids = {p.id for p in products}
+            missing = set(post_in.product_ids) - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"One or more products not found: {missing}",
+            )
+
+        return products
+
+    def _normalize_and_fetch_tags(self, post_in: PostCreate) -> List[Tag]:
+        """タグを正規化し、存在しないものは作成して Tag リストを返す。"""
+        tags = []
+        
+        if not post_in.tags:
+            return tags
+
+        normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
+        existing_tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
+        existing_map = {t.name: t for t in existing_tags}
+
+        for name in normalized_names:
+            if name in existing_map:
+                tag = existing_map[name]
+                tag.usage_count += 1
+                tags.append(tag)
+            else:
+                new_tag = Tag(name=name, usage_count=1)
+                self.db.add(new_tag)
+                tags.append(new_tag)
+
+        return tags
 
     def get_public_posts(
         self,
