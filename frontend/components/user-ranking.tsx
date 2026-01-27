@@ -83,28 +83,24 @@ export function UserRanking() {
   return (
     <div className="space-y-3">
       {users.map((user) => (
-        <Card key={user.id} className="p-4 hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-3">
+        <Card key={user.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+          <div className="flex gap-3 p-3">
             <div className="relative flex-shrink-0">
-              <Avatar className="h-12 w-12 border-2 border-primary/20">
-                <AvatarImage src={getImageUrl(user.avatarUrl ?? undefined)} alt={user.displayName} />
-                <AvatarFallback>{user.displayName?.[0] ?? user.username[0]}</AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">{user.rank}</div>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold truncate">{user.displayName}</h3>
-                {user.rank <= 3 && (
-                  <Badge variant="secondary" className="bg-accent/20 text-accent text-xs">
-                    <TrendingUp className="h-3 w-3" />
-                  </Badge>
+              {user.rank <= 3 && (
+                <Badge className="absolute -top-1 -left-1 bg-accent text-accent-foreground z-10 h-5 w-5 p-0 flex items-center justify-center text-xs">{user.rank}</Badge>
+              )}
+              <div className="w-20 h-20 overflow-hidden bg-muted rounded flex items-center justify-center border-2 border-primary/20">
+                {user.avatarUrl ? (
+                  <img src={getImageUrl(user.avatarUrl ?? undefined)} alt={user.displayName} className="h-full w-full object-cover rounded" />
+                ) : (
+                  <span className="text-2xl font-bold text-muted-foreground">{user.displayName?.[0] ?? user.username[0]}</span>
                 )}
               </div>
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <h3 className="font-bold text-sm hover:text-primary transition-colors line-clamp-2 truncate">{user.displayName}</h3>
               <p className="text-xs text-muted-foreground mb-2">@{user.username}</p>
-
-              <div className="flex gap-3 text-xs">
+              <div className="flex items-center gap-3 text-xs mt-2">
                 <div className="flex items-center gap-1">
                   <ShoppingBag className="h-3 w-3 text-primary" />
                   <span className="font-semibold text-primary">{user.totalPurchases.toLocaleString()}</span>
@@ -113,6 +109,9 @@ export function UserRanking() {
                 <div>
                   <span className="font-semibold text-primary">{user.totalLikes.toLocaleString()} いいね</span>
                 </div>
+                {user.rank <= 3 && (
+                  <Badge variant="secondary" className="bg-accent/20 text-accent text-xs ml-auto"><TrendingUp className="h-3 w-3" /></Badge>
+                )}
               </div>
             </div>
           </div>
