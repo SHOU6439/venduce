@@ -9,6 +9,7 @@ class PostAsset(Base):
 
     post_id = Column(String(26), ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
     asset_id = Column(String(26), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True)
+    product_id = Column(String(26), ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
 
 post_assets = PostAsset.__table__
 
