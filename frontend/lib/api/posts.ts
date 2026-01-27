@@ -1,5 +1,5 @@
 import { client } from './client';
-import { Post } from '@/types/api';
+import { Post,　CreatePostPayload } from '@/types/api';
 
 const normalizePost = (post: Post): Post => ({
   ...post,
@@ -19,7 +19,7 @@ export const postsApi = {
     return normalizePost(post);
   },
 
-  createPost: async (data: { caption: string; asset_ids: string[]; product_ids: string[]; tags?: string[] }) => {
+  createPost: async (data: CreatePostPayload) => {
     const created = await client.post<Post>('/api/posts', data);
     return normalizePost(created);
   },
