@@ -14,7 +14,7 @@ export interface UseInfiniteScrollOptions<T> {
 
 export interface UseInfiniteScrollResult<T> {
   items: T[];
-  setItems: React.Dispatch<React.SetStateAction<T[]>>; // Add this
+  setItems: React.Dispatch<React.SetStateAction<T[]>>;
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -42,7 +42,6 @@ export function useInfiniteScroll<T>({
   const isLoadingRef = useRef(false);
   const loadedCountRef = useRef(0);
 
-  // Initial fetch
   useEffect(() => {
     if (initialLoadDoneRef.current) return;
 
@@ -71,10 +70,8 @@ export function useInfiniteScroll<T>({
     };
 
     loadInitial();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Intersection Observer setup
   useEffect(() => {
     const currentSentinel = sentinelRef.current;
 
@@ -102,10 +99,8 @@ export function useInfiniteScroll<T>({
             },
           );
 
-          // Only update if items were actually returned
           if (response.items.length > 0) {
             setItems((prev) => {
-              // Check for duplicates by comparing IDs
               const existingIds = new Set(prev.map((item: any) => item.id));
               const newItems = response.items.filter(
                 (item: any) => !existingIds.has(item.id),
@@ -116,14 +111,12 @@ export function useInfiniteScroll<T>({
               return [...prev, ...newItems];
             });
 
-            // Update loaded count immediately (don't wait for state update)
             loadedCountRef.current += response.items.length;
           }
 
           const totalCount =
             response.total ?? loadedCountRef.current + response.items.length;
           setTotal(totalCount);
-          // hasMore should be true if total items is greater than current items count
           const shouldHasMore = loadedCountRef.current < totalCount;
           console.log(
             `[useInfiniteScroll] hasMore calculation: ${loadedCountRef.current} < ${totalCount} = ${shouldHasMore}`,

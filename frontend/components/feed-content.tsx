@@ -7,7 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 
 import { postsApi } from '@/lib/api/posts';
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'; // Import custom hook
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll';
 import { Post } from '@/types/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import LikeAnimation from '@/components/animation/likeAnimation';
