@@ -1,5 +1,5 @@
-import { Header } from "@/components/header"
-import PostsFeed from "@/components/posts-feed"
+import { Header } from "@/components/header";
+import PostsFeed from "@/components/posts-feed";
 
 export default function Posts() {
   return (
@@ -12,4 +12,3 @@ export default function Posts() {
     </div>
   );
 }
-

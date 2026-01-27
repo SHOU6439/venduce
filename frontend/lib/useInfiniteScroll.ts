@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseInfiniteScrollOptions<T> {
-  fetchMore: (skip: number, limit: number) => Promise<{ items: T[]; total: number; meta?: any }>;
+  fetchMore: (
+    skip: number,
+    limit: number,
+  ) => Promise<{ items: T[]; total: number; meta?: any }>;
   limit?: number;
   onLoad?: (items: T[]) => void;
   onError?: (error: Error) => void;
@@ -51,7 +54,9 @@ export function useInfiniteScroll<T>({
         loadedCountRef.current = response.items.length;
         const totalCount = response.total ?? response.items.length;
         setTotal(totalCount);
-        setHasMore(response.items.length === limit && response.items.length < totalCount);
+        setHasMore(
+          response.items.length === limit && response.items.length < totalCount,
+        );
         onLoad?.(response.items);
         initialLoadDoneRef.current = true;
       } catch (err) {
@@ -82,22 +87,31 @@ export function useInfiniteScroll<T>({
         try {
           setError(null);
           const skip = loadedCountRef.current;
-          console.log(`[useInfiniteScroll] Requesting from skip=${skip}, limit=${limit}`);
+          console.log(
+            `[useInfiniteScroll] Requesting from skip=${skip}, limit=${limit}`,
+          );
           const response = await fetchMore(skip, limit);
 
-          console.log(`[useInfiniteScroll] Fetched from skip=${skip}, limit=${limit}`, {
-            itemsReturned: response.items.length,
-            total: response.total,
-            currentLoadedCount: loadedCountRef.current,
-          });
+          console.log(
+            `[useInfiniteScroll] Fetched from skip=${skip}, limit=${limit}`,
+            {
+              itemsReturned: response.items.length,
+              total: response.total,
+              currentLoadedCount: loadedCountRef.current,
+            },
+          );
 
           // Only update if items were actually returned
           if (response.items.length > 0) {
             setItems((prev) => {
               // Check for duplicates by comparing IDs
               const existingIds = new Set(prev.map((item: any) => item.id));
-              const newItems = response.items.filter((item: any) => !existingIds.has(item.id));
-              console.log(`[useInfiniteScroll] Adding ${newItems.length} new items (filtered ${response.items.length - newItems.length} duplicates)`);
+              const newItems = response.items.filter(
+                (item: any) => !existingIds.has(item.id),
+              );
+              console.log(
+                `[useInfiniteScroll] Adding ${newItems.length} new items (filtered ${response.items.length - newItems.length} duplicates)`,
+              );
               return [...prev, ...newItems];
             });
 
@@ -105,17 +119,20 @@ export function useInfiniteScroll<T>({
             loadedCountRef.current += response.items.length;
           }
 
-          const totalCount = response.total ?? (loadedCountRef.current + response.items.length);
+          const totalCount =
+            response.total ?? loadedCountRef.current + response.items.length;
           setTotal(totalCount);
           // hasMore should be true if total items is greater than current items count
           const shouldHasMore = loadedCountRef.current < totalCount;
-          console.log(`[useInfiniteScroll] hasMore calculation: ${loadedCountRef.current} < ${totalCount} = ${shouldHasMore}`);
+          console.log(
+            `[useInfiniteScroll] hasMore calculation: ${loadedCountRef.current} < ${totalCount} = ${shouldHasMore}`,
+          );
           setHasMore(shouldHasMore);
 
           onLoad?.(response.items);
         } catch (err) {
           const error = err instanceof Error ? err : new Error(String(err));
-          console.error('[useInfiniteScroll] Error:', error);
+          console.error("[useInfiniteScroll] Error:", error);
           setError(error);
           onError?.(error);
         } finally {
@@ -127,7 +144,7 @@ export function useInfiniteScroll<T>({
 
     observerRef.current = new IntersectionObserver(handleIntersection, {
       root: null,
-      rootMargin: '100px',
+      rootMargin: "100px",
       threshold: 0.1,
     });
 
