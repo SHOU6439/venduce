@@ -71,7 +71,7 @@ async function request<TResponse>(
   const response = await fetch(resolveUrl(path), {
     ...init,
     headers,
-    credentials: "include", // ← 追加
+    credentials: "include",
   });
 
   const text = await response.text();
@@ -202,7 +202,7 @@ async function fetchAPI<T>(
     ...customConfig,
     body: resolvedBody,
     headers: mergedHeaders,
-    credentials: "include", // ← 追加
+    credentials: "include",
   });
 
   if (!response.ok) {

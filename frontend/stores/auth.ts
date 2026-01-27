@@ -40,14 +40,12 @@ export const useAuthStore = create<AuthState>()(
           "/api/auth/login",
           payload,
         );
-        // トークンをlocalStorageに保存
         if (typeof window !== "undefined") {
           window.localStorage.setItem("token", response.access_token);
         }
         set({
           isAuthenticated: true,
         });
-        // ユーザー情報は別途取得
       },
 
       logout: () => {
