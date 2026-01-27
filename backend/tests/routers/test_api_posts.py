@@ -13,7 +13,7 @@ def test_create_post_success(client, db_session: Session, authorized_client, tes
 
     payload = {
         "caption": "My awesome new shoes!",
-        "asset_ids": [asset.id],
+        "asset_product_pairs": [{"asset_id": asset.id, "product_id": None}],
         "tags": ["Shows", "Fashion", "Summer"],
         "status": "public"
     }
@@ -39,19 +39,22 @@ def test_create_post_success(client, db_session: Session, authorized_client, tes
 
     assert reloaded_asset.owner_id == test_user.id
 
-    assert len(post.assets) == 1
-    assert post.assets[0].id == asset.id
+    # PostAsset テーブルを確認
+    from app.models.post_assets import PostAsset
+    post_assets = db_session.query(PostAsset).filter(PostAsset.post_id == post.id).all()
+    assert len(post_assets) == 1
+    assert post_assets[0].asset_id == asset.id
 
 
 def test_create_post_asset_not_found(authorized_client):
     payload = {
         "caption": "Fail",
-        "asset_ids": ["non-existent-id"],
+        "asset_product_pairs": [{"asset_id": "non-existent-id", "product_id": None}],
         "tags": []
     }
     response = authorized_client.post("/api/posts", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "not found" in response.json()["detail"]
+    assert "not found" in response.json()["detail"].lower()
 
 
 def test_create_post_unauthorized(client):
@@ -63,7 +66,7 @@ def test_create_post_without_images_success(db_session: Session, authorized_clie
     payload = {
         "caption": "No images here",
         "tags": ["misc"],
-        "product_ids": [],
+        "asset_product_pairs": [],
     }
 
     response = authorized_client.post("/api/posts", json=payload)
@@ -78,4 +81,8 @@ def test_create_post_without_images_success(db_session: Session, authorized_clie
     db_session.expire_all()
     post = db_session.query(Post).filter(Post.id == data["id"]).first()
     assert post is not None
-    assert len(post.assets) == 0
+
+    # PostAsset テーブルは空であるべき
+    from app.models.post_assets import PostAsset
+    post_assets = db_session.query(PostAsset).filter(PostAsset.post_id == post.id).all()
+    assert len(post_assets) == 0
