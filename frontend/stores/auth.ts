@@ -40,8 +40,10 @@ export const useAuthStore = create<AuthState>()(
           "/api/auth/login",
           payload,
         );
-        // トークンは Cookie（httpOnly）に保存される
-        // ローカルストレージには保存しない
+        // トークンをlocalStorageに保存
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("token", response.access_token);
+        }
         set({
           isAuthenticated: true,
         });
@@ -49,6 +51,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("token");
+        }
         set({
           user: null,
           isAuthenticated: false,

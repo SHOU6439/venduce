@@ -1,19 +1,20 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 function getStoredToken(explicitToken?: string | null): string | null {
   if (explicitToken) {
     return explicitToken;
   }
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
-  return window.localStorage.getItem('token');
+  return window.localStorage.getItem("token");
 }
 
 function resolveUrl(path: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   if (!API_BASE_URL) {
     return normalizedPath;
   }
@@ -32,7 +33,10 @@ export class ApiError extends Error {
   }
 }
 
-function ensureHeaders(existing: HeadersInit | undefined, required: Record<string, string>): Headers {
+function ensureHeaders(
+  existing: HeadersInit | undefined,
+  required: Record<string, string>,
+): Headers {
   const headers = new Headers(existing ?? undefined);
 
   Object.entries(required).forEach(([key, value]) => {
@@ -52,18 +56,22 @@ function stripBody(init?: RequestInit): RequestInit | undefined {
   return sanitizedInit;
 }
 
-async function request<TResponse>(path: string, init: RequestInit = {}): Promise<TResponse> {
-  const headers = ensureHeaders(init.headers, { Accept: 'application/json' });
-  if (!headers.has('Authorization')) {
+async function request<TResponse>(
+  path: string,
+  init: RequestInit = {},
+): Promise<TResponse> {
+  const headers = ensureHeaders(init.headers, { Accept: "application/json" });
+  if (!headers.has("Authorization")) {
     const token = getStoredToken(null);
     if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+      headers.set("Authorization", `Bearer ${token}`);
     }
   }
 
   const response = await fetch(resolveUrl(path), {
     ...init,
     headers,
+    credentials: "include", // ← 追加
   });
 
   const text = await response.text();
@@ -78,22 +86,26 @@ async function request<TResponse>(path: string, init: RequestInit = {}): Promise
   }
 
   if (!response.ok) {
-    const fallbackMessage = response.statusText || 'Request failed';
+    const fallbackMessage = response.statusText || "Request failed";
     let message = fallbackMessage;
 
-    if (typeof payload === 'object' && payload !== null) {
-      if ('detail' in payload) {
+    if (typeof payload === "object" && payload !== null) {
+      if ("detail" in payload) {
         const detail = (payload as Record<string, unknown>).detail;
-        if (typeof detail === 'string') {
+        if (typeof detail === "string") {
           message = detail;
         } else if (Array.isArray(detail)) {
-          message = detail.map((err) => err.msg || JSON.stringify(err)).join(', ');
-        } else if (typeof detail === 'object' && detail !== null) {
-          message = String((detail as Record<string, unknown>).message) || JSON.stringify(detail);
+          message = detail
+            .map((err) => err.msg || JSON.stringify(err))
+            .join(", ");
+        } else if (typeof detail === "object" && detail !== null) {
+          message =
+            String((detail as Record<string, unknown>).message) ||
+            JSON.stringify(detail);
         } else {
           message = String(detail);
         }
-      } else if ('message' in payload) {
+      } else if ("message" in payload) {
         message = String((payload as Record<string, unknown>).message);
       }
     }
@@ -109,7 +121,9 @@ function withJsonBody(init: RequestInit, body?: unknown): RequestInit {
     return init;
   }
 
-  const headers = ensureHeaders(init.headers, { 'Content-Type': 'application/json' });
+  const headers = ensureHeaders(init.headers, {
+    "Content-Type": "application/json",
+  });
 
   return {
     ...init,
@@ -121,13 +135,30 @@ function withJsonBody(init: RequestInit, body?: unknown): RequestInit {
 export interface ApiClient {
   request<TResponse>(path: string, init?: RequestInit): Promise<TResponse>;
   get<TResponse>(path: string, init?: RequestInit): Promise<TResponse>;
-  post<TResponse>(path: string, body?: unknown, init?: RequestInit): Promise<TResponse>;
-  put<TResponse>(path: string, body?: unknown, init?: RequestInit): Promise<TResponse>;
-  patch<TResponse>(path: string, body?: unknown, init?: RequestInit): Promise<TResponse>;
+  post<TResponse>(
+    path: string,
+    body?: unknown,
+    init?: RequestInit,
+  ): Promise<TResponse>;
+  put<TResponse>(
+    path: string,
+    body?: unknown,
+    init?: RequestInit,
+  ): Promise<TResponse>;
+  patch<TResponse>(
+    path: string,
+    body?: unknown,
+    init?: RequestInit,
+  ): Promise<TResponse>;
   delete<TResponse>(path: string, init?: RequestInit): Promise<TResponse>;
 }
 
-async function send<TResponse>(method: HttpMethod, path: string, body?: unknown, init: RequestInit = {}): Promise<TResponse> {
+async function send<TResponse>(
+  method: HttpMethod,
+  path: string,
+  body?: unknown,
+  init: RequestInit = {},
+): Promise<TResponse> {
   const preparedInit = withJsonBody(init, body);
 
   return request<TResponse>(path, {
@@ -140,29 +171,47 @@ type RequestOptions = RequestInit & {
   token?: string;
 };
 
-async function fetchAPI<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { token, headers, body, ...customConfig } = options as RequestInit & { token?: string };
-  const resolvedBody = body instanceof FormData || typeof body === 'string' ? body : body !== undefined ? JSON.stringify(body) : undefined;
+async function fetchAPI<T>(
+  endpoint: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const { token, headers, body, ...customConfig } = options as RequestInit & {
+    token?: string;
+  };
+  const resolvedBody =
+    body instanceof FormData || typeof body === "string"
+      ? body
+      : body !== undefined
+        ? JSON.stringify(body)
+        : undefined;
 
   const mergedHeaders = new Headers(headers ?? undefined);
-  if (!(resolvedBody instanceof FormData) && !mergedHeaders.has('Content-Type')) {
-    mergedHeaders.set('Content-Type', 'application/json');
+  if (
+    !(resolvedBody instanceof FormData) &&
+    !mergedHeaders.has("Content-Type")
+  ) {
+    mergedHeaders.set("Content-Type", "application/json");
   }
 
   const authToken = getStoredToken(token ?? null);
-  if (authToken && !mergedHeaders.has('Authorization')) {
-    mergedHeaders.set('Authorization', `Bearer ${authToken}`);
+  if (authToken && !mergedHeaders.has("Authorization")) {
+    mergedHeaders.set("Authorization", `Bearer ${authToken}`);
   }
 
   const response = await fetch(resolveUrl(endpoint), {
     ...customConfig,
     body: resolvedBody,
     headers: mergedHeaders,
+    credentials: "include", // ← 追加
   });
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, errorBody.detail || `API Error: ${response.statusText}`, errorBody);
+    throw new ApiError(
+      response.status,
+      errorBody.detail || `API Error: ${response.statusText}`,
+      errorBody,
+    );
   }
 
   if (response.status === 204) {
@@ -176,21 +225,26 @@ export const apiClient: ApiClient = {
   request,
   get: (path, init) => {
     const rest = stripBody(init);
-    return request(path, { ...(rest ?? {}), method: 'GET' });
+    return request(path, { ...(rest ?? {}), method: "GET" });
   },
-  post: (path, body, init) => send('POST', path, body, init),
-  put: (path, body, init) => send('PUT', path, body, init),
-  patch: (path, body, init) => send('PATCH', path, body, init),
+  post: (path, body, init) => send("POST", path, body, init),
+  put: (path, body, init) => send("PUT", path, body, init),
+  patch: (path, body, init) => send("PATCH", path, body, init),
   delete: (path, init) => {
     const rest = stripBody(init);
-    return request(path, { ...(rest ?? {}), method: 'DELETE' });
+    return request(path, { ...(rest ?? {}), method: "DELETE" });
   },
 };
 
 export const client = {
-  get: <T>(url: string, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'GET' }),
-  post: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'POST', body }),
-  put: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'PUT', body }),
-  patch: <T>(url: string, body?: any, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'PATCH', body }),
-  delete: <T>(url: string, options?: RequestOptions) => fetchAPI<T>(url, { ...options, method: 'DELETE' }),
+  get: <T>(url: string, options?: RequestOptions) =>
+    fetchAPI<T>(url, { ...options, method: "GET" }),
+  post: <T>(url: string, body?: any, options?: RequestOptions) =>
+    fetchAPI<T>(url, { ...options, method: "POST", body }),
+  put: <T>(url: string, body?: any, options?: RequestOptions) =>
+    fetchAPI<T>(url, { ...options, method: "PUT", body }),
+  patch: <T>(url: string, body?: any, options?: RequestOptions) =>
+    fetchAPI<T>(url, { ...options, method: "PATCH", body }),
+  delete: <T>(url: string, options?: RequestOptions) =>
+    fetchAPI<T>(url, { ...options, method: "DELETE" }),
 };
