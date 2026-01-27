@@ -1,6 +1,6 @@
-import { apiClient } from '@/lib/api/client';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { apiClient } from "@/lib/api/client";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface User {
   id: string;
@@ -19,12 +19,13 @@ interface LoginResponse {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (payload: { email: string; password: string; remember?: boolean }) => Promise<void>;
+  login: (payload: {
+    email: string;
+    password: string;
+    remember?: boolean;
+  }) => Promise<void>;
   logout: () => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
 }
 
@@ -32,31 +33,26 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
 
       login: async (payload) => {
-        const response = await apiClient.post<LoginResponse>('/api/auth/login', payload);
+        const response = await apiClient.post<LoginResponse>(
+          "/api/auth/login",
+          payload,
+        );
+        // トークンは Cookie（httpOnly）に保存される
+        // ローカルストレージには保存しない
         set({
-          accessToken: response.access_token,
-          refreshToken: response.refresh_token,
           isAuthenticated: true,
         });
-        localStorage.setItem('token', response.access_token);
+        // ユーザー情報は別途取得
       },
 
       logout: () => {
         set({
           user: null,
-          accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
         });
-      },
-
-      setTokens: (accessToken, refreshToken) => {
-        set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
       setUser: (user) => {
@@ -64,13 +60,11 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
       }),
-    }
-  )
+    },
+  ),
 );
