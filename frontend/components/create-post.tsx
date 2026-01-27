@@ -64,7 +64,6 @@ export function CreatePost() {
 
         setUploadedAssets((prev) => [...prev, ...newAssets]);
         
-        // 新しい画像の初期化
         newAssets.forEach((asset) => {
           setAssetProductMap((prev) => ({
             ...prev,
@@ -72,7 +71,6 @@ export function CreatePost() {
           }));
         });
         
-        // 最初のアセットを選択状態にする
         if (selectedAssetId === null && newAssets.length > 0) {
           setSelectedAssetId(newAssets[0].id);
         }

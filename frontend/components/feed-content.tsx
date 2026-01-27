@@ -50,7 +50,6 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
           <>
             <div className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} onScroll={handleScroll}>
               {assets.map((asset, index) => {
-                // 現在表示中の画像に紐づいた商品を取得
                 const linkedProduct = post.asset_products?.[index]?.product;
                 
                 return (
