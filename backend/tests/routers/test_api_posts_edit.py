@@ -1,4 +1,3 @@
-import pytest
 from fastapi import status
 from tests.factories import PostFactory, UserFactory, TagFactory
 
@@ -29,7 +28,6 @@ def test_update_post_etag_conflict(authorized_client, test_user, db_session):
     post = PostFactory(user=test_user)
     db_session.commit()
 
-    current_etag = str(post.updated_at.timestamp())
     wrong_etag = "123456789.0"
 
     payload = {"caption": "New Caption"}

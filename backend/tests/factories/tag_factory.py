@@ -1,7 +1,6 @@
 import factory
 from ulid import ULID
 from app.models.tag import Tag
-from tests.factories.user import UserFactory
 
 
 class TagFactory(factory.alchemy.SQLAlchemyModelFactory):
