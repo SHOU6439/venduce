@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 @router.get("/", response_model=ProductList, summary="List products")
 def list_products(
     response: Response,
-    page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    page: Optional[int] = Query(None, ge=1, description="Page number (deprecated, use skip/limit)"),
+    per_page: Optional[int] = Query(None, ge=1, le=100, description="Items per page (deprecated, use skip/limit)"),
+    skip: Optional[int] = Query(None, ge=0, description="Number of items to skip (for infinite scroll)"),
+    limit: Optional[int] = Query(None, ge=1, le=100, description="Number of items to return"),
     sort: str = Query("created_at:desc", description="Sort field:dir (e.g. price_cents:asc)"),
     q: Optional[str] = Query(None, description="Search query (title/description)"),
     status: Optional[str] = Query(None, description="Filter by status (admin only)"),
@@ -36,15 +38,24 @@ def list_products(
     is_admin = current_user.is_admin if current_user else False
     user_id = current_user.id if current_user else "anonymous"
 
+    # Handle both old pagination (page/per_page) and new infinite scroll (skip/limit)
+    if skip is not None and limit is not None:
+        # Convert skip/limit to page/per_page for service
+        resolved_per_page = limit
+        resolved_page = (skip // limit) + 1 if limit > 0 else 1
+    else:
+        resolved_page = page or 1
+        resolved_per_page = per_page or 20
+
     logger.info(
         f"Product list access: user={user_id} "
-        f"params(q={q}, cat={category}, brand={brand}, page={page}, sort={sort})"
+        f"params(q={q}, cat={category}, brand={brand}, page={resolved_page}, sort={sort})"
     )
 
     result = service.list(
         db,
-        page=page,
-        per_page=per_page,
+        page=resolved_page,
+        per_page=resolved_per_page,
         sort=sort,
         q=q,
         status=status,

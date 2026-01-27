@@ -20,6 +20,22 @@ export const productsApi = {
     return result.items.map(mapProduct);
   },
 
+  listProductsInfinite: async (params: { skip?: number; limit?: number; sort?: string; q?: string } = {}): Promise<PaginatedResponse<Product>> => {
+    const searchParams = new URLSearchParams();
+    if (params.skip !== undefined) searchParams.set('skip', String(params.skip));
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.sort) searchParams.set('sort', params.sort);
+    if (params.q) searchParams.set('q', params.q);
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/api/products?${queryString}` : '/api/products';
+    const result = await client.get<PaginatedResponse<Product>>(endpoint);
+    return {
+      ...result,
+      items: result.items.map(mapProduct),
+    };
+  },
+
   getTrendingProducts: async (limit = 5): Promise<Product[]> => {
     const params = new URLSearchParams({ per_page: String(limit), sort: 'stock_quantity:desc' });
     const result = await client.get<PaginatedResponse<Product>>(`/api/products?${params.toString()}`);

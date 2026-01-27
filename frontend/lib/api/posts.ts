@@ -7,11 +7,35 @@ const normalizePost = (post: Post): Post => ({
   images: post.images ?? post.assets ?? [],
 });
 
+export interface PaginatedPostsResponse {
+  items: Post[];
+  meta: {
+    next_cursor?: string | null;
+    has_more: boolean;
+    returned: number;
+  };
+}
+
 export const postsApi = {
   getPosts: async (cursor?: string): Promise<Post[]> => {
     const response = await client.get<Post[] | { items: Post[] }>('/api/posts');
     const items = Array.isArray(response) ? response : response.items || [];
     return items.map(normalizePost);
+  },
+
+  getPostsInfinite: async (params: { skip?: number; limit?: number } = {}): Promise<PaginatedPostsResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params.skip !== undefined) searchParams.set('skip', String(params.skip));
+    if (params.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const endpoint = queryString ? `/api/posts?${queryString}` : '/api/posts';
+    const response = await client.get<PaginatedPostsResponse>(endpoint);
+
+    return {
+      items: response.items.map(normalizePost),
+      meta: response.meta,
+    };
   },
 
   getPost: async (id: string): Promise<Post> => {

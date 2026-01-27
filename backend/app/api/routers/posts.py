@@ -12,22 +12,32 @@ router = APIRouter(prefix="/api/posts", tags=["posts"])
 
 @router.get("", response_model=PaginatedResponse[PostRead])
 def get_posts(
-    cursor: Optional[str] = Query(default=None, description="Cursor for pagination"),
+    cursor: Optional[str] = Query(default=None, description="Cursor for pagination (deprecated, use skip/limit)"),
     limit: int = Query(default=20, ge=1, le=100, description="Number of items to return"),
+    skip: int = Query(default=0, ge=0, description="Number of items to skip (for infinite scroll)"),
     post_service: PostService = Depends(get_post_service),
 ):
-    """公開投稿の一覧を取得します（cursor ベースのページネーション）。
+    """公開投稿の一覧を取得します（skip/limit または cursor ベースのページネーション）。
 
-    - **cursor**: 継続取得用のカーソル（前回のレスポンスの next_cursor を指定）
+    - **skip**: スキップするアイテム数（0以上）
     - **limit**: 取得件数（1-100、デフォルト: 20）
+    - **cursor**: 継続取得用のカーソル（互換性維持のため残存）
 
     Returns:
         PaginatedResponse[PostRead]: 投稿リストとページネーション情報
     """
-    posts, next_cursor, has_more = post_service.get_public_posts(
-        cursor=cursor,
-        limit=limit
-    )
+    # Prioritize skip/limit over cursor
+    if skip > 0 or cursor is None:
+        posts, next_cursor, has_more = post_service.get_public_posts(
+            cursor=None,
+            limit=limit,
+            offset=skip
+        )
+    else:
+        posts, next_cursor, has_more = post_service.get_public_posts(
+            cursor=cursor,
+            limit=limit
+        )
 
     return PaginatedResponse(
         items=[PostRead.model_validate(p) for p in posts],
