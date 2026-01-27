@@ -1,8 +1,12 @@
 from datetime import datetime
 from ulid import ULID
-from sqlalchemy import String, DateTime, func, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, DateTime, func, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.asset import Asset
 
 
 class User(Base):
@@ -17,6 +21,8 @@ class User(Base):
         confirmation_token: メール確認用トークン。
         confirmation_sent_at: 確認メール送信日時。
         confirmation_expires_at: 確認トークンの有効期限。
+        bio: 自己紹介文（最大1000文字、任意）。
+        avatar_asset_id: プロフィール画像AssetのID（assets.id, 任意, 1対1リレーション）。
     """
     __tablename__ = "users"
 
@@ -36,6 +42,10 @@ class User(Base):
     confirmation_token: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     confirmation_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     confirmation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    bio: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    avatar_asset_id: Mapped[str | None] = mapped_column(String(26), ForeignKey("assets.id"), nullable=True, unique=True)
+    avatar_asset: Mapped["Asset"] = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
 
 
 __all__ = ["User"]

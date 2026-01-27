@@ -4,7 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { useRouter } from 'next/navigation';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-// Mock modules
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
