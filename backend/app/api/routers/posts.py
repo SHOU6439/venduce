@@ -92,7 +92,7 @@ def update_post(
 ):
     """投稿を更新します。
 
-    - **If-Match header**: 楽観的ロックに使用します。`GET /posts/{id}` で取得した `updated_at` (timestamp) を指定してください。
+    - **If-Match header**: 楽観的ロックに使用します。`GET /api/posts/{id}` で取得した `updated_at` (timestamp) を指定してください。
       他者が変更していた場合、`409 Conflict` が返されます。
     """
     return PostRead.model_validate(
