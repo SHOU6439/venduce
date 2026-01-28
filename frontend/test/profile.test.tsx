@@ -21,7 +21,6 @@ describe('ProfilePage', () => {
     vi.clearAllMocks();
     (useRouter as Mock).mockReturnValue({ push: mockPush, refresh: mockRefresh });
     (useAuthStore as unknown as Mock).mockImplementation((selector: (state: any) => any) => {
-      // hydrated & authenticated by default
       return selector({
         isAuthenticated: true,
         hasHydrated: true,

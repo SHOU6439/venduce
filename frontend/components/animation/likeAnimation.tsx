@@ -3,19 +3,8 @@
 import { useState } from 'react';
 
 interface LikeAnimationProps {
-  /**
-   * 現在のいいね状態。
-   * 指定しない場合は内部で状態管理を行います。
-   */
   isLiked?: boolean;
-  /**
-   * 状態が変更されたときに呼ばれるコールバック。
-   */
   onToggle?: (isLiked: boolean) => void;
-  /**
-   * アイコンのサイズ (px単位など、tailwindのクラスを指定可能)
-   * デフォルト: w-8 h-8
-   */
   sizeClass?: string;
 }
 
@@ -23,22 +12,19 @@ export default function LikeAnimation({ isLiked: controlledIsLiked, onToggle, si
   const [internalIsLiked, setInternalIsLiked] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // 外部制御か内部状態かを判定
   const isLiked = controlledIsLiked !== undefined ? controlledIsLiked : internalIsLiked;
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault(); // リンク内にある場合などを考慮
-    e.stopPropagation(); // 親要素へのイベント伝播を防止
+    e.preventDefault();
+    e.stopPropagation();
 
     const newState = !isLiked;
 
-    // 内部状態モードなら更新
     if (controlledIsLiked === undefined) {
       setInternalIsLiked(newState);
     }
 
     if (newState) {
-      // いいね！されたときのアニメーション
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 300);
     }

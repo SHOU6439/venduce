@@ -19,7 +19,6 @@ export function Header() {
     router.refresh();
   };
 
-  // プロフィール詳細ページかどうかを判定 (/profile または /profile/...)
   const isProfilePage = pathname?.startsWith('/profile');
 
   return (

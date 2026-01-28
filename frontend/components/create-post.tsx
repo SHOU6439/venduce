@@ -28,7 +28,6 @@ export function CreatePost() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
-  // 検索クエリやステップが変わった時に商品を検索・取得
   useEffect(() => {
     if (step !== 2) return;
 
@@ -38,14 +37,13 @@ export function CreatePost() {
           const results = await productsApi.searchProducts(searchQuery);
           setSearchResults(results);
         } else {
-          // 検索ワードがない場合はランダムに商品を表示（一覧から取得してシャッフル）
           const results = await productsApi.listProducts({ per_page: 10 });
           setSearchResults(results.sort(() => Math.random() - 0.5));
         }
       } catch (error) {
         console.error('Product fetch failed:', error);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, step]);
