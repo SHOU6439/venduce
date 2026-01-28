@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.product import Product
 from app.models.category import Category
 from app.models.brand import Brand
+from app.models.asset import Asset
 from app.models.enums import ProductStatus
 from app.schemas.product import ProductCreate
 
@@ -41,6 +42,16 @@ class ProductService:
         except IntegrityError:
             db.rollback()
             raise ValueError("sku already exists")
+        
+        if payload.asset_ids:
+            assets = db.query(Asset).filter(Asset.id.in_(payload.asset_ids)).all()
+            if len(assets) != len(payload.asset_ids):
+                missing_ids = set(payload.asset_ids) - {a.id for a in assets}
+                raise ValueError(f"Some assets not found: {missing_ids}")
+            for asset in assets:
+                product.assets.append(asset)
+        
+        db.commit()
         db.refresh(product)
         return product
 
@@ -50,6 +61,7 @@ class ProductService:
             .options(
                 joinedload(Product.brand),
                 selectinload(Product.categories),
+                selectinload(Product.assets),
             )
             .filter(Product.id == product_id)
             .first()
@@ -87,6 +99,7 @@ class ProductService:
         query = db.query(Product).options(
             joinedload(Product.brand),
             selectinload(Product.categories),
+            selectinload(Product.assets),
         )
 
         if not is_admin:

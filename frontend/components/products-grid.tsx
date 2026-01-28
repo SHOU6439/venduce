@@ -51,7 +51,7 @@ export function ProductsGrid() {
         <Card key={product.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
           <Link href={`/product/${product.id}`}>
             <div className="aspect-square overflow-hidden bg-muted">
-              <img src={getImageUrl(product.images?.[0])} alt={product.title} className="h-full w-full object-cover transition-transform hover:scale-105" />
+              <img src={getImageUrl(product.images[0])} alt={product.title} className="h-full w-full object-cover transition-transform hover:scale-105" />
             </div>
           </Link>
 

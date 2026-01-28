@@ -8,6 +8,7 @@ from app.db.database import Base
 # ProductCategoryのインポートは、テーブル登録のために残しておきますが、
 # relationshipでは文字列で参照するため、循環参照のリスクが下がります。
 from app.models.product_category import ProductCategory
+from app.models.product_assets import product_assets
 
 
 class Product(Base):
@@ -47,6 +48,7 @@ class Product(Base):
 
     brand = relationship("Brand", backref="products")
     categories = relationship("Category", secondary="product_categories", backref="products")
+    assets = relationship("Asset", secondary=product_assets, backref="products")
 
 
 __all__ = ["Product"]
