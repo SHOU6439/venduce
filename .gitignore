@@ -39,6 +39,7 @@ yarn-error.log
 .next/
 out/
 .turbo/
+frontend/next-env.d.ts
 
 # IDE
 .vscode/
