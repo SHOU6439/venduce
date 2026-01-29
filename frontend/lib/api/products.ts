@@ -3,7 +3,7 @@ import { Product, PaginatedResponse } from "@/types/api";
 
 const mapProduct = (product: Product): Product => ({
   ...product,
-  images: product.images ?? [],
+  images: product.images ?? (product.assets ? product.assets.map((a) => a.public_url ?? a.id) : []),
 });
 
 export const productsApi = {

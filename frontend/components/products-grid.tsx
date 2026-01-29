@@ -57,7 +57,8 @@ export function ProductsGrid() {
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {products.map((product) => (
         <Card key={product.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
           <Link href={`/product/${product.id}`}>
