@@ -5,6 +5,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.purchase import PurchaseCreate, PurchaseRead
 from app.schemas.pagination import PaginatedResponse, CursorMeta
+from app.schemas.product import ProductRead
 from app.services.purchase_service import PurchaseService
 from app.deps import get_current_user, get_purchase_service
 from sqlalchemy.orm import Session
@@ -52,8 +53,28 @@ def list_user_purchases(
         db, user=current_user, cursor=cursor, limit=limit
     )
 
+    # Purchase オブジェクトにProduct情報を含める
+    result = []
+    for p in purchases:
+        purchase_dict = {
+            'id': p.id,
+            'buyer_id': p.buyer_id,
+            'product_id': p.product_id,
+            'quantity': p.quantity,
+            'price_cents': p.price_cents,
+            'total_amount_cents': p.total_amount_cents,
+            'currency': p.currency,
+            'payment_method_id': p.payment_method_id,
+            'referring_post_id': p.referring_post_id,
+            'status': p.status,
+            'created_at': p.created_at,
+            'updated_at': p.updated_at,
+            'product': ProductRead.model_validate(p.product) if p.product else None,
+        }
+        result.append(PurchaseRead.model_validate(purchase_dict))
+
     return PaginatedResponse(
-        items=[PurchaseRead.model_validate(p) for p in purchases],
+        items=result,
         meta=CursorMeta(
             next_cursor=next_cursor,
             has_more=has_more,

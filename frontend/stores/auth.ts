@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/client";
+import { client } from "@/lib/api/client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -16,6 +16,7 @@ interface User {
 interface LoginResponse {
   access_token: string;
   refresh_token: string;
+  user?: User;
 }
 
 interface AuthState {
@@ -31,6 +32,7 @@ interface AuthState {
   logout: () => void;
   setUser: (user: User) => void;
   setHasHydrated?: (hydrated: boolean) => void;
+  initializeFromToken: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -40,7 +42,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       hasHydrated: false,
       login: async (payload) => {
-        const response = await apiClient.post<LoginResponse>(
+        const response = await client.post<LoginResponse>(
           "/api/auth/login",
           payload,
         );
@@ -49,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
         }
         set({
           isAuthenticated: true,
+          user: response.user || null,
         });
       },
       logout: () => {
@@ -65,7 +68,35 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
-
+      initializeFromToken: async () => {
+        try {
+          const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+          if (token) {
+            // トークンが存在すればユーザー情報を取得
+            const user = await client.get<User>("/api/users/me");
+            set({
+              user,
+              isAuthenticated: true,
+            });
+          } else {
+            // トークンがない場合はクリア
+            set({
+              user: null,
+              isAuthenticated: false,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to initialize from token:', err);
+          // トークン無効な場合はクリア
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem("token");
+          }
+          set({
+            user: null,
+            isAuthenticated: false,
+          });
+        }
+      },
 
       setUser: (user) => {
         set({ user });
@@ -90,9 +121,18 @@ export const useAuthStore = create<AuthState>()(
 
 export function useAuthHydrated() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const initializeFromToken = useAuthStore((state) => state.initializeFromToken);
   const [hydrated, setHydrated] = useState(false);
+  
   useEffect(() => {
-    if (hasHydrated) setHydrated(true);
-  }, [hasHydrated]);
+    if (hasHydrated) {
+      setHydrated(true);
+      // Hydration完了後にトークンから情報を復元
+      initializeFromToken();
+    }
+  }, [hasHydrated, initializeFromToken]);
+  
   return hydrated;
 }
+
+

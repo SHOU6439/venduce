@@ -29,12 +29,17 @@ class PurchaseCreate(AppModel):
     referring_post_id: Optional[str] = None
 
 
+# ProductRead を import するための前方参照
+from app.schemas.product import ProductRead  # noqa: E402, F401
+
+
 class PurchaseRead(PurchaseBase):
     """purchase 読み込み用スキーマ（レスポンス）"""
     id: str
     buyer_id: str
     created_at: datetime
     updated_at: datetime
+    product: ProductRead
 
     model_config = ConfigDict(from_attributes=True)
 

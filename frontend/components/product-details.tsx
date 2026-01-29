@@ -11,6 +11,7 @@ import { productsApi } from '@/lib/api/products';
 import { postsApi } from '@/lib/api/posts';
 import { Product, Post } from '@/types/api';
 import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
+import { PurchaseForm } from '@/components/purchase-form';
 
 export function ProductDetails({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -79,6 +80,9 @@ export function ProductDetails({ productId }: { productId: string }) {
             <h3 className="mb-2 font-semibold">商品説明</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description ?? '説明が登録されていません。'}</p>
           </div>
+
+          {/* Purchase Form */}
+          <PurchaseForm product={product} />
 
           {/* Related Posts */}
           <div>
