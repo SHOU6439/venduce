@@ -21,6 +21,7 @@ export function Header() {
     avatar_url?: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -46,6 +47,14 @@ export function Header() {
     logout();
     router.push("/login");
     router.refresh();
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+    }
   };
 
   const isProfilePage = pathname?.startsWith("/profile");
@@ -99,14 +108,16 @@ export function Header() {
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="商品や投稿を検索"
                   className="pl-9 w-64"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </div>
+              </form>
             </div>
 
             {isAuthenticated ? (

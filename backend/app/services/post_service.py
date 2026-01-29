@@ -306,6 +306,46 @@ class PostService:
         return post
 
 
+    def search_posts(
+        self,
+        *,
+        query: str,
+        limit: int = 20,
+    ) -> List[Post]:
+        """投稿をキャプションとタグで検索します（公開投稿のみ）。
+
+        Args:
+            query: 検索クエリ
+            limit: 取得件数
+
+        Returns:
+            Post: マッチした投稿リスト
+        """
+        if not query.strip():
+            return []
+
+        search_term = f"%{query}%"
+        posts = (
+            self.db.query(Post)
+            .filter(
+                Post.status == PostStatus.PUBLIC,
+                Post.caption.ilike(search_term)
+            )
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        for post in posts:
+            _ = post.user
+            _ = post.assets
+            _ = post.products
+            _ = post.tags
+            self._enrich_post_with_asset_products(post)
+
+        return posts
+
+
 def post_service_factory(db: Session) -> PostService:
     return PostService(db)
 
