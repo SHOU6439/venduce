@@ -102,7 +102,7 @@ class PostService:
         """`PostCreate` から `Post` を作成して返します。
 
         実行内容（ビジネスルール）:
-        - `asset_product_pairs` が与えられた場合、各アセットが存在し、かつ現在のユーザーの所有であることを検証します。
+        - `asset_product_pairs` は必須で最低1つのアセットが必要です。各アセットが存在し、かつ現在のユーザーの所有であることを検証します。
         - `product_ids` が与えられた場合、該当する製品が存在することを検証します。
         - `tags` はトリム・小文字化して正規化し、既存タグがあれば `usage_count` を増やして再利用、なければ新規作成します。
         - PostAsset テーブルに各画像と商品の紐付けを記録します。
@@ -110,6 +110,12 @@ class PostService:
 
         すべての検証はここに集約され、ルーターは薄く保たれます。
         """
+        if not post_in.asset_product_pairs:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one asset is required for post creation",
+            )
+        
         asset_product_map = self._validate_and_map_asset_products(post_in, current_user)
         products = self._validate_and_fetch_products(post_in)
         tags = self._normalize_and_fetch_tags(post_in)
