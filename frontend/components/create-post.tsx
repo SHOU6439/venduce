@@ -125,17 +125,19 @@ export function CreatePost() {
     }));
   };
 
-  const handleRemoveProduct = () => {
-    if (!selectedAssetId) return;
-    
+  const handleRemoveProduct = (assetId: string) => {
     setAssetProductMap((prev) => ({
       ...prev,
-      [selectedAssetId]: null,
+      [assetId]: null,
     }));
     setSelectedProductDetails((prev) => ({
       ...prev,
-      [selectedAssetId]: null,
+      [assetId]: null,
     }));
+    // If the removed product belonged to the currently selected asset, clear selection
+    if (selectedAssetId === assetId) {
+      setSelectedAssetId(null);
+    }
   };
 
   const getSelectedProduct = (assetId: string) => {
@@ -261,7 +263,7 @@ export function CreatePost() {
                             <div className="flex items-center justify-between bg-primary/10 rounded p-2">
                               <span className="text-sm">{selectedProductDetails[asset.id]?.title || assetProductMap[asset.id]}</span>
                               <button
-                                onClick={() => handleRemoveProduct()}
+                                onClick={() => handleRemoveProduct(asset.id)}
                                 className="text-xs text-destructive hover:underline"
                               >
                                 削除
