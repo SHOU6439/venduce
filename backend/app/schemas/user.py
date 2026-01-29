@@ -13,6 +13,7 @@ class UserCreate(AppModel):
 
 
 class UserUpdate(AppModel):
+    username: Optional[str] = Field(None, min_length=6, max_length=32)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     bio: Optional[str] = Field(None, min_length=1, max_length=1000)

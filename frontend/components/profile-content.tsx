@@ -24,7 +24,6 @@ export function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
-  const [editUsername, setEditUsername] = useState('');
 
   const {
     form,
@@ -34,6 +33,7 @@ export function ProfileContent() {
     handleSubmit,
     setForm,
   } = useProfileEdit({
+    username: '',
     first_name: '',
     last_name: '',
     bio: '',
@@ -83,12 +83,12 @@ export function ProfileContent() {
 
   const handleEditClick = () => {
     setForm({
+      username: profile.username ?? '',
       first_name: profile.first_name ?? '',
       last_name: profile.last_name ?? '',
       bio: profile.bio ?? '',
       avatar: undefined,
     });
-    setEditUsername(profile.username ?? '');
     setEditAvatarPreview(profile.avatar_url ? getImageUrl(profile.avatar_url) : null);
     setEditing(true);
   };
@@ -120,7 +120,7 @@ export function ProfileContent() {
                   <div>
                     <Avatar className="h-20 w-20">
                       <AvatarImage src={editAvatarPreview ?? getImageUrl(profile.avatar_url ?? undefined)} />
-                      <AvatarFallback>{editUsername[0] || profile.username[0]}</AvatarFallback>
+                      <AvatarFallback>{form.username[0] || profile.username[0]}</AvatarFallback>
                     </Avatar>
                   </div>
                   <div>
@@ -149,8 +149,8 @@ export function ProfileContent() {
                   <input
                     className="w-full rounded border p-2 text-sm"
                     type="text"
-                    value={editUsername}
-                    onChange={e => setEditUsername(e.target.value)}
+                    value={form.username}
+                    onChange={e => handleChange('username', e.target.value)}
                     placeholder="ユーザー名"
                     maxLength={32}
                     disabled={saving}
