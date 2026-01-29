@@ -1,26 +1,54 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Search, ShoppingBag, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import Image from 'next/image';
-import { useAuthStore } from '@/stores/auth';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, User, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
+import { useAuthStore } from "@/stores/auth";
+import { useEffect, useState } from "react";
+import { usersApi } from "@/lib/api/users";
+import { getImageUrl } from "@/lib/utils";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const { logout, isAuthenticated, user } = useAuthStore();
+  const [profile, setProfile] = useState<{
+    username: string;
+    avatar_url?: string | null;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadProfile = async () => {
+        try {
+          setLoading(true);
+          const userProfile = await usersApi.getProfile();
+          setProfile({
+            username: userProfile.username,
+            avatar_url: userProfile.avatar_url,
+          });
+        } catch (err) {
+          console.error("Failed to load profile", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadProfile();
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push("/login");
     router.refresh();
   };
 
-  // プロフィール詳細ページかどうかを判定 (/profile または /profile/...)
-  const isProfilePage = pathname?.startsWith('/profile');
+  const isProfilePage = pathname?.startsWith("/profile");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -28,19 +56,36 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/title.webp" alt="Venduce Title" width={110} height={341} className="rounded-lg" />
+              <Image
+                src="/title.webp"
+                alt="Venduce Title"
+                width={110}
+                height={341}
+                className="rounded-lg"
+              />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/feed" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              <Link
+                href="/feed"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
                 投稿一覧
               </Link>
-              <Link href="/products" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              <Link
+                href="/products"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
                 商品一覧
               </Link>
-              <Link href="/create" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                投稿する
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  href="/create"
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  投稿する
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -48,20 +93,50 @@ export function Header() {
             <div className="hidden md:flex items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="商品や投稿を検索" className="pl-9 w-64" />
+                <Input
+                  type="search"
+                  placeholder="商品や投稿を検索"
+                  className="pl-9 w-64"
+                />
               </div>
             </div>
 
-            <Link href="/profile">
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={getImageUrl(profile?.avatar_url ?? undefined)}
+                    />
+                    <AvatarFallback>
+                      {profile?.username?.[0] ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline text-sm font-medium text-foreground">
+                    {profile?.username}
+                  </span>
+                </Link>
 
-            {isProfilePage && (
-              <Button variant="ghost" size="icon" onClick={handleLogout} title="ログアウト">
-                <LogOut className="h-5 w-5" />
-              </Button>
+                {isProfilePage && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    title="ログアウト"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Link href="/login">
+                <Button variant="default" size="sm">
+                  ログイン
+                </Button>
+              </Link>
             )}
           </div>
         </div>
