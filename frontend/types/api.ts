@@ -63,8 +63,9 @@ export interface Product {
   brand?: Brand | null;
   created_at: string;
   updated_at?: string | null;
+  assets: Asset[];
   /** frontend helpers */
-  images?: string[];
+  images: string[];
   like_count?: number;
   purchase_count?: number;
 }

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pydantic import Field, conint, ConfigDict
+from pydantic import Field, conint, ConfigDict, computed_field
 from app.schemas.base import AppModel
 from typing import List, Optional
 from datetime import datetime
 from app.models.enums import ProductStatus
 from app.schemas.brand import BrandRead
+from app.schemas.asset import AssetRead
 
 
 class CategoryBase(AppModel):
@@ -30,6 +31,7 @@ class ProductBase(AppModel):
 class ProductCreate(ProductBase):
     stock_quantity: conint(ge=1) = 1
     price_cents: conint(ge=1) = 1
+    asset_ids: List[str] = Field(default_factory=list, description="Assets (images) to attach to the product")
 
 
 class ProductRead(ProductBase):
@@ -38,8 +40,15 @@ class ProductRead(ProductBase):
     updated_at: Optional[datetime] = None
     categories: List[CategoryBase] = []
     brand: Optional[BrandRead] = None
+    assets: List[AssetRead] = Field(default_factory=list, description="Product assets/images")
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def images(self) -> List[str]:
+        """Asset から画像URL一覧を抽出"""
+        return [asset.public_url for asset in self.assets if asset.public_url]
 
 
 class ProductList(AppModel):

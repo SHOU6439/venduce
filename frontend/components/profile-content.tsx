@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useProfileEdit } from '@/features/profile/hooks/useProfileEdit';
+import { calcTotalLikes, calcTotalPurchases } from '@/features/profile/utils';
 import { useRouter } from 'next/navigation';
 import { Grid3x3, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,13 +22,34 @@ export function ProfileContent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
+  const [editUsername, setEditUsername] = useState('');
+
+  const {
+    form,
+    error: editError,
+    saving,
+    handleChange,
+    handleSubmit,
+    setForm,
+  } = useProfileEdit({
+    first_name: '',
+    last_name: '',
+    bio: '',
+    avatar: undefined,
+  });
 
   useEffect(() => {
     const load = async () => {
       try {
         const [user, postList] = await Promise.all([usersApi.getProfile(), postsApi.getPosts()]);
-        setProfile(user);
-        setPosts(postList.filter((post) => post.user_id === user.id));
+        const mappedUser = {
+          ...user,
+          avatar_url: (user as any).avatar_asset?.public_url ?? user.avatar_url ?? null,
+        };
+        setProfile(mappedUser);
+        setPosts(postList.filter((post) => post.user_id === mappedUser.id));
         setError(null);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -55,8 +78,25 @@ export function ProfileContent() {
 
   const fullName = `${profile.last_name ?? ''} ${profile.first_name ?? ''}`.trim() || profile.username;
   const postCount = posts.length;
-  const totalLikes = posts.reduce((sum, post) => sum + post.like_count, 0);
-  const totalPurchases = posts.reduce((sum, post) => sum + post.purchase_count, 0);
+  const totalLikes = calcTotalLikes(posts);
+  const totalPurchases = calcTotalPurchases(posts);
+
+  const handleEditClick = () => {
+    setForm({
+      first_name: profile.first_name ?? '',
+      last_name: profile.last_name ?? '',
+      bio: profile.bio ?? '',
+      avatar: undefined,
+    });
+    setEditUsername(profile.username ?? '');
+    setEditAvatarPreview(profile.avatar_url ? getImageUrl(profile.avatar_url) : null);
+    setEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+  };
+
 
   return (
     <div className="mx-auto max-w-4xl pb-20">
@@ -71,7 +111,94 @@ export function ProfileContent() {
           <div className="mt-4 flex-1 md:mt-0">
             <h2 className="text-2xl font-bold">{fullName}</h2>
             <p className="text-muted-foreground">@{profile.username}</p>
-            <p className="mt-4 text-sm leading-relaxed">{profile.bio ?? '自己紹介文がまだ登録されていません。'}</p>
+            {/* 編集フォーム or 通常表示 */}
+
+            {editing ? (
+              <div className="mt-4 space-y-4">
+                {/* 画像アップロード欄 */}
+                <div className="flex items-center gap-4">
+                  <div>
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={editAvatarPreview ?? getImageUrl(profile.avatar_url ?? undefined)} />
+                      <AvatarFallback>{editUsername[0] || profile.username[0]}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={saving}
+                      onChange={e => {
+                        const file = e.target.files?.[0] || undefined;
+                        handleChange('avatar', file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setEditAvatarPreview(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setEditAvatarPreview(profile.avatar_url ? getImageUrl(profile.avatar_url) : null);
+                        }
+                      }}
+                    />
+                    <div className="text-xs text-muted-foreground mt-1">画像は5MB以内・正方形推奨</div>
+                  </div>
+                </div>
+
+                {/* ユーザー名・氏名欄 */}
+                <div className="flex flex-col md:flex-row gap-2">
+                  <input
+                    className="w-full rounded border p-2 text-sm"
+                    type="text"
+                    value={editUsername}
+                    onChange={e => setEditUsername(e.target.value)}
+                    placeholder="ユーザー名"
+                    maxLength={32}
+                    disabled={saving}
+                  />
+                  <input
+                    className="w-full rounded border p-2 text-sm"
+                    type="text"
+                    value={form.last_name}
+                    onChange={e => handleChange('last_name', e.target.value)}
+                    placeholder="姓"
+                    maxLength={100}
+                    disabled={saving}
+                  />
+                  <input
+                    className="w-full rounded border p-2 text-sm"
+                    type="text"
+                    value={form.first_name}
+                    onChange={e => handleChange('first_name', e.target.value)}
+                    placeholder="名"
+                    maxLength={100}
+                    disabled={saving}
+                  />
+                </div>
+
+                {/* 自己紹介欄 */}
+                <textarea
+                  className="w-full rounded border p-2 text-sm"
+                  rows={4}
+                  maxLength={1000}
+                  value={form.bio}
+                  onChange={(e) => handleChange('bio', e.target.value)}
+                  placeholder="自己紹介文を入力してください (1000文字以内)"
+                  disabled={saving}
+                />
+                {editError && <div className="mt-1 text-xs text-red-500">{editError}</div>}
+                <div className="mt-2 flex gap-2">
+                  <Button onClick={async () => { const ok = await handleSubmit(); if (ok) setEditing(false); }} disabled={saving} className="flex-1 md:flex-none">{saving ? '保存中...' : '保存'}</Button>
+                  <Button onClick={handleCancel} variant="secondary" disabled={saving} className="flex-1 md:flex-none">キャンセル</Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="mt-4 text-sm leading-relaxed">{profile.bio ?? '自己紹介文がまだ登録されていません。'}</p>
+                <div className="mt-6 flex gap-2">
+                  <Button className="flex-1 md:flex-none" onClick={handleEditClick}>プロフィールを編集</Button>
+                </div>
+              </>
+            )}
 
             <div className="mt-4 grid grid-cols-3 gap-6 text-center md:w-2/3">
               <div>
@@ -86,10 +213,6 @@ export function ProfileContent() {
                 <p className="font-semibold text-lg">{totalPurchases.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">推定購入</p>
               </div>
-            </div>
-
-            <div className="mt-6 flex gap-2">
-              <Button className="flex-1 md:flex-none">プロフィールを編集</Button>
             </div>
           </div>
         </div>

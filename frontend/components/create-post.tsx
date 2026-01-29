@@ -29,7 +29,7 @@ export function CreatePost() {
   
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -41,14 +41,13 @@ export function CreatePost() {
           const results = await productsApi.searchProducts(searchQuery);
           setSearchResults(results);
         } else {
-          // 検索ワードがない場合はランダムに商品を表示（一覧から取得してシャッフル）
           const results = await productsApi.listProducts({ per_page: 10 });
           setSearchResults(results.sort(() => Math.random() - 0.5));
         }
       } catch (error) {
-        console.error('Product fetch failed:', error);
+        console.error("Product fetch failed:", error);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, step]);
@@ -58,7 +57,9 @@ export function CreatePost() {
     if (files && files.length > 0) {
       try {
         setIsUploading(true);
-        const uploadPromises = Array.from(files).map((file) => uploadsApi.uploadImage(file, 'post_image'));
+        const uploadPromises = Array.from(files).map((file) =>
+          uploadsApi.uploadImage(file, "post_image"),
+        );
         const newAssets = await Promise.all(uploadPromises);
 
         setUploadedAssets((prev) => [...prev, ...newAssets]);
@@ -76,8 +77,8 @@ export function CreatePost() {
         
         setStep(2);
       } catch (error) {
-        console.error('Upload failed:', error);
-        alert('画像のアップロードに失敗しました');
+        console.error("Upload failed:", error);
+        alert("画像のアップロードに失敗しました");
       } finally {
         setIsUploading(false);
       }
@@ -169,43 +170,11 @@ export function CreatePost() {
         asset_product_pairs: assetProductPairs,
         tags: tags,
       });
-      router.push('/feed');
+      router.push("/feed");
       router.refresh();
-    } catch (error: unknown) {
-      console.error('Post creation failed:', error);
-
-      const isApiError = (e: unknown): e is import('@/lib/api/client').ApiError => {
-        try {
-          return (e as any)?.status !== undefined && (e as any)?.message !== undefined;
-        } catch {
-          return false;
-        }
-      };
-
-      let message = '投稿の作成に失敗しました';
-
-      if (isApiError(error)) {
-        if (error.status === 401 || /credentials/i.test(error.message || '')) {
-          try {
-            const { toast } = await import('@/hooks/use-toast').then((m) => ({ toast: m.toast }));
-            toast({ title: '認証が必要です。ログインしてください' });
-          } catch {}
-          router.push('/login');
-          return;
-        }
-        message = error.message ?? message;
-      } else if (error instanceof Error) {
-        message = error.message;
-      } else {
-        message = String(error);
-      }
-
-      try {
-        const { toast } = await import('@/hooks/use-toast').then((m) => ({ toast: m.toast }));
-        toast({ title: message });
-      } catch {
-        alert(message);
-      }
+    } catch (error) {
+      console.error("Post creation failed:", error);
+      alert("投稿の作成に失敗しました");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,10 +184,14 @@ export function CreatePost() {
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-50 border-b border-border bg-card p-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <h1 className="text-lg font-semibold">{step === 1 ? '写真を選択' : '投稿を作成'}</h1>
+          <h1 className="text-lg font-semibold">
+            {step === 1 ? "写真を選択" : "投稿を作成"}
+          </h1>
           {step === 2 && (
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               シェアする
             </Button>
           )}
@@ -235,14 +208,27 @@ export function CreatePost() {
               ) : (
                 <>
                   <Upload className="mb-4 h-16 w-16 text-muted-foreground" />
-                  <h2 className="mb-2 text-xl font-semibold">写真をアップロード</h2>
-                  <p className="mb-6 text-center text-sm text-muted-foreground">購入した商品の写真を選択してください</p>
+                  <h2 className="mb-2 text-xl font-semibold">
+                    写真をアップロード
+                  </h2>
+                  <p className="mb-6 text-center text-sm text-muted-foreground">
+                    購入した商品の写真を選択してください
+                  </p>
                   <label htmlFor="image-upload">
                     <Button asChild>
-                      <span className="cursor-pointer">写真を選択（複数可）</span>
+                      <span className="cursor-pointer">
+                        写真を選択（複数可）
+                      </span>
                     </Button>
                   </label>
-                  <input id="image-upload" type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
                 </>
               )}
             </CardContent>
