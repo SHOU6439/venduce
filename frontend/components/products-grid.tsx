@@ -22,17 +22,21 @@ export function ProductsGrid() {
     sentinelRef,
     reset,
   } = useInfiniteScroll({
-    fetchMore: async (skip, limit) => {
+    fetchMore: async (cursor, limit) => {
+      const skip = (cursor as number) || 0;
       const response = await productsApi.listProductsInfinite({
         skip,
         limit,
         sort: "created_at:desc",
       });
+      const nextSkip = skip + limit;
+      const hasMore = nextSkip < response.total;
       return {
         items: response.items,
-        total: response.total,
+        nextCursor: hasMore ? nextSkip : null,
       };
     },
+    initialCursor: 0,
     limit: 20,
   });
 

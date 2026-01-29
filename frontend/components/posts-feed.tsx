@@ -20,15 +20,14 @@ export default function PostsFeed() {
     error,
     sentinelRef,
   } = useInfiniteScroll({
-    fetchMore: async (skip, limit) => {
+    fetchMore: async (cursor, limit) => {
       const response = await postsApi.getPostsInfinite({
-        skip,
+        cursor: cursor as string,
         limit,
       });
       return {
         items: response.items,
-        total:
-          response.meta.returned + skip + (response.meta.has_more ? limit : 0),
+        nextCursor: response.meta.next_cursor,
       };
     },
     limit: 20,
@@ -116,7 +115,7 @@ export default function PostsFeed() {
                     <Link key={asset.id} href={`/posts/${post.id}`}>
                       <div className="aspect-square overflow-hidden rounded-md bg-muted cursor-pointer hover:opacity-90 transition">
                         <img
-                          src={getImageUrl(asset.public_url)}
+                          src={getImageUrl(asset.public_url ?? undefined)}
                           alt="投稿画像"
                           className="w-full h-full object-cover"
                         />

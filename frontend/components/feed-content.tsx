@@ -124,14 +124,12 @@ export function FeedContent() {
     sentinelRef,
   } = useInfiniteScroll<Post>({
     limit: 10,
-    fetchMore: async (skip, limit) => {
-      const response = await postsApi.getPostsInfinite({ skip, limit });
-      const currentCount = skip + response.items.length;
-      const simulatedTotal = response.meta.has_more ? currentCount + 1 : currentCount;
+    fetchMore: async (cursor, limit) => {
+      const response = await postsApi.getPostsInfinite({ cursor: cursor as string, limit });
       
       return {
         items: response.items,
-        total: simulatedTotal,
+        nextCursor: response.meta.next_cursor,
       };
     },
   });

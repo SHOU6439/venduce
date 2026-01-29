@@ -24,11 +24,11 @@ export const postsApi = {
   },
 
   getPostsInfinite: async (
-    params: { skip?: number; limit?: number } = {},
+    params: { cursor?: string | null; limit?: number } = {},
   ): Promise<PaginatedPostsResponse> => {
     const searchParams = new URLSearchParams();
-    if (params.skip !== undefined)
-      searchParams.set("skip", String(params.skip));
+    if (params.cursor)
+      searchParams.set("cursor", params.cursor);
     if (params.limit) searchParams.set("limit", String(params.limit));
 
     const queryString = searchParams.toString();
