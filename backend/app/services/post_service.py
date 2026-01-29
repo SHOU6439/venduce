@@ -128,6 +128,13 @@ class PostService:
             return asset_product_map
 
         asset_ids = [pair.asset_id for pair in post_in.asset_product_pairs]
+
+        if len(asset_ids) != len(set(asset_ids)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Duplicate asset_ids found in asset_product_pairs",
+            )
+
         assets = (
             self.db.query(Asset)
             .filter(Asset.id.in_(asset_ids), Asset.owner_id == current_user.id)

@@ -57,6 +57,25 @@ def test_create_post_asset_not_found(authorized_client):
     assert "not found" in response.json()["detail"].lower()
 
 
+def test_create_post_asset_duplicates(db_session: Session, authorized_client, test_user):
+    asset = AssetFactory(owner_id=test_user.id)
+    db_session.add(asset)
+    db_session.commit()
+
+    payload = {
+        "caption": "Duplicate assets",
+        "asset_product_pairs": [
+            {"asset_id": asset.id, "product_id": None},
+            {"asset_id": asset.id, "product_id": None},
+        ],
+        "tags": []
+    }
+
+    response = authorized_client.post("/api/posts", json=payload)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "duplicate" in response.json()["detail"].lower()
+
+
 def test_create_post_unauthorized(client):
     response = client.post("/api/posts", json={})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
