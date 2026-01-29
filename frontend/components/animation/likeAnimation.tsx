@@ -16,8 +16,7 @@ export default function LikeAnimation({
   const [internalIsLiked, setInternalIsLiked] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const isLiked =
-    controlledIsLiked !== undefined ? controlledIsLiked : internalIsLiked;
+  const isLiked = controlledIsLiked !== undefined ? controlledIsLiked : internalIsLiked;
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

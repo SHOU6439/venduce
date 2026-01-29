@@ -8,4 +8,7 @@ export const usersApi = {
     }
     return client.get<UserProfile>('/api/users/me');
   },
+  updateProfile: async (data: Partial<UserProfile>): Promise<UserProfile> => {
+    return client.patch<UserProfile>('/api/users/me', data);
+  },
 };

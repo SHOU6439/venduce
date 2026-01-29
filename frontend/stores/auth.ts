@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -20,6 +21,8 @@ interface LoginResponse {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+
+  hasHydrated?: boolean;
   login: (payload: {
     email: string;
     password: string;
@@ -27,14 +30,15 @@ interface AuthState {
   }) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
+  setHasHydrated?: (hydrated: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
-
+      hasHydrated: false,
       login: async (payload) => {
         const response = await apiClient.post<LoginResponse>(
           "/api/auth/login",
@@ -47,7 +51,6 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         });
       },
-
       logout: () => {
         if (typeof window !== "undefined") {
           window.localStorage.removeItem("token");
@@ -58,8 +61,17 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
+      setTokens: (accessToken, refreshToken) => {
+        set({ accessToken, refreshToken, isAuthenticated: true });
+      },
+
+
+
       setUser: (user) => {
         set({ user });
+      },
+      setHasHydrated: (hydrated: boolean) => {
+        set({ hasHydrated: hydrated });
       },
     }),
     {
@@ -68,6 +80,19 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
       }),
+
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated?.(true);
+      },
     },
-  ),
+  )
 );
+
+export function useAuthHydrated() {
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hasHydrated) setHydrated(true);
+  }, [hasHydrated]);
+  return hydrated;
+}

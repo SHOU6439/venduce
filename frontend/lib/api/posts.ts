@@ -1,11 +1,21 @@
 import { client } from './client';
 import { Post } from '@/types/api';
 
-const normalizePost = (post: Post): Post => ({
-  ...post,
-  assets: post.assets ?? post.images ?? [],
-  images: post.images ?? post.assets ?? [],
-});
+const normalizePost = (post: Post): Post => {
+  let user = post.user;
+  if (user && (user as any).avatar_asset && (user as any).avatar_asset.public_url) {
+    user = {
+      ...user,
+      avatar_url: (user as any).avatar_asset.public_url,
+    };
+  }
+  return {
+    ...post,
+    user,
+    assets: post.assets ?? post.images ?? [],
+    images: post.images ?? post.assets ?? [],
+  };
+};
 
 export const postsApi = {
   getPosts: async (cursor?: string): Promise<Post[]> => {
