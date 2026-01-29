@@ -18,6 +18,61 @@ class PostService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def _validate_and_fetch_assets(self, asset_ids: List[str], current_user: User) -> List[Asset]:
+        if not asset_ids:
+            return []
+
+        assets = (
+            self.db.query(Asset)
+            .filter(Asset.id.in_(asset_ids), Asset.owner_id == current_user.id)
+            .all()
+        )
+
+        if len(assets) != len(set(asset_ids)):
+            found_ids = {a.id for a in assets}
+            missing = set(asset_ids) - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"One or more assets not found or permission denied: {missing}",
+            )
+        return assets
+
+    def _validate_and_fetch_products(self, product_ids: List[str]) -> List[Product]:
+        if not product_ids:
+            return []
+
+        products = self.db.query(Product).filter(Product.id.in_(product_ids)).all()
+
+        if len(products) != len(set(product_ids)):
+            found_ids = {p.id for p in products}
+            missing = set(product_ids) - found_ids
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"One or more products not found: {missing}",
+            )
+        return products
+
+    def _get_or_create_tags(self, tag_names: List[str]) -> List[Tag]:
+        if not tag_names:
+            return []
+
+        normalized_names = {t.strip().lower() for t in tag_names if t.strip()}
+        if not normalized_names:
+            return []
+
+        existing_tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
+        existing_map = {t.name: t for t in existing_tags}
+
+        tags = []
+        for name in normalized_names:
+            if name in existing_map:
+                tags.append(existing_map[name])
+            else:
+                new_tag = Tag(name=name, usage_count=0)
+                self.db.add(new_tag)
+                tags.append(new_tag)
+        return tags
+
     def create_post(self, *, post_in: PostCreate, current_user: User) -> Post:
         """`PostCreate` から `Post` を作成して返します。
 
@@ -29,48 +84,12 @@ class PostService:
 
         すべての検証はここに集約され、ルーターは薄く保たれます。
         """
-        assets: List[Asset] = []
-        if post_in.asset_ids:
-            assets = (
-                self.db.query(Asset)
-                .filter(Asset.id.in_(post_in.asset_ids), Asset.owner_id == current_user.id)
-                .all()
-            )
-            if len(assets) != len(set(post_in.asset_ids)):
-                found_ids = {a.id for a in assets}
-                missing = set(post_in.asset_ids) - found_ids
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"One or more assets not found or permission denied: {missing}",
-                )
+        assets = self._validate_and_fetch_assets(post_in.asset_ids, current_user)
+        products = self._validate_and_fetch_products(post_in.product_ids)
+        tags = self._get_or_create_tags(post_in.tags)
 
-        products: List[Product] = []
-        if post_in.product_ids:
-            products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
-            if len(products) != len(set(post_in.product_ids)):
-                found_ids = {p.id for p in products}
-                missing = set(post_in.product_ids) - found_ids
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"One or more products not found: {missing}",
-                )
-
-        tags: List[Tag] = []
-        if post_in.tags:
-            normalized_names = {t.strip().lower() for t in post_in.tags if t.strip()}
-
-            existing_tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
-            existing_map = {t.name: t for t in existing_tags}
-
-            for name in normalized_names:
-                if name in existing_map:
-                    tag = existing_map[name]
-                    tag.usage_count += 1
-                    tags.append(tag)
-                else:
-                    new_tag = Tag(name=name, usage_count=1)
-                    self.db.add(new_tag)
-                    tags.append(new_tag)
+        for tag in tags:
+            tag.usage_count += 1
 
         post = Post(
             user_id=current_user.id,
@@ -214,60 +233,32 @@ class PostService:
                     detail="Post has been modified by another process",
                 )
 
-        if post_in.caption is not None:
-            post.caption = post_in.caption
-        if post_in.status is not None:
-            post.status = post_in.status
-        if post_in.extra_metadata is not None:
-            post.extra_metadata = post_in.extra_metadata
+        update_data = post_in.model_dump(exclude_unset=True)
 
-        if post_in.asset_ids is not None:
-            assets = (
-                self.db.query(Asset)
-                .filter(Asset.id.in_(post_in.asset_ids), Asset.owner_id == current_user.id)
-                .all()
-            )
-            if len(assets) != len(set(post_in.asset_ids)):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="One or more assets not found or permission denied",
-                )
-            post.assets = assets
+        if "asset_ids" in update_data:
+            post.assets = self._validate_and_fetch_assets(update_data["asset_ids"], current_user)
 
-        if post_in.product_ids is not None:
-            products = self.db.query(Product).filter(Product.id.in_(post_in.product_ids)).all()
-            if len(products) != len(set(post_in.product_ids)):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="One or more products not found",
-                )
-            post.products = products
+        if "product_ids" in update_data:
+            post.products = self._validate_and_fetch_products(update_data["product_ids"])
 
-        if post_in.tags is not None:
+        if "tags" in update_data:
             current_tag_set = set(post.tags)
-            new_tag_names = {t.strip().lower() for t in post_in.tags if t.strip()}
+            new_tags = self._get_or_create_tags(update_data["tags"])
+            new_tag_set = set(new_tags)
+            for tag in new_tag_set:
+                if tag not in current_tag_set:
+                    tag.usage_count += 1
 
-            existing_tags_query = self.db.query(Tag).filter(Tag.name.in_(new_tag_names)).all()
-            existing_tags_map = {t.name: t for t in existing_tags_query}
-
-            new_tags_list = []
-            for name in new_tag_names:
-                if name in existing_tags_map:
-                    tag = existing_tags_map[name]
-                    if tag not in current_tag_set:
-                        tag.usage_count += 1
-                    new_tags_list.append(tag)
-                else:
-                    new_tag = Tag(name=name, usage_count=1)
-                    self.db.add(new_tag)
-                    new_tags_list.append(new_tag)
-
-            new_tag_set = set(new_tags_list)
             for tag in current_tag_set:
                 if tag not in new_tag_set:
                     tag.usage_count = max(0, tag.usage_count - 1)
 
-            post.tags = new_tags_list
+            post.tags = new_tags
+
+        for field, value in update_data.items():
+            if field in {"asset_ids", "product_ids", "tags"}:
+                continue
+            setattr(post, field, value)
 
         self.db.add(post)
         self.db.commit()
