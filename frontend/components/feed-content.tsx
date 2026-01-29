@@ -3,14 +3,21 @@
 import { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants, Button } from '@/components/ui/button';
 import Link from 'next/link';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import { postsApi } from '@/lib/api/posts';
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll';
-import { Post } from '@/types/api';
+import { Post, Product } from '@/types/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import LikeAnimation from '@/components/animation/likeAnimation';
+import { PurchaseForm } from '@/components/purchase-form';
 
 interface PostItemProps {
   post: Post;
@@ -19,6 +26,8 @@ interface PostItemProps {
 
 function PostItem({ post, onLikeToggle }: PostItemProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const assets = post.assets && post.assets.length > 0 ? post.assets : post.images && post.images.length > 0 ? post.images : [];
 
@@ -59,10 +68,23 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 
                     {/* 画像に紐づいた商品へのボタン */}
                     {linkedProduct && (
-                      <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'absolute bottom-4 right-4 gap-1.5 px-3 z-10 shadow-md bg-white/90 text-black hover:bg-white transition-opacity opacity-0 group-hover:opacity-100')}>
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        詳細
-                      </Link>
+                      <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 px-3 shadow-md bg-white/90 text-black hover:bg-white')}>
+                          <ShoppingCart className="h-4 w-4" />
+                          詳細
+                        </Link>
+                        <Button
+                          size="sm"
+                          className="gap-1.5 px-3 shadow-md bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => {
+                            setSelectedProduct(linkedProduct);
+                            setPurchaseModalOpen(true);
+                          }}
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                          購入
+                        </Button>
+                      </div>
                     )}
                   </div>
                 );
@@ -109,6 +131,17 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
           </p>
         </div>
       </div>
+
+      <Dialog open={purchaseModalOpen} onOpenChange={setPurchaseModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>商品を購入</DialogTitle>
+          </DialogHeader>
+          {selectedProduct && (
+            <PurchaseForm product={selectedProduct} referringPostId={post.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
