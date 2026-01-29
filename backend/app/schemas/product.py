@@ -50,4 +50,4 @@ class ProductList(AppModel):
     total_pages: int
 
 
-__all__ = ["CategoryBase", "ProductBase", "ProductCreate", "ProductRead", "ProductList"]
+__all__ = ["CategoryBase", "ProductBase", "ProductCreate", "ProductRead", "ProductList", "ProductCursorPaginatedResponse"]

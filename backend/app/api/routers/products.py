@@ -9,6 +9,7 @@ from app.db.database import get_db
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.product import ProductRead, ProductList
+from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.services.product_service import ProductService
 from app.deps import get_product_service, get_current_user_optional
 from app.utils import jwt as jwt_utils
@@ -17,13 +18,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/", response_model=ProductList, summary="List products")
+@router.get("/", summary="List products")
 def list_products(
     response: Response,
-    page: Optional[int] = Query(None, ge=1, description="Page number (deprecated, use skip/limit)"),
-    per_page: Optional[int] = Query(None, ge=1, le=100, description="Items per page (deprecated, use skip/limit)"),
-    skip: Optional[int] = Query(None, ge=0, description="Number of items to skip (for infinite scroll)"),
-    limit: Optional[int] = Query(None, ge=1, le=100, description="Number of items to return"),
+    page: Optional[int] = Query(None, ge=1, description="ページ番号（従来方式）"),
+    per_page: Optional[int] = Query(None, ge=1, le=100, description="1ページあたり件数（従来方式）"),
+    cursor: Optional[str] = Query(None, description="次ページ取得用カーソル"),
+    limit: Optional[int] = Query(20, ge=1, le=100, description="取得件数（cursor方式）"),
     sort: str = Query("created_at:desc", description="Sort field:dir (e.g. price_cents:asc)"),
     q: Optional[str] = Query(None, description="Search query (title/description)"),
     status: Optional[str] = Query(None, description="Filter by status (admin only)"),
@@ -38,47 +39,72 @@ def list_products(
     is_admin = current_user.is_admin if current_user else False
     user_id = current_user.id if current_user else "anonymous"
 
-    # Handle both old pagination (page/per_page) and new infinite scroll (skip/limit)
-    if skip is not None and limit is not None:
-        # Convert skip/limit to page/per_page for service
-        resolved_per_page = limit
-        resolved_page = (skip // limit) + 1 if limit > 0 else 1
+    logger.info(
+        f"Product list access: user={user_id} "
+        f"params(q={q}, cat={category}, brand={brand}, page={page}, cursor={cursor}, limit={limit}, sort={sort})"
+    )
+
+    use_cursor_pagination = cursor is not None or (page is None and per_page is None)
+
+    if use_cursor_pagination:
+        result = service.list(
+            db,
+            cursor=cursor,
+            limit=limit or 20,
+            sort=sort,
+            q=q,
+            status=status,
+            price_min=price_min,
+            price_max=price_max,
+            category_slug=category,
+            brand_slug=brand,
+            is_admin=is_admin,
+            use_cursor_pagination=True,
+        )
+        if is_admin:
+            response.headers["Cache-Control"] = "no-store"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=60"
+            response.headers["Vary"] = "Authorization"
+
+        return PaginatedResponse[ProductRead](
+            items=[ProductRead.model_validate(item) for item in result["items"]],
+            meta=CursorMeta(
+                next_cursor=result.get("next_cursor"),
+                has_more=result.get("has_next", False),
+                returned=len(result["items"]),
+            ),
+        )
     else:
         resolved_page = page or 1
         resolved_per_page = per_page or 20
+        result = service.list(
+            db,
+            page=resolved_page,
+            per_page=resolved_per_page,
+            sort=sort,
+            q=q,
+            status=status,
+            price_min=price_min,
+            price_max=price_max,
+            category_slug=category,
+            brand_slug=brand,
+            is_admin=is_admin,
+            use_cursor_pagination=False,
+        )
+        if is_admin:
+            response.headers["Cache-Control"] = "no-store"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=60"
+            response.headers["Vary"] = "Authorization"
 
-    logger.info(
-        f"Product list access: user={user_id} "
-        f"params(q={q}, cat={category}, brand={brand}, page={resolved_page}, sort={sort})"
-    )
-
-    result = service.list(
-        db,
-        page=resolved_page,
-        per_page=resolved_per_page,
-        sort=sort,
-        q=q,
-        status=status,
-        price_min=price_min,
-        price_max=price_max,
-        category_slug=category,
-        brand_slug=brand,
-        is_admin=is_admin,
-    )
-    
-    if is_admin:
-        response.headers["Cache-Control"] = "no-store"
-    else:
-        response.headers["Cache-Control"] = "public, max-age=60"
-        response.headers["Vary"] = "Authorization"
-
-    return ProductList(
-        items=[ProductRead.model_validate(item) for item in result["items"]],
-        total=result["total"],
-        page=result["page"],
-        per_page=result["per_page"],
-        total_pages=result["total_pages"],
-    )
+        return ProductList(
+            items=[ProductRead.model_validate(item) for item in result["items"]],
+            total=result["total"],
+            page=result["page"],
+            per_page=result["per_page"],
+            total_pages=result["total_pages"],
+        )
 
 
 @router.get("/{product_id}", response_model=ProductRead, summary="Get product details")

@@ -46,7 +46,11 @@ export const productsApi = {
     const result = await client.get<PaginatedProductsResponse>(endpoint);
     return {
       items: result.items.map(mapProduct),
-      meta: result.meta,
+      meta: {
+        next_cursor: result.meta?.next_cursor ?? null,
+        has_more: result.meta?.has_more ?? false,
+        returned: result.meta?.returned ?? result.items.length,
+      },
     };
   },
 

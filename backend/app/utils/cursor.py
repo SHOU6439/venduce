@@ -56,4 +56,22 @@ def decode_cursor(cursor: str) -> Tuple[datetime, str]:
         )
 
 
-__all__ = ["encode_cursor", "decode_cursor"]
+
+def encode_cursor_dict(data: dict) -> str:
+    """任意のdictをBase64エンコードしたカーソル文字列に変換"""
+    json_str = json.dumps(data)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+def decode_cursor_dict(cursor: str) -> dict:
+    """Base64エンコードされたカーソル文字列をdictにデコード"""
+    try:
+        json_str = base64.urlsafe_b64decode(cursor.encode()).decode()
+        data = json.loads(json_str)
+        return data
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid cursor format: {str(e)}"
+        )
+
+__all__ = ["encode_cursor", "decode_cursor", "encode_cursor_dict", "decode_cursor_dict"]
