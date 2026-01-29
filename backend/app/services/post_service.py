@@ -110,6 +110,7 @@ class PostService:
 
         self.db.commit()
         self.db.refresh(post)
+        self._enrich_post_with_asset_products(post)
         return post
 
     def _validate_and_map_asset_products(
