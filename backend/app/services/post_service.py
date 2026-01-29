@@ -112,7 +112,6 @@ class PostService:
             .order_by(Post.created_at.desc(), Post.id.desc())
         )
 
-        # cursor ベースのページネーション
         if cursor:
             cursor_created_at, cursor_id = decode_cursor(cursor)
             query = query.filter(
