@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 
 import { postsApi } from '@/lib/api/posts';
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll';
 import { Post } from '@/types/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import LikeAnimation from '@/components/animation/likeAnimation';
@@ -113,9 +114,25 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 }
 
 export function FeedContent() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    items: posts,
+    setItems: setPosts,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    sentinelRef,
+  } = useInfiniteScroll<Post>({
+    limit: 10,
+    fetchMore: async (cursor, limit) => {
+      const response = await postsApi.getPostsInfinite({ cursor: cursor as string, limit });
+      
+      return {
+        items: response.items,
+        nextCursor: response.meta.next_cursor,
+      };
+    },
+  });
 
   const handleLikeToggle = (postId: string, isLiked: boolean) => {
     setPosts((prevPosts) =>
@@ -133,28 +150,12 @@ export function FeedContent() {
     );
   };
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const data = await postsApi.getPosts();
-        setPosts(data);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch posts:', err);
-        setError(err instanceof Error ? err.message : '投稿を取得できませんでした');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return <div className="flex justify-center p-8">読み込み中...</div>;
   }
 
   if (error) {
-    return <div className="flex justify-center p-8 text-sm text-destructive">{error}</div>;
+    return <div className="flex justify-center p-8 text-sm text-destructive">{error.message}</div>;
   }
 
   return (
@@ -162,6 +163,13 @@ export function FeedContent() {
       {posts.map((post) => (
         <PostItem key={post.id} post={post} onLikeToggle={handleLikeToggle} />
       ))}
+      
+      {/* Infinite Scroll Sentinel */}
+      <div ref={sentinelRef} className="w-full h-10 flex items-center justify-center">
+        {isLoadingMore && <div className="text-sm text-muted-foreground">追加読み込み中...</div>}
+        {!hasMore && posts.length > 0 && <div className="text-sm text-muted-foreground p-4">すべての投稿を表示しました</div>}
+        {!hasMore && posts.length === 0 && <div className="text-sm text-muted-foreground p-4">投稿がありません</div>}
+      </div>
     </div>
   );
 }

@@ -51,7 +51,6 @@ export function LikedProducts() {
         setError(err instanceof Error ? err.message : '人気商品を取得できませんでした');
       }
     };
-
     load();
   }, []);
 
@@ -67,23 +66,23 @@ export function LikedProducts() {
     <div className="space-y-3">
       {items.map(({ product, likes }, index) => (
         <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <Link href={`/product/${product.id}`}>
+          <Link href={`/product/${product.id}`}> 
             <div className="flex gap-3 p-3">
               <div className="relative flex-shrink-0">
                 {index < 3 && <Badge className="absolute -top-1 -left-1 bg-pink-500 text-white z-10 h-5 w-5 p-0 flex items-center justify-center text-xs">{index + 1}</Badge>}
-                <div className="w-20 h-20 overflow-hidden bg-muted rounded">
+                <div className="w-20 h-20 overflow-hidden bg-muted rounded flex items-center justify-center">
                   <img src={getImageUrl(product.images?.[0])} alt={product.title} className="h-full w-full object-cover" />
                 </div>
               </div>
-
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <h3 className="font-bold text-sm hover:text-primary transition-colors line-clamp-2">{product.title}</h3>
                 <p className="text-lg font-bold text-primary mt-1">{formatCurrencyFromMinorUnit(product.price_cents, product.currency ?? 'JPY')}</p>
-
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                  <Heart className="h-3 w-3 fill-pink-500 text-pink-500" />
-                  <span className="font-semibold text-pink-500">{likes.toLocaleString()}</span>
-                  <span>いいね</span>
+                <div className="flex items-center gap-3 text-xs mt-2 text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 fill-pink-500 text-pink-500" />
+                    <span className="font-semibold text-pink-500">{likes.toLocaleString()}</span>
+                    <span>いいね</span>
+                  </div>
                 </div>
               </div>
             </div>

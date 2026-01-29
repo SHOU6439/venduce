@@ -1,3 +1,11 @@
+export interface PaginatedProductsResponse {
+  items: Product[];
+  meta: {
+    next_cursor?: string | null;
+    has_more: boolean;
+    returned: number;
+  };
+}
 export interface User {
   id: string;
   email: string;
@@ -7,7 +15,6 @@ export interface User {
   created_at: string;
   is_confirmed: boolean;
   is_active: boolean;
-  /** optional fields exposed once profile API is extended */
   avatar_url?: string | null;
   bio?: string | null;
 }

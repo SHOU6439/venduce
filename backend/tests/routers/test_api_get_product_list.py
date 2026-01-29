@@ -17,7 +17,7 @@ def products_fixture(db_session: Session):
 
 def test_list_products_public(client: TestClient, products_fixture):
     """Public user sees only published products"""
-    response = client.get("/api/products/")
+    response = client.get("/api/products/?page=1")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
@@ -28,7 +28,7 @@ def test_list_products_public(client: TestClient, products_fixture):
 
 def test_list_products_search(client: TestClient, products_fixture):
     """Search by query string"""
-    response = client.get("/api/products/?q=app")
+    response = client.get("/api/products/?q=app&page=1")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
@@ -58,7 +58,7 @@ def test_list_products_sort_other_fields(client: TestClient, products_fixture):
 
 def test_list_products_sort_invalid(client: TestClient, products_fixture):
     """Invalid sort field defaults to created_at (desc)"""
-    response = client.get("/api/products/?sort=invalid_field:asc")
+    response = client.get("/api/products/?sort=invalid_field:asc&page=1")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
@@ -71,7 +71,7 @@ def test_list_products_admin_sees_all(client: TestClient, db_session, products_f
     token, _ = create_access_token(subject=user.id)
     headers = {"Authorization": f"Bearer {token}"}
 
-    response = client.get("/api/products/", headers=headers)
+    response = client.get("/api/products/?page=1", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 3
@@ -86,7 +86,7 @@ def test_list_products_admin_filter_draft(client: TestClient, db_session, produc
     token, _ = create_access_token(subject=user.id)
     headers = {"Authorization": f"Bearer {token}"}
 
-    response = client.get("/api/products/?status=draft", headers=headers)
+    response = client.get("/api/products/?status=draft&page=1", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1

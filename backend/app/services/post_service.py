@@ -210,7 +210,7 @@ class PostService:
         self,
         *,
         cursor: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
     ) -> Tuple[List[Post], Optional[str], bool]:
         """公開投稿の一覧を cursor ベースのページネーションで取得します。
 
@@ -221,7 +221,7 @@ class PostService:
         Returns:
             (posts, next_cursor, has_more) のタプル
             - posts: 投稿リスト
-            - next_cursor: 次ページのカーソル（なければ None）
+            - next_cursor: 次ページのカーソル
             - has_more: 次ページがあるか
         """
         query = (
@@ -243,17 +243,14 @@ class PostService:
         if has_more:
             posts = posts[:limit]
 
+        next_cursor = encode_cursor(posts[-1].created_at, posts[-1].id) if posts and has_more else None
+
         for post in posts:
             _ = post.user
             _ = post.assets
             _ = post.products
             _ = post.tags
             self._enrich_post_with_asset_products(post)
-
-        next_cursor = None
-        if has_more and posts:
-            last_post = posts[-1]
-            next_cursor = encode_cursor(last_post.created_at, last_post.id)
 
         return posts, next_cursor, has_more
 

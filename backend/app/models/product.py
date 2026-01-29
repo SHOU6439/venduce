@@ -5,8 +5,6 @@ from sqlalchemy import Column, String, Text, Integer, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.db.database import Base
-# ProductCategoryのインポートは、テーブル登録のために残しておきますが、
-# relationshipでは文字列で参照するため、循環参照のリスクが下がります。
 from app.models.product_category import ProductCategory
 from app.models.product_assets import product_assets
 
