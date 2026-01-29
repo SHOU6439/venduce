@@ -29,8 +29,9 @@ class PurchaseCreate(AppModel):
     referring_post_id: Optional[str] = None
 
 
-# ProductRead を import するための前方参照
+# ProductRead と PaymentMethodRead を import するための前方参照
 from app.schemas.product import ProductRead  # noqa: E402, F401
+from app.schemas.payment_method import PaymentMethodRead  # noqa: E402, F401
 
 
 class PurchaseRead(PurchaseBase):
@@ -40,6 +41,7 @@ class PurchaseRead(PurchaseBase):
     created_at: datetime
     updated_at: datetime
     product: ProductRead
+    payment_method: Optional[PaymentMethodRead] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -35,6 +35,6 @@ export const purchasesApi = {
   },
 
   getPurchase: async (purchaseId: string): Promise<Purchase> => {
-    return client.get<Purchase>(`/api/purchases/${purchaseId}`);
+    return client.get<Purchase>(`/api/purchases/detail/${purchaseId}`);
   },
 };

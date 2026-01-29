@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/utils';
 
 export default function PurchaseDetailPage() {
   const router = useRouter();
@@ -37,6 +38,10 @@ export default function PurchaseDetailPage() {
       try {
         setIsLoading(true);
         const data = await purchasesApi.getPurchase(purchaseId);
+        console.log('Purchase data:', data);
+        console.log('Product data:', data.product);
+        console.log('Main asset:', data.product?.main_asset);
+        console.log('Assets:', data.product?.assets);
         setPurchase(data);
       } catch (err) {
         setError(
@@ -114,15 +119,24 @@ export default function PurchaseDetailPage() {
           <div className="rounded-lg border overflow-hidden">
             <div className="flex gap-4 p-4">
               {/* 商品画像 */}
-              <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden">
-                {purchase.product.main_asset && purchase.product.main_asset.url && (
+              <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                {purchase.product.assets && purchase.product.assets.length > 0 && purchase.product.assets[0].public_url ? (
                   <Image
-                    src={purchase.product.main_asset.url}
+                    src={getImageUrl(purchase.product.assets[0].public_url)}
                     alt={purchase.product.title}
                     width={96}
                     height={96}
+                    unoptimized
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Image load error:', e);
+                      console.error('Image URL:', getImageUrl(purchase.product.assets[0].public_url));
+                    }}
                   />
+                ) : (
+                  <div className="text-xs text-muted-foreground text-center p-2">
+                    画像なし
+                  </div>
                 )}
               </div>
 
