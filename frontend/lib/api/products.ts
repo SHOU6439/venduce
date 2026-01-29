@@ -30,11 +30,11 @@ export const productsApi = {
   },
 
   listProductsInfinite: async (
-    params: { skip?: number; limit?: number; sort?: string; q?: string } = {},
-  ): Promise<PaginatedResponse<Product>> => {
+    params: { cursor?: string | null; limit?: number; sort?: string; q?: string } = {},
+  ): Promise<PaginatedProductsResponse> => {
     const searchParams = new URLSearchParams();
-    if (params.skip !== undefined)
-      searchParams.set("skip", String(params.skip));
+    if (params.cursor)
+      searchParams.set("cursor", params.cursor);
     if (params.limit) searchParams.set("limit", String(params.limit));
     if (params.sort) searchParams.set("sort", params.sort);
     if (params.q) searchParams.set("q", params.q);
@@ -43,10 +43,10 @@ export const productsApi = {
     const endpoint = queryString
       ? `/api/products?${queryString}`
       : "/api/products";
-    const result = await client.get<PaginatedResponse<Product>>(endpoint);
+    const result = await client.get<PaginatedProductsResponse>(endpoint);
     return {
-      ...result,
       items: result.items.map(mapProduct),
+      meta: result.meta,
     };
   },
 

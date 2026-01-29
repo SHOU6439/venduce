@@ -23,20 +23,16 @@ export function ProductsGrid() {
     reset,
   } = useInfiniteScroll({
     fetchMore: async (cursor, limit) => {
-      const skip = (cursor as number) || 0;
       const response = await productsApi.listProductsInfinite({
-        skip,
+        cursor: cursor as string | undefined,
         limit,
         sort: "created_at:desc",
       });
-      const nextSkip = skip + limit;
-      const hasMore = nextSkip < response.total;
       return {
         items: response.items,
-        nextCursor: hasMore ? nextSkip : null,
+        nextCursor: response.meta?.next_cursor ?? null,
       };
     },
-    initialCursor: 0,
     limit: 20,
   });
 
