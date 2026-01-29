@@ -127,10 +127,12 @@ export default function PostDetail({ params }: PostDetailPageProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Array.from(
                   new Map(
-                    post.asset_products.map((ap: any) => [
-                      ap.product?.id,
-                      ap.product,
-                    ])
+                    post.asset_products
+                      .filter((ap: any) => ap.product) // product が null でないもののみ
+                      .map((ap: any) => [
+                        ap.product.id,
+                        ap.product,
+                      ])
                   ).values()
                 ).map((product: Product) => (
                   <div

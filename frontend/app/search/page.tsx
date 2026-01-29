@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { productsApi } from '@/lib/api/products';
 import { postsApi } from '@/lib/api/posts';
 import { Product, Post } from '@/types/api';
@@ -151,9 +152,10 @@ export default function SearchPage() {
                         className="rounded-lg border p-4 hover:shadow-lg transition-shadow cursor-pointer"
                       >
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-white font-bold text-xs">
-                            {post.user?.username?.[0]?.toUpperCase() ?? 'U'}
-                          </div>
+                          <Avatar>
+                            <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
+                            <AvatarFallback>{post.user?.username?.[0] ?? 'U'}</AvatarFallback>
+                          </Avatar>
                           <div>
                             <p className="font-semibold text-sm">
                               {post.user?.username ?? 'ユーザー'}
