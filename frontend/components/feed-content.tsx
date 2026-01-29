@@ -50,7 +50,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
           <>
             <div className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} onScroll={handleScroll}>
               {assets.map((asset, index) => {
-                const linkedProduct = post.asset_products?.[index]?.product;
+                const linkedProduct = post.asset_products?.find((ap) => ap.asset?.id === asset.id)?.product;
                 
                 return (
                   <div key={asset.id || index} className="w-full h-full flex-shrink-0 snap-center relative group">

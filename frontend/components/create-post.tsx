@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 
 import { uploadsApi } from '@/lib/api/uploads';
 import { postsApi } from '@/lib/api/posts';
@@ -172,9 +171,41 @@ export function CreatePost() {
       });
       router.push('/feed');
       router.refresh();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Post creation failed:', error);
-      alert('投稿の作成に失敗しました');
+
+      const isApiError = (e: unknown): e is import('@/lib/api/client').ApiError => {
+        try {
+          return (e as any)?.status !== undefined && (e as any)?.message !== undefined;
+        } catch {
+          return false;
+        }
+      };
+
+      let message = '投稿の作成に失敗しました';
+
+      if (isApiError(error)) {
+        if (error.status === 401 || /credentials/i.test(error.message || '')) {
+          try {
+            const { toast } = await import('@/hooks/use-toast').then((m) => ({ toast: m.toast }));
+            toast({ title: '認証が必要です。ログインしてください' });
+          } catch {}
+          router.push('/login');
+          return;
+        }
+        message = error.message ?? message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = String(error);
+      }
+
+      try {
+        const { toast } = await import('@/hooks/use-toast').then((m) => ({ toast: m.toast }));
+        toast({ title: message });
+      } catch {
+        alert(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
