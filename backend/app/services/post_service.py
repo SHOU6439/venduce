@@ -93,19 +93,17 @@ class PostService:
         *,
         cursor: Optional[str] = None,
         limit: int = 20,
-        offset: int = 0
     ) -> Tuple[List[Post], Optional[str], bool]:
-        """公開投稿の一覧を cursor ベースまたは offset ベースのページネーションで取得します。
+        """公開投稿の一覧を cursor ベースのページネーションで取得します。
 
         Args:
             cursor: 継続取得用のカーソル（Base64 エンコード済み）
             limit: 取得件数（1-100）
-            offset: スキップするアイテム数（infinite scroll 用）
 
         Returns:
             (posts, next_cursor, has_more) のタプル
             - posts: 投稿リスト
-            - next_cursor: 次ページのカーソル（offset 使用時は None）
+            - next_cursor: 次ページのカーソル
             - has_more: 次ページがあるか
         """
         query = (
@@ -114,30 +112,21 @@ class PostService:
             .order_by(Post.created_at.desc(), Post.id.desc())
         )
 
-        # offset ベースのページネーション（infinite scroll）
-        if offset > 0:
-            query = query.offset(offset)
-            posts = query.limit(limit + 1).all()
-            has_more = len(posts) > limit
-            if has_more:
-                posts = posts[:limit]
-            next_cursor = None
-        else:
-            # cursor ベースのページネーション（互換性維保持）
-            if cursor:
-                cursor_created_at, cursor_id = decode_cursor(cursor)
-                query = query.filter(
-                    (Post.created_at < cursor_created_at) |
-                    ((Post.created_at == cursor_created_at) & (Post.id < cursor_id))
-                )
+        # cursor ベースのページネーション
+        if cursor:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+            query = query.filter(
+                (Post.created_at < cursor_created_at) |
+                ((Post.created_at == cursor_created_at) & (Post.id < cursor_id))
+            )
 
-            posts = query.limit(limit + 1).all()
+        posts = query.limit(limit + 1).all()
 
-            has_more = len(posts) > limit
-            if has_more:
-                posts = posts[:limit]
+        has_more = len(posts) > limit
+        if has_more:
+            posts = posts[:limit]
 
-            next_cursor = encode_cursor(posts[-1].created_at, posts[-1].id) if posts and has_more else None
+        next_cursor = encode_cursor(posts[-1].created_at, posts[-1].id) if posts and has_more else None
 
         for post in posts:
             _ = post.user
