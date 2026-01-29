@@ -98,6 +98,10 @@ export interface Post {
   tags: Tag[];
   images: Asset[];
   assets?: Asset[];
+  asset_products?: Array<{
+    asset: Asset;
+    product: Product | null;
+  }>;
   liked_by_me?: boolean;
 }
 
@@ -107,4 +111,15 @@ export interface PaginatedResponse<T> {
   page: number;
   per_page: number;
   total_pages: number;
+}
+
+export interface AssetProductPair {
+  asset_id: string;
+  product_id: string | null;
+}
+
+export interface CreatePostPayload {
+  caption: string;
+  asset_product_pairs: AssetProductPair[];
+  tags?: string[];
 }

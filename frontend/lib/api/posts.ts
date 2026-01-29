@@ -1,5 +1,5 @@
-import { client } from "./client";
-import { Post } from "@/types/api";
+import { client } from './client';
+import { Post, CreatePostPayload } from '@/types/api';
 
 const normalizePost = (post: Post): Post => {
   let user = post.user;

@@ -46,19 +46,27 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
       </div>
 
       {/* Post Image(s) */}
-      <div className="relative aspect-video w-full bg-muted group">
+      <div className="relative aspect-video w-full bg-muted">
         {assets.length > 0 ? (
           <>
             <div className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} onScroll={handleScroll}>
-              {assets.map((asset, index) => (
-                <div key={asset.id || index} className="w-full h-full flex-shrink-0 snap-center relative">
-                  <img src={getImageUrl(asset.public_url || asset.id)} alt={`投稿画像 ${index + 1}`} className="w-full h-full object-cover" />
+              {assets.map((asset, index) => {
+                const linkedProduct = post.asset_products?.find((ap) => ap.asset?.id === asset.id)?.product;
+                
+                return (
+                  <div key={asset.id || index} className="w-full h-full flex-shrink-0 snap-center relative group">
+                    <img src={getImageUrl(asset.public_url || asset.id)} alt={`投稿画像 ${index + 1}`} className="w-full h-full object-cover" />
 
-                  {/* Tagged Products Overlay (only on first image logic kept, shown over the image) */}
-                  {/* If we want the button to appear only for relevant image, we need product-asset mapping. 
-                      Assuming product is linked to post generally. We show it on the current view. */}
-                </div>
-              ))}
+                    {/* 画像に紐づいた商品へのボタン */}
+                    {linkedProduct && (
+                      <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'absolute bottom-4 right-4 gap-1.5 px-3 z-10 shadow-md bg-white/90 text-black hover:bg-white transition-opacity opacity-0 group-hover:opacity-100')}>
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        詳細
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Pagination Dots */}
@@ -68,14 +76,6 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
                   <div key={index} className={cn('h-1.5 w-1.5 rounded-full transition-all shadow-sm', index === currentImageIndex ? 'bg-white scale-125' : 'bg-white/60')} />
                 ))}
               </div>
-            )}
-
-            {/* Tagged Products Overlay */}
-            {post.products && post.products.length > 0 && (
-              <Link href={`/product/${post.products[0].id}`} className={cn(buttonVariants({ size: 'sm' }), 'absolute bottom-4 right-4 gap-1.5 px-3 z-10 shadow-md bg-white/90 text-black hover:bg-white transition-opacity opacity-0 group-hover:opacity-100')}>
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                詳細
-              </Link>
             )}
           </>
         ) : (

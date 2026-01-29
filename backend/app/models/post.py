@@ -54,7 +54,7 @@ class Post(Base):
     products = relationship("Product", secondary=post_products, backref="posts")
     tags = relationship("Tag", secondary=post_tags, backref="posts")
 
-    assets = relationship("Asset", secondary=post_assets, backref="posts")
+    assets = relationship("Asset", secondary=post_assets, backref="posts", overlaps="asset")
 
 
 __all__ = ["Post"]

@@ -1,19 +1,18 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Upload, X, Search, ShoppingBag, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Upload, X, Search, ShoppingBag, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
-import { uploadsApi } from "@/lib/api/uploads";
-import { postsApi } from "@/lib/api/posts";
-import { productsApi } from "@/lib/api/products";
-import { formatCurrencyFromMinorUnit, getImageUrl } from "@/lib/utils";
-import { Product, Asset } from "@/types/api";
+import { uploadsApi } from '@/lib/api/uploads';
+import { postsApi } from '@/lib/api/posts';
+import { productsApi } from '@/lib/api/products';
+import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
+import { Product, Asset, AssetProductPair } from '@/types/api';
 
 export function CreatePost() {
   const router = useRouter();
@@ -22,11 +21,16 @@ export function CreatePost() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [uploadedAssets, setUploadedAssets] = useState<Asset[]>([]);
-  const [caption, setCaption] = useState("");
+  const [caption, setCaption] = useState('');
+  
+  const [assetProductMap, setAssetProductMap] = useState<Record<string, string | null>>({});
+  
+  const [selectedProductDetails, setSelectedProductDetails] = useState<Record<string, Product | null>>({});
+  
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -59,6 +63,18 @@ export function CreatePost() {
         const newAssets = await Promise.all(uploadPromises);
 
         setUploadedAssets((prev) => [...prev, ...newAssets]);
+        
+        newAssets.forEach((asset) => {
+          setAssetProductMap((prev) => ({
+            ...prev,
+            [asset.id]: null,
+          }));
+        });
+        
+        if (selectedAssetId === null && newAssets.length > 0) {
+          setSelectedAssetId(newAssets[0].id);
+        }
+        
         setStep(2);
       } catch (error) {
         console.error("Upload failed:", error);
@@ -71,7 +87,25 @@ export function CreatePost() {
 
   const handleRemoveAsset = (indexToRemove: number) => {
     setUploadedAssets((prev) => {
+      const removedAsset = prev[indexToRemove];
       const newAssets = prev.filter((_, index) => index !== indexToRemove);
+      
+      setAssetProductMap((map) => {
+        const newMap = { ...map };
+        delete newMap[removedAsset.id];
+        return newMap;
+      });
+
+      setSelectedProductDetails((details) => {
+        const newDetails = { ...details };
+        delete newDetails[removedAsset.id];
+        return newDetails;
+      });
+      
+      if (selectedAssetId === removedAsset.id) {
+        setSelectedAssetId(newAssets.length > 0 ? newAssets[0].id : null);
+      }
+      
       if (newAssets.length === 0) {
         setStep(1);
       }
@@ -79,12 +113,43 @@ export function CreatePost() {
     });
   };
 
-  const toggleProduct = (product: Product) => {
-    if (selectedProducts.find((p) => p.id === product.id)) {
-      setSelectedProducts(selectedProducts.filter((p) => p.id !== product.id));
-    } else {
-      setSelectedProducts([...selectedProducts, product]);
+  const handleSelectAsset = (assetId: string) => {
+    setSelectedAssetId(assetId);
+    setSearchQuery('');
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    if (!selectedAssetId) return;
+    
+    setAssetProductMap((prev) => ({
+      ...prev,
+      [selectedAssetId]: product.id,
+    }));
+    setSelectedProductDetails((prev) => ({
+      ...prev,
+      [selectedAssetId]: product,
+    }));
+  };
+
+  const handleRemoveProduct = (assetId: string) => {
+    setAssetProductMap((prev) => ({
+      ...prev,
+      [assetId]: null,
+    }));
+    setSelectedProductDetails((prev) => ({
+      ...prev,
+      [assetId]: null,
+    }));
+    // If the removed product belonged to the currently selected asset, clear selection
+    if (selectedAssetId === assetId) {
+      setSelectedAssetId(null);
     }
+  };
+
+  const getSelectedProduct = (assetId: string) => {
+    const productId = assetProductMap[assetId];
+    if (!productId) return null;
+    return searchResults.find((p) => p.id === productId);
   };
 
   const handleSubmit = async () => {
@@ -94,11 +159,15 @@ export function CreatePost() {
       setIsSubmitting(true);
 
       const tags = caption.match(/#[^\s#]+/g)?.map((tag) => tag.slice(1)) || [];
+      
+      const assetProductPairs: AssetProductPair[] = uploadedAssets.map((asset) => ({
+        asset_id: asset.id,
+        product_id: assetProductMap[asset.id] || null,
+      }));
 
       await postsApi.createPost({
         caption,
-        asset_ids: uploadedAssets.map((asset) => asset.id),
-        product_ids: selectedProducts.map((p) => p.id),
+        asset_product_pairs: assetProductPairs,
         tags: tags,
       });
       router.push("/feed");
@@ -169,137 +238,129 @@ export function CreatePost() {
         {/* Step 2: Tag Products & Caption */}
         {step === 2 && uploadedAssets.length > 0 && (
           <div className="space-y-4">
-            {/* 複数画像のプレビュー表示 */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {uploadedAssets.map((asset, index) => (
-                <div
-                  key={asset.id}
-                  className="relative h-[300px] w-auto flex-shrink-0"
-                >
-                  <Card className="h-full overflow-hidden">
-                    <img
-                      src={getImageUrl(asset.public_url || asset.id)}
-                      alt={`アップロード画像 ${index + 1}`}
-                      className="h-full w-auto object-cover min-w-[200px]"
-                    />
-                    <button
-                      onClick={() => handleRemoveAsset(index)}
-                      className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </Card>
-                </div>
-              ))}
-              {/* 追加アップロードボタン */}
-              <label
-                htmlFor="add-more-images"
-                className="flex h-[300px] w-[100px] flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                <div className="text-center text-sm text-muted-foreground">
-                  <span className="text-2xl">+</span>
-                  <br />
-                  追加
-                </div>
-                <input
-                  id="add-more-images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-            </div>
-
+            {/* キャプション入力 */}
             <Card>
               <CardContent className="p-4">
-                <Textarea
-                  placeholder="購入した商品について説明してください..."
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  rows={4}
-                  className="mb-4"
-                />
-
-                <h2 className="mb-4 font-semibold">商品をタグ付け</h2>
-
-                {/* 選択済み商品のバッジ表示 */}
-                {selectedProducts.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {selectedProducts.map((product) => (
-                      <Badge
-                        key={product.id}
-                        variant="secondary"
-                        className="gap-1"
-                      >
-                        {product.title}
-                        <button
-                          onClick={() => toggleProduct(product)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                {/* 商品検索ボックス */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="商品を検索..."
-                    className="pl-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                {/* 検索結果リスト */}
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {searchResults.map((product) => (
-                    <div
-                      key={product.id}
-                      className="cursor-pointer flex items-center justify-between rounded-lg border p-2 hover:bg-accent"
-                      onClick={() => toggleProduct(product)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <p className="font-medium text-sm">{product.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {product.brand?.name ?? "ブランド未登録"}
-                          </p>
-                          <p className="text-xs text-primary">
-                            {formatCurrencyFromMinorUnit(
-                              product.price_cents,
-                              product.currency ?? "JPY",
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={selectedProducts.some(
-                          (p) => p.id === product.id,
-                        )}
-                        className="shrink-0"
-                      >
-                        <ShoppingBag
-                          className={`h-4 w-4 ${selectedProducts.some((p) => p.id === product.id) ? "text-primary fill-primary" : ""}`}
-                        />
-                      </Button>
-                    </div>
-                  ))}
-                  {searchQuery && searchResults.length === 0 && (
-                    <p className="text-sm text-center text-gray-500 py-2">
-                      商品が見つかりません
-                    </p>
-                  )}
-                </div>
+                <h2 className="mb-2 font-semibold">投稿のキャプション</h2>
+                <Textarea placeholder="購入した商品について説明してください..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={3} className="mb-2" />
+                <p className="text-xs text-muted-foreground">#ハッシュタグはそのまま使用できます</p>
               </CardContent>
             </Card>
+
+            {/* 複数画像のプレビュー + 商品紐付け */}
+            <Card>
+              <CardContent className="p-4">
+                <h2 className="mb-4 font-semibold">各画像で紹介する商品を選択</h2>
+                
+                <div className="space-y-4">
+                  {uploadedAssets.map((asset, index) => (
+                    <div key={asset.id} className="border rounded-lg p-3 hover:bg-accent/50 transition-colors">
+                      <div className="flex gap-4">
+                        {/* 画像プレビュー */}
+                        <div className="flex-shrink-0 relative">
+                          <button
+                            onClick={() => handleSelectAsset(asset.id)}
+                            className={`relative rounded-lg overflow-hidden border-2 transition-colors ${
+                              selectedAssetId === asset.id ? 'border-primary' : 'border-border'
+                            }`}
+                          >
+                            <img
+                              src={getImageUrl(asset.public_url || asset.id)}
+                              alt={`アップロード画像 ${index + 1}`}
+                              className="h-20 w-20 object-cover"
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveAsset(index)}
+                            className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-white hover:bg-destructive/90 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        {/* 紐付け情報 */}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-2">画像 {index + 1}</p>
+                          
+                          {assetProductMap[asset.id] ? (
+                            <div className="flex items-center justify-between bg-primary/10 rounded p-2">
+                              <span className="text-sm">{selectedProductDetails[asset.id]?.title || assetProductMap[asset.id]}</span>
+                              <button
+                                onClick={() => handleRemoveProduct(asset.id)}
+                                className="text-xs text-destructive hover:underline"
+                              >
+                                削除
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleSelectAsset(asset.id)}
+                              className="text-sm text-muted-foreground hover:text-foreground"
+                            >
+                              {selectedAssetId === asset.id ? '下から商品を選択してください →' : 'クリックして商品を選択'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 追加アップロードボタン */}
+                <label htmlFor="add-more-images" className="flex mt-4 p-3 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:bg-accent dark:hover:bg-gray-800">
+                  <div className="text-center text-sm text-muted-foreground">
+                    <span className="text-lg">+</span> 画像を追加
+                  </div>
+                  <input id="add-more-images" type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                </label>
+              </CardContent>
+            </Card>
+
+            {/* 商品検索 & 選択 */}
+            {selectedAssetId && !assetProductMap[selectedAssetId] && (
+              <Card>
+                <CardContent className="p-4">
+                  <h2 className="mb-4 font-semibold">商品を選択</h2>
+
+                  {/* 商品検索ボックス */}
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="商品を検索..."
+                      className="pl-9"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  {/* 検索結果リスト */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {searchResults.map((product) => (
+                      <button
+                        key={product.id}
+                        onClick={() => handleSelectProduct(product)}
+                        className="w-full text-left flex items-center justify-between rounded-lg border p-2 hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <p className="font-medium text-sm">{product.title}</p>
+                            <p className="text-xs text-muted-foreground">{product.brand?.name ?? 'ブランド未登録'}</p>
+                            <p className="text-xs text-primary">{formatCurrencyFromMinorUnit(product.price_cents, product.currency ?? 'JPY')}</p>
+                          </div>
+                        </div>
+                        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    ))}
+                    {searchQuery && searchResults.length === 0 && (
+                      <p className="text-sm text-center text-gray-500 py-2">商品が見つかりません</p>
+                    )}
+                    {!searchQuery && searchResults.length === 0 && (
+                      <p className="text-sm text-center text-gray-500 py-2">商品を検索してください</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </main>
