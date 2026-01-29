@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useProfileEdit } from '@/features/profile/hooks/useProfileEdit';
 import { calcTotalLikes, calcTotalPurchases } from '@/features/profile/utils';
 import { useRouter } from 'next/navigation';
-import { Grid3x3, LogOut, ShoppingBag } from 'lucide-react';
+import { Grid3x3, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +19,6 @@ import { Loader2 } from 'lucide-react';
 
 export function ProfileContent() {
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -70,12 +69,6 @@ export function ProfileContent() {
 
     load();
   }, [router]);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-    router.refresh();
-  };
 
   if (loading) return <div className="p-8 text-center">プロフィールを読み込み中です...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
