@@ -26,6 +26,20 @@ export function ProfileContent() {
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
   const [editUsername, setEditUsername] = useState('');
 
+  const {
+    form,
+    error: editError,
+    saving,
+    handleChange,
+    handleSubmit,
+    setForm,
+  } = useProfileEdit({
+    first_name: '',
+    last_name: '',
+    bio: '',
+    avatar: undefined,
+  });
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -66,20 +80,6 @@ export function ProfileContent() {
   const postCount = posts.length;
   const totalLikes = calcTotalLikes(posts);
   const totalPurchases = calcTotalPurchases(posts);
-
-  const {
-    form,
-    error: editError,
-    saving,
-    handleChange,
-    handleSubmit,
-    setForm,
-  } = useProfileEdit({
-    first_name: profile.first_name ?? '',
-    last_name: profile.last_name ?? '',
-    bio: profile.bio ?? '',
-    avatar: undefined,
-  });
 
   const handleEditClick = () => {
     setForm({
