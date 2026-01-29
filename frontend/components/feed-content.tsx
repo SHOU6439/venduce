@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants, Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ interface PostItemProps {
 }
 
 function PostItem({ post, onLikeToggle }: PostItemProps) {
+  const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -39,10 +41,14 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
     }
   };
 
+  const handlePostClick = () => {
+    router.push(`/posts/${post.id}`);
+  };
+
   return (
     <article className="w-[50%] overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
       {/* Header */}
-      <div className="flex items-center justify-between p-3">
+      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg" onClick={handlePostClick}>
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
@@ -55,7 +61,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
       </div>
 
       {/* Post Image(s) */}
-      <div className="relative aspect-video w-full bg-muted">
+      <div className="relative aspect-video w-full bg-muted cursor-pointer" onClick={handlePostClick}>
         {assets.length > 0 ? (
           <>
             <div className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} onScroll={handleScroll}>
@@ -68,7 +74,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 
                     {/* 画像に紐づいた商品へのボタン */}
                     {linkedProduct && (
-                      <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 px-3 shadow-md bg-white/90 text-black hover:bg-white')}>
                           <ShoppingCart className="h-4 w-4" />
                           詳細
@@ -76,7 +82,8 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
                         <Button
                           size="sm"
                           className="gap-1.5 px-3 shadow-md bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedProduct(linkedProduct);
                             setPurchaseModalOpen(true);
                           }}
@@ -106,9 +113,9 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
       </div>
 
       {/* Actions & Caption */}
-      <div className="px-3 pt-3">
+      <div className="px-3 pt-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={handlePostClick}>
         <div className="mb-2 flex gap-4 items-center">
-          <div className="-ml-3">
+          <div className="-ml-3" onClick={(e) => e.stopPropagation()}>
             <LikeAnimation isLiked={post.liked_by_me ?? false} onToggle={(isLiked) => onLikeToggle(post.id, isLiked)} sizeClass="w-7 h-7" />
           </div>
           {/* 他のアクションボタンが必要な場合はここに追加 */}

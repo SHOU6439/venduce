@@ -54,6 +54,27 @@ class PostService:
             
             product_dict = None
             if pa.product:
+                # 商品のアセット情報も取得
+                product_assets = [
+                    {
+                        'id': asset.id,
+                        'owner_id': asset.owner_id,
+                        'purpose': asset.purpose,
+                        'status': asset.status,
+                        'storage_key': asset.storage_key,
+                        'content_type': asset.content_type,
+                        'extension': asset.extension,
+                        'size_bytes': asset.size_bytes,
+                        'width': asset.width,
+                        'height': asset.height,
+                        'checksum': asset.checksum,
+                        'public_url': asset.public_url,
+                        'variants': asset.variants,
+                        'extra_metadata': asset.extra_metadata,
+                    }
+                    for asset in pa.product.assets
+                ]
+                
                 product_dict = {
                     'id': pa.product.id,
                     'title': pa.product.title,
@@ -66,6 +87,7 @@ class PostService:
                     'extra_metadata': pa.product.extra_metadata,
                     'created_at': pa.product.created_at,
                     'updated_at': pa.product.updated_at,
+                    'assets': product_assets,  # アセット情報を追加
                 }
             
             asset_products.append({

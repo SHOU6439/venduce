@@ -1,4 +1,13 @@
-import AuthGuard from '@/components/auth-guard';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Header } from '@/components/header';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Post, Product } from '@/types/api';
+import { postsApi } from '@/lib/api/posts';
+import { getImageUrl } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -6,71 +15,159 @@ interface PostDetailPageProps {
   }>;
 }
 
-export default async function PostDetail({ params }: PostDetailPageProps) {
-  const { id } = await params;
+export default function PostDetail({ params }: PostDetailPageProps) {
+  const router = useRouter();
+  const [paramId, setParamId] = useState<string>('');
+  const [post, setPost] = useState<Post | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return (
-    <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <header className="sticky top-0 bg-white shadow">
-          <div className="container mx-auto px-4 py-4">
-            <h1 className="text-xl font-bold">投稿詳細</h1>
-          </div>
-        </header>
+  useEffect(() => {
+    (async () => {
+      const { id } = await params;
+      setParamId(id);
+    })();
+  }, [params]);
 
-        <main className="container mx-auto px-4 py-8 max-w-2xl">
-          {/* 投稿 */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gray-300 rounded-full" />
-              <div>
-                <p className="font-semibold">ユーザー名</p>
-                <p className="text-sm text-gray-500">2024年1月1日</p>
-              </div>
-            </div>
+  useEffect(() => {
+    if (!paramId) return;
 
-            <p className="text-gray-800 mb-4">投稿内容がここに表示されます</p>
-            <div className="mb-4 bg-gray-200 rounded-lg h-96" />
+    const fetchPost = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await postsApi.getPost(paramId);
+        setPost(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '投稿の読み込みに失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-            <div className="flex gap-6 text-gray-600 mb-6">
-              <button className="hover:text-red-600">❤️ 123 いいね</button>
-              <button className="hover:text-blue-600">💬 45 コメント</button>
-              <button className="hover:text-blue-600">🔗 シェア</button>
-            </div>
+    fetchPost();
+  }, [paramId]);
 
-            {/* 関連商品 */}
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">関連商品</h3>
-              <div className="flex gap-4">
-                <div className="w-24 h-24 bg-gray-300 rounded cursor-pointer hover:opacity-80" />
-              </div>
-            </div>
-          </div>
+  const handleProductClick = (productId: string) => {
+    router.push(`/products/${productId}`);
+  };
 
-          {/* コメント */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">コメント</h2>
-
-            {/* コメント入力 */}
-            <div className="mb-6">
-              <textarea placeholder="コメントを入力..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} />
-              <button className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">投稿</button>
-            </div>
-
-            {/* コメント一覧 */}
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
-                <div>
-                  <p className="font-semibold">コメントユーザー</p>
-                  <p className="text-sm text-gray-500">1時間前</p>
-                  <p className="text-gray-700 mt-1">コメント内容</p>
-                </div>
-              </div>
-            </div>
-          </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-2xl flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </main>
       </div>
-    </AuthGuard>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <div className="rounded-lg bg-red-50 p-4 text-red-700 mb-4">
+            {error || '投稿が見つかりません'}
+          </div>
+          <button
+            onClick={() => router.back()}
+            className="text-primary hover:underline"
+          >
+            ← 戻る
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  const createdAt = new Date(post.created_at).toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* 投稿 */}
+        <div className="bg-card rounded-lg border p-6 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <Avatar>
+              <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
+              <AvatarFallback>{post.user?.username?.[0] ?? '?'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{post.user?.username ?? 'ユーザー'}</p>
+              <p className="text-sm text-muted-foreground">{createdAt}</p>
+            </div>
+          </div>
+
+          <p className="text-foreground mb-4 whitespace-pre-wrap">{post.caption}</p>
+
+          {post.assets && post.assets.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              {post.assets.map((asset) => (
+                <div key={asset.id} className="rounded-lg overflow-hidden bg-muted aspect-square">
+                  <img
+                    src={getImageUrl(asset.public_url || '')}
+                    alt="投稿画像"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 関連商品 */}
+          {post.asset_products && post.asset_products.length > 0 && (
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3">関連商品</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Array.from(
+                  new Map(
+                    post.asset_products.map((ap: any) => [
+                      ap.product?.id,
+                      ap.product,
+                    ])
+                  ).values()
+                ).map((product: Product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => handleProductClick(product.id)}
+                    className="rounded-lg border p-2 cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <div className="aspect-square rounded bg-muted mb-2 overflow-hidden flex items-center justify-center">
+                      {product.assets && product.assets.length > 0 && (
+                        <img
+                          src={getImageUrl(product.assets[0].public_url || '')}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <p className="text-sm font-medium line-clamp-2">{product.title}</p>
+                    <p className="text-xs text-muted-foreground">¥{(product.price_cents / 100).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 戻るボタン */}
+        <button
+          onClick={() => router.back()}
+          className="text-primary hover:underline text-sm"
+        >
+          ← 戻る
+        </button>
+      </main>
+    </div>
   );
 }

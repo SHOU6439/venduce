@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { productsApi } from '@/lib/api/products';
@@ -11,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
 
 export default function SearchPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   
@@ -48,6 +50,14 @@ export default function SearchPage() {
 
     search();
   }, [query]);
+
+  const handleProductClick = (productId: string) => {
+    router.push(`/products/${productId}`);
+  };
+
+  const handlePostClick = (postId: string) => {
+    router.push(`/posts/${postId}`);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,6 +111,7 @@ export default function SearchPage() {
                     {products.map((product) => (
                       <div
                         key={product.id}
+                        onClick={() => handleProductClick(product.id)}
                         className="rounded-lg border p-4 hover:shadow-lg transition-shadow cursor-pointer"
                       >
                         <div className="aspect-square rounded-lg bg-muted mb-3 flex items-center justify-center overflow-hidden">
@@ -136,7 +147,8 @@ export default function SearchPage() {
                     {posts.map((post) => (
                       <div
                         key={post.id}
-                        className="rounded-lg border p-4 hover:shadow-lg transition-shadow"
+                        onClick={() => handlePostClick(post.id)}
+                        className="rounded-lg border p-4 hover:shadow-lg transition-shadow cursor-pointer"
                       >
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-white font-bold text-xs">
