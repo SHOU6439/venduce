@@ -16,6 +16,53 @@ import { AlertCircle } from 'lucide-react';
 export function LoginForm() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
+  const formatApiErrorMessage = (payload: Record<string, unknown> | null | undefined, fallback?: string): string | null => {
+    if (!payload) {
+      return fallback ?? null;
+    }
+
+    if (payload.detail) {
+      const detail = payload.detail as unknown;
+      if (typeof detail === 'string') {
+        return detail;
+      }
+      if (Array.isArray(detail)) {
+        return detail
+          .map((item) => (item && (item as Record<string, unknown>).msg) || JSON.stringify(item))
+          .join(', ');
+      }
+      if (typeof detail === 'object' && detail !== null) {
+        const detailObj = detail as Record<string, unknown>;
+        if (detailObj.message) {
+          return String(detailObj.message);
+        }
+        if (detailObj.code) {
+          return String(detailObj.code);
+        }
+      }
+    }
+
+    if (payload.message) {
+      return String(payload.message);
+    }
+
+    return fallback ?? null;
+  };
+  const getApiErrorPayload = (err: unknown): { status: number; payload?: Record<string, unknown>; fallback?: string } | null => {
+    if (err instanceof ApiError) {
+      return { status: err.status, payload: err.data as Record<string, unknown> | undefined, fallback: err.message };
+    }
+
+    if (typeof err === 'object' && err !== null) {
+      const candidate = err as Record<string, unknown>;
+      if (typeof candidate.status === 'number') {
+        return { status: candidate.status, payload: candidate.data as Record<string, unknown> | undefined, fallback: candidate.message as string | undefined };
+      }
+    }
+
+    return null;
+  };
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,16 +77,25 @@ export function LoginForm() {
       await login({ email, password });
       router.push('/feed');
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 400) {
-          setError('メールアドレスまたはパスワードが間違っています');
-        } else if (err.status === 403) {
-          setError('アカウントが確認されていません。メールアドレスを確認してください。');
+      console.error('Login error caught:', err);
+
+      const apiError = getApiErrorPayload(err);
+      if (apiError) {
+        const { status, payload, fallback } = apiError;
+        const apiMessage = formatApiErrorMessage(payload ?? null, fallback);
+        if (status === 401 || status === 400) {
+          setError(apiMessage || 'メールアドレスまたはパスワードが間違っています');
+        } else if (status === 403) {
+          setError(apiMessage || 'アカウントが確認されていません。メールアドレスを確認してください。');
         } else {
-          setError(err.message || 'ログインに失敗しました');
+          setError(apiMessage || 'ログインに失敗しました');
         }
+      } else if (err instanceof Error) {
+        console.error('General Error:', err.message);
+        setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'ログインに失敗しました');
+        console.error('Unknown error:', err);
+        setError('予期しないエラーが発生しました');
       }
     } finally {
       setLoading(false);

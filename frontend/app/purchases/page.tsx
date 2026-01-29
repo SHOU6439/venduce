@@ -117,7 +117,7 @@ export default function PurchasesPage() {
               <div
                 key={purchase.id}
                 className="p-4 hover:bg-muted/50 transition cursor-pointer"
-                onClick={() => router.push(`/products/${purchase.product_id}`)}
+                onClick={() => router.push(`/purchases/${purchase.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

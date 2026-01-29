@@ -266,7 +266,7 @@ export function ProfileContent() {
                   <div
                     key={purchase.id}
                     className="relative aspect-square bg-muted cursor-pointer hover:opacity-75 transition overflow-hidden"
-                    onClick={() => router.push(`/products/${purchase.product_id}`)}
+                    onClick={() => router.push(`/purchases/${purchase.id}`)}
                   >
                     {imageUrl ? (
                       <>

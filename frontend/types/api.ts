@@ -123,38 +123,3 @@ export interface CreatePostPayload {
   asset_product_pairs: AssetProductPair[];
   tags?: string[];
 }
-export interface PaymentMethod {
-  id: string;
-  user_id: string;
-  type: string;
-  name: string;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Purchase {
-  id: string;
-  buyer_id: string;
-  product_id: string;
-  quantity: number;
-  price_cents: number;
-  total_amount_cents: number;
-  currency: string;
-  payment_method_id?: string | null;
-  referring_post_id?: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  product: Product;
-  payment_method?: PaymentMethod | null;
-}
-
-export interface PaginatedResponseCursor<T> {
-  items: T[];
-  meta: {
-    next_cursor?: string | null;
-    has_more: boolean;
-    returned: number;
-  };
-}

@@ -99,9 +99,14 @@ async function request<TResponse>(
             .map((err) => err.msg || JSON.stringify(err))
             .join(", ");
         } else if (typeof detail === "object" && detail !== null) {
-          message =
-            String((detail as Record<string, unknown>).message) ||
-            JSON.stringify(detail);
+          const detailObj = detail as Record<string, unknown>;
+          if (detailObj.message) {
+            message = String(detailObj.message);
+          } else if (detailObj.code) {
+            message = String(detailObj.code);
+          } else {
+            message = JSON.stringify(detail);
+          }
         } else {
           message = String(detail);
         }
@@ -207,11 +212,24 @@ async function fetchAPI<T>(
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
-    throw new ApiError(
-      response.status,
-      errorBody.detail || `API Error: ${response.statusText}`,
-      errorBody,
-    );
+
+    let errorMessage = `API Error: ${response.statusText}`;
+    if (errorBody.detail) {
+      if (typeof errorBody.detail === 'string') {
+        errorMessage = errorBody.detail;
+      } else if (typeof errorBody.detail === 'object' && errorBody.detail !== null) {
+        const detail = errorBody.detail as Record<string, unknown>;
+        if (detail.message) {
+          errorMessage = String(detail.message);
+        } else if (detail.code) {
+          errorMessage = String(detail.code);
+        }
+      }
+    } else if (errorBody.message) {
+      errorMessage = String(errorBody.message);
+    }
+    
+    throw new ApiError(response.status, errorMessage, errorBody);
   }
 
   if (response.status === 204) {

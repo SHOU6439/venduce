@@ -45,7 +45,9 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    if (!validate()) return;
+    if (!validate()) {
+      return;
+    }
 
     setIsLoading(true);
 
@@ -54,19 +56,23 @@ export default function Login() {
       router.push('/');
     } catch (err) {
       if (err instanceof ApiError) {
-        switch (err.message) {
-          case 'Invalid email or password':
-            setError('メールアドレスまたはパスワードが正しくありません');
-            break;
-          case 'Account not confirmed. Check your email.':
-            setError('アカウントが確認されていません。メールを確認してください。');
-            break;
-          case 'Account is inactive. Contact support.':
-            setError('アカウントが無効です。サポートにお問い合わせください。');
-            break;
-          default:
-            setError('予期せぬエラーが発生しました。しばらくしてから再度お試しください。');
+        const translations: Record<string, string> = {
+          'Invalid email or password': 'メールアドレスまたはパスワードが正しくありません',
+          'Account not confirmed. Check your email.': 'アカウントが確認されていません。メールを確認してください。',
+          'Account is inactive. Contact support.': 'アカウントが無効です。サポートにお問い合わせください。',
+        };
+
+        const errorMessage = translations[err.message] || err.message;
+
+        if (err.status === 401 || err.status === 400) {
+          setError(errorMessage);
+        } else if (err.status === 403) {
+          setError(errorMessage || 'アカウントが確認されていません。メールを確認してください。');
+        } else {
+          setError(errorMessage || 'ログインに失敗しました');
         }
+      } else if (err instanceof Error) {
+        setError(err.message || 'ログインに失敗しました');
       } else {
         setError('予期せぬエラーが発生しました。しばらくしてから再度お試しください。');
       }
