@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Heart, Share2, ShoppingBag } from 'lucide-react';
+import { Heart, Share2, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { postsApi } from '@/lib/api/posts';
 import { Product, Post } from '@/types/api';
 import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
 import { PurchaseForm } from '@/components/purchase-form';
+import { BackButton } from '@/components/back-button';
 
 export function ProductDetails({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -43,9 +44,7 @@ export function ProductDetails({ productId }: { productId: string }) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="flex h-16 items-center gap-4 px-4">
-          <Link href="/feed">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <BackButton />
           <h1 className="flex-1 font-semibold text-lg">商品詳細</h1>
           <Button variant="ghost" size="icon">
             <Share2 className="h-5 w-5" />

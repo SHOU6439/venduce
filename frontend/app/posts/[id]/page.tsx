@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { BackButton } from '@/components/back-button';
 import { Post, Product } from '@/types/api';
 import { postsApi } from '@/lib/api/posts';
 import { getImageUrl } from '@/lib/utils';
@@ -71,12 +72,7 @@ export default function PostDetail({ params }: PostDetailPageProps) {
           <div className="rounded-lg bg-red-50 p-4 text-red-700 mb-4">
             {error || '投稿が見つかりません'}
           </div>
-          <button
-            onClick={() => router.back()}
-            className="text-primary hover:underline"
-          >
-            ← 戻る
-          </button>
+          <BackButton showLabel label="戻る" />
         </main>
       </div>
     );
@@ -161,12 +157,7 @@ export default function PostDetail({ params }: PostDetailPageProps) {
         </div>
 
         {/* 戻るボタン */}
-        <button
-          onClick={() => router.back()}
-          className="text-primary hover:underline text-sm"
-        >
-          ← 戻る
-        </button>
+        <BackButton showLabel label="戻る" />
       </main>
     </div>
   );

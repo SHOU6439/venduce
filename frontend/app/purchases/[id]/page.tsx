@@ -6,10 +6,11 @@ import { useAuthStore, useAuthHydrated } from '@/stores/auth';
 import { Purchase } from '@/types/api';
 import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/utils';
+import { BackButton } from '@/components/back-button';
 
 export default function PurchaseDetailPage() {
   const router = useRouter();
@@ -71,13 +72,7 @@ export default function PurchaseDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-2xl mx-auto p-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-muted rounded-lg transition mb-4"
-            aria-label="戻る"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+          <BackButton className="mb-4" />
           <div className="p-4 rounded-lg bg-red-50 text-red-700">
             {error || '購入詳細が見つかりません'}
           </div>
@@ -103,13 +98,7 @@ export default function PurchaseDetailPage() {
       <div className="max-w-2xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-muted rounded-lg transition"
-            aria-label="戻る"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+          <BackButton />
           <h1 className="text-2xl font-bold">購入詳細</h1>
         </div>
 
