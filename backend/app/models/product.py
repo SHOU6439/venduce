@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.db.database import Base
 from app.models.product_category import ProductCategory
+from app.models.product_assets import product_assets
 
 
 class Product(Base):
@@ -45,6 +46,7 @@ class Product(Base):
 
     brand = relationship("Brand", backref="products")
     categories = relationship("Category", secondary="product_categories", backref="products")
+    assets = relationship("Asset", secondary=product_assets, backref="products")
 
 
 __all__ = ["Product"]

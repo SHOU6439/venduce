@@ -57,22 +57,14 @@ export function ProductsGrid() {
   }
 
   return (
-    <>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {products.map((product) => (
-          <Card
-            key={product.id}
-            className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1"
-          >
-            <Link href={`/product/${product.id}`}>
-              <div className="aspect-square overflow-hidden bg-muted">
-                <img
-                  src={getImageUrl(product.images?.[0])}
-                  alt={product.title}
-                  className="h-full w-full object-cover transition-transform hover:scale-105"
-                />
-              </div>
-            </Link>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {products.map((product) => (
+        <Card key={product.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
+          <Link href={`/product/${product.id}`}>
+            <div className="aspect-square overflow-hidden bg-muted">
+              <img src={getImageUrl(product.images[0])} alt={product.title} className="h-full w-full object-cover transition-transform hover:scale-105" />
+            </div>
+          </Link>
 
             <div className="p-4 space-y-3">
               <div>

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.product import Product
 from app.models.category import Category
 from app.models.brand import Brand
+from app.models.asset import Asset
 from app.models.enums import ProductStatus
 from app.schemas.product import ProductCreate
 from app.utils.cursor import encode_cursor, decode_cursor
@@ -38,8 +39,45 @@ class ProductService:
         except IntegrityError:
             db.rollback()
             raise ValueError("sku already exists")
+        
+        if payload.asset_ids:
+            assets = db.query(Asset).filter(Asset.id.in_(payload.asset_ids)).all()
+            if len(assets) != len(payload.asset_ids):
+                missing_ids = set(payload.asset_ids) - {a.id for a in assets}
+                raise ValueError(f"Some assets not found: {missing_ids}")
+            for asset in assets:
+                product.assets.append(asset)
+        
+        db.commit()
         db.refresh(product)
         return product
+
+
+    def get_by_id(self, db: Session, product_id: str) -> Product:
+        product = (
+            db.query(Product)
+            .options(
+                joinedload(Product.brand),
+                selectinload(Product.categories),
+                selectinload(Product.assets),
+            )
+            .filter(Product.id == product_id)
+            .first()
+        )
+        
+        if not product:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="Product not found",
+            )
+        return product
+
+    def is_visible_to_user(self, product: Product, is_superuser: bool = False) -> bool:
+        if product.status == "published":
+            return True
+        if is_superuser:
+            return True
+        return False
 
     def list(
         self,
@@ -65,6 +103,7 @@ class ProductService:
         query = db.query(Product).options(
             joinedload(Product.brand),
             selectinload(Product.categories),
+            selectinload(Product.assets),
         )
 
         if not is_admin:
@@ -169,12 +208,6 @@ class ProductService:
                 "total_pages": total_pages,
             }
 
-
-    def get_by_id(self, db: Session, product_id: str):
-        product = db.query(Product).filter(Product.id == product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-        return product
 
     def is_visible_to_user(self, product: Product, is_admin: bool) -> bool:
         if is_admin:

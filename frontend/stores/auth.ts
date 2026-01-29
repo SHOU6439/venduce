@@ -1,6 +1,7 @@
-import { apiClient } from '@/lib/api/client';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface User {
   id: string;
@@ -19,38 +20,43 @@ interface LoginResponse {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (payload: { email: string; password: string; remember?: boolean }) => Promise<void>;
+
+  hasHydrated?: boolean;
+  login: (payload: {
+    email: string;
+    password: string;
+    remember?: boolean;
+  }) => Promise<void>;
   logout: () => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
+  setHasHydrated?: (hydrated: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
-
+      hasHydrated: false,
       login: async (payload) => {
-        const response = await apiClient.post<LoginResponse>('/api/auth/login', payload);
+        const response = await apiClient.post<LoginResponse>(
+          "/api/auth/login",
+          payload,
+        );
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("token", response.access_token);
+        }
         set({
-          accessToken: response.access_token,
-          refreshToken: response.refresh_token,
           isAuthenticated: true,
         });
-        localStorage.setItem('token', response.access_token);
       },
-
       logout: () => {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("token");
+        }
         set({
           user: null,
-          accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
         });
       },
@@ -59,18 +65,34 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
+
+
       setUser: (user) => {
         set({ user });
       },
+      setHasHydrated: (hydrated: boolean) => {
+        set({ hasHydrated: hydrated });
+      },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
       }),
-    }
+
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated?.(true);
+      },
+    },
   )
 );
+
+export function useAuthHydrated() {
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hasHydrated) setHydrated(true);
+  }, [hasHydrated]);
+  return hydrated;
+}
