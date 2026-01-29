@@ -37,8 +37,6 @@ export function ProductDetails({ productId }: { productId: string }) {
   if (loading) return <div className="p-10 text-center">Loading...</div>;
   if (!product) return <div className="p-10 text-center">商品が見つかりません</div>;
 
-  const displayImages = product.images && product.images.length > 0 ? product.images : [''];
-
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -58,10 +56,10 @@ export function ProductDetails({ productId }: { productId: string }) {
         {/* Image Gallery */}
         <div className="space-y-4 p-4">
           <div className="relative aspect-square max-h-[360px] w-full overflow-hidden rounded-lg bg-muted mx-auto">
-            <img src={getImageUrl(displayImages[selectedImage])} alt={product.title} className="h-full w-full object-contain" />
+            <img src={getImageUrl(product.images[selectedImage])} alt={product.title} className="h-full w-full object-contain" />
           </div>
           <div className="flex gap-2 justify-center overflow-x-auto">
-            {displayImages.map((image, index) => (
+            {product.images.map((image, index) => (
               <button key={index} onClick={() => setSelectedImage(index)} className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImage === index ? 'border-primary' : 'border-transparent'}`}>
                 <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" />
               </button>

@@ -882,6 +882,20 @@ def generate_seed_data():
                                     assets_linked += 1
                         db.commit()
                         print(f"✅ {assets_linked}個のアセットを投稿に関連付け\n")
+                    
+                    all_products = db.query(Product).all()
+                    if all_products and all_assets:
+                        print("📎 アセットを商品に関連付け中...")
+                        product_assets_linked = 0
+                        for product in all_products:
+                            num_assets = random.randint(1, min(3, len(all_assets)))
+                            selected_assets = random.sample(all_assets, num_assets)
+                            for asset in selected_assets:
+                                if asset not in product.assets:
+                                    product.assets.append(asset)
+                                    product_assets_linked += 1
+                        db.commit()
+                        print(f"✅ {product_assets_linked}個のアセットを商品に関連付け\n")
             else:
                 print(f"⚠️  CSV ファイルが見つかりません: {csv_path}\n")
         else:

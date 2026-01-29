@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy import Column, String, Text, Integer, BigInteger, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 from ulid import ULID
 
 from app.db.database import Base
