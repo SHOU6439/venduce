@@ -95,6 +95,12 @@ export function CreatePost() {
         delete newMap[removedAsset.id];
         return newMap;
       });
+
+      setSelectedProductDetails((details) => {
+        const newDetails = { ...details };
+        delete newDetails[removedAsset.id];
+        return newDetails;
+      });
       
       if (selectedAssetId === removedAsset.id) {
         setSelectedAssetId(newAssets.length > 0 ? newAssets[0].id : null);
