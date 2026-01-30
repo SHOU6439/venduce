@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from fastapi import HTTPException, status
 
 from app.models.post import Post
@@ -80,7 +81,7 @@ class PostService:
         PostAsset テーブルから画像と商品の紐付け情報を取得し、
         post.asset_products リストを構築します。
         """
-        from sqlalchemy.orm import selectinload
+
 
         post_assets = (
             self.db.query(PostAsset)
@@ -264,7 +265,7 @@ class PostService:
         Raises:
             HTTPException: 404（投稿が存在しない）、403（アクセス権限がない）
         """
-        from sqlalchemy.orm import selectinload
+
 
         post = (
             self.db.query(Post)
@@ -388,7 +389,7 @@ class PostService:
 
     def delete_post(self, *, post_id: str, current_user: User) -> None:
         """投稿を論理削除します。"""
-        from datetime import datetime, timezone
+
 
         post = self.get_post_by_id(post_id=post_id, current_user=current_user)
 
