@@ -25,6 +25,7 @@ interface AuthState {
   isAuthenticated: boolean;
   accessToken: string | null;
   refreshToken: string | null;
+  refreshTokenExpiresAt: number | null; // Unix timestamp (ms)
 
   hasHydrated?: boolean;
   login: (payload: {
@@ -35,9 +36,10 @@ interface AuthState {
   logout: () => void;
   setUser: (user: User) => void;
   refreshAccessToken: () => Promise<boolean>;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+  setTokens: (accessToken: string, refreshToken: string, expiresIn?: number) => void;
   setHasHydrated?: (hydrated: boolean) => void;
   initializeFromToken: () => Promise<void>;
+  shouldRefreshToken: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       accessToken: null,
       refreshToken: null,
+      refreshTokenExpiresAt: null,
       hasHydrated: false,
       login: async (payload) => {
         const response = await client.post<LoginResponse>(
@@ -71,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
           user: response.user || null,
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
+          refreshTokenExpiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
         });
       },
       logout: () => {
@@ -83,10 +87,11 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           accessToken: null,
           refreshToken: null,
+          refreshTokenExpiresAt: null,
         });
       },
 
-      setTokens: (accessToken, refreshToken) => {
+      setTokens: (accessToken, refreshToken, expiresIn) => {
         if (typeof window !== "undefined") {
           setCookie("access_token", accessToken, {
             maxAge: 15 * 60,
@@ -99,7 +104,12 @@ export const useAuthStore = create<AuthState>()(
             sameSite: "Lax",
           });
         }
-        set({ accessToken, refreshToken, isAuthenticated: true });
+        set({ 
+          accessToken, 
+          refreshToken, 
+          isAuthenticated: true,
+          refreshTokenExpiresAt: expiresIn ? Date.now() + (expiresIn * 1000) : Date.now() + (7 * 24 * 60 * 60 * 1000),
+        });
       },
 
       refreshAccessToken: async () => {
@@ -132,6 +142,7 @@ export const useAuthStore = create<AuthState>()(
             accessToken: response.access_token,
             refreshToken: response.refresh_token,
             isAuthenticated: true,
+            refreshTokenExpiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
           });
 
           return true;
@@ -140,6 +151,17 @@ export const useAuthStore = create<AuthState>()(
           get().logout();
           return false;
         }
+      },
+
+      shouldRefreshToken: () => {
+        const state = get();
+        if (!state.refreshTokenExpiresAt) return false;
+        
+        // リフレッシュトークンの残り時間が1日以下の場合は true
+        const remainingTime = state.refreshTokenExpiresAt - Date.now();
+        const oneDayInMs = 24 * 60 * 60 * 1000;
+        
+        return remainingTime <= oneDayInMs && remainingTime > 0;
       },
 
       initializeFromToken: async () => {
@@ -154,6 +176,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               accessToken: token,
               refreshToken: refreshToken,
+              refreshTokenExpiresAt: refreshToken ? Date.now() + (7 * 24 * 60 * 60 * 1000) : null,
             });
           } else {
             // トークンがない場合はクリア
@@ -162,6 +185,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               accessToken: null,
               refreshToken: null,
+              refreshTokenExpiresAt: null,
             });
           }
         } catch (err) {
@@ -176,6 +200,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             accessToken: null,
             refreshToken: null,
+            refreshTokenExpiresAt: null,
           });
         }
       },
@@ -194,6 +219,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        refreshTokenExpiresAt: state.refreshTokenExpiresAt,
       }),
 
       onRehydrateStorage: () => (state) => {
