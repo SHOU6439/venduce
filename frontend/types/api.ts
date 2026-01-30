@@ -1,3 +1,11 @@
+export interface PaginatedProductsResponse {
+  items: Product[];
+  meta: {
+    next_cursor?: string | null;
+    has_more: boolean;
+    returned: number;
+  };
+}
 export interface User {
   id: string;
   email: string;
@@ -7,7 +15,6 @@ export interface User {
   created_at: string;
   is_confirmed: boolean;
   is_active: boolean;
-  /** optional fields exposed once profile API is extended */
   avatar_url?: string | null;
   bio?: string | null;
 }
@@ -63,8 +70,9 @@ export interface Product {
   brand?: Brand | null;
   created_at: string;
   updated_at?: string | null;
+  assets: Asset[];
   /** frontend helpers */
-  images?: string[];
+  images: string[];
   like_count?: number;
   purchase_count?: number;
 }
@@ -90,6 +98,10 @@ export interface Post {
   tags: Tag[];
   images: Asset[];
   assets?: Asset[];
+  asset_products?: Array<{
+    asset: Asset;
+    product: Product | null;
+  }>;
   liked_by_me?: boolean;
 }
 
@@ -99,4 +111,15 @@ export interface PaginatedResponse<T> {
   page: number;
   per_page: number;
   total_pages: number;
+}
+
+export interface AssetProductPair {
+  asset_id: string;
+  product_id: string | null;
+}
+
+export interface CreatePostPayload {
+  caption: string;
+  asset_product_pairs: AssetProductPair[];
+  tags?: string[];
 }

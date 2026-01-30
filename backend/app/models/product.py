@@ -8,10 +8,12 @@ from sqlalchemy.dialects.postgresql import JSONB
 from typing import TYPE_CHECKING
 
 from app.db.database import Base
+from app.models.product_assets import product_assets
 
 if TYPE_CHECKING:
     from app.models.brand import Brand
     from app.models.category import Category
+    from app.models.asset import Asset
 
 
 class Product(Base):
@@ -51,6 +53,7 @@ class Product(Base):
 
     brand: Mapped["Brand"] = relationship("Brand", backref="products")
     categories: Mapped[list["Category"]] = relationship("Category", secondary="product_categories", backref="products")
+    assets: Mapped[list["Asset"]] = relationship("Asset", secondary=product_assets, backref="products")
 
 
 __all__ = ["Product"]

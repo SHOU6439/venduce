@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.enums import PostStatus
 from app.schemas.post import PostCreate, PostUpdate
 from app.utils.cursor import encode_cursor, decode_cursor
+from app.models.post_assets import PostAsset
 
 
 class PostService:
@@ -73,21 +74,96 @@ class PostService:
                 tags.append(new_tag)
         return tags
 
+    def _enrich_post_with_asset_products(self, post: Post) -> Post:
+        """Post オブジェクトに asset_products 属性を付与します。
+
+        PostAsset テーブルから画像と商品の紐付け情報を取得し、
+        post.asset_products リストを構築します。
+        """
+        from sqlalchemy.orm import selectinload
+
+        post_assets = (
+            self.db.query(PostAsset)
+            .options(
+                selectinload(PostAsset.asset),
+                selectinload(PostAsset.product)
+            )
+            .filter(PostAsset.post_id == post.id)
+            .all()
+        )
+
+        asset_products = []
+        for pa in post_assets:
+            asset_dict = {
+                'id': pa.asset.id,
+                'owner_id': pa.asset.owner_id,
+                'purpose': pa.asset.purpose,
+                'status': pa.asset.status,
+                'storage_key': pa.asset.storage_key,
+                'content_type': pa.asset.content_type,
+                'extension': pa.asset.extension,
+                'size_bytes': pa.asset.size_bytes,
+                'width': pa.asset.width,
+                'height': pa.asset.height,
+                'checksum': pa.asset.checksum,
+                'variants': pa.asset.variants,
+                'public_url': pa.asset.public_url,
+                'metadata': pa.asset.extra_metadata,
+                'created_at': pa.asset.created_at,
+                'updated_at': pa.asset.updated_at,
+            }
+
+            product_dict = None
+            if pa.product:
+                product_dict = {
+                    'id': pa.product.id,
+                    'title': pa.product.title,
+                    'sku': pa.product.sku,
+                    'description': pa.product.description,
+                    'price_cents': pa.product.price_cents,
+                    'currency': pa.product.currency,
+                    'status': pa.product.status,
+                    'stock_quantity': pa.product.stock_quantity,
+                    'extra_metadata': pa.product.extra_metadata,
+                    'created_at': pa.product.created_at,
+                    'updated_at': pa.product.updated_at,
+                }
+
+            asset_products.append({
+                'asset': asset_dict,
+                'product': product_dict
+            })
+
+        post.asset_products = asset_products
+        return post
+
     def create_post(self, *, post_in: PostCreate, current_user: User) -> Post:
         """`PostCreate` から `Post` を作成して返します。
 
         実行内容（ビジネスルール）:
-        - `asset_ids` が与えられた場合、アセットが存在し、かつ現在のユーザーの所有であることを検証します。
+        - `asset_product_pairs` が与えられた場合、各アセットが存在し、かつ現在のユーザーの所有であることを検証します。
         - `product_ids` が与えられた場合、該当する製品が存在することを検証します。
         - `tags` はトリム・小文字化して正規化し、既存タグがあれば `usage_count` を増やして再利用、なければ新規作成します。
-        - 関連（products/tags/assets）を設定し、DB に保存（commit）、作成した `Post` を返します。
+        - PostAsset テーブルに各画像と商品の紐付けを記録します。
+        - 関連（products/tags）を設定し、DB に保存（commit）、作成した `Post` を返します。
 
         すべての検証はここに集約され、ルーターは薄く保たれます。
         """
-        assets = self._validate_and_fetch_assets(post_in.asset_ids, current_user)
-        products = self._validate_and_fetch_products(post_in.product_ids)
-        tags = self._get_or_create_tags(post_in.tags)
+        asset_ids = [pair.asset_id for pair in post_in.asset_product_pairs]
+        if len(asset_ids) != len(set(asset_ids)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Duplicate asset_ids found in asset_product_pairs."
+            )
 
+        assets = self._validate_and_fetch_assets(asset_ids, current_user)
+
+        product_ids_from_pairs = {pair.product_id for pair in post_in.asset_product_pairs if pair.product_id}
+        all_product_ids = list(set(post_in.product_ids) | product_ids_from_pairs)
+
+        products = self._validate_and_fetch_products(all_product_ids)
+
+        tags = self._get_or_create_tags(post_in.tags)
         for tag in tags:
             tag.usage_count += 1
 
@@ -100,18 +176,32 @@ class PostService:
 
         post.products = products
         post.tags = tags
-        post.assets = assets
+
+        if post_in.asset_product_pairs:
+            product_map = {p.id: p for p in products}
+
+            post_assets = []
+            for pair in post_in.asset_product_pairs:
+                post_asset = PostAsset(
+                    asset_id=pair.asset_id,
+                    product_id=pair.product_id
+                )
+                post_assets.append(post_asset)
+            post.post_assets_links = post_assets
 
         self.db.add(post)
         self.db.commit()
         self.db.refresh(post)
+
+        self._enrich_post_with_asset_products(post)
+
         return post
 
     def get_public_posts(
         self,
         *,
         cursor: Optional[str] = None,
-        limit: int = 20
+        limit: int = 20,
     ) -> Tuple[List[Post], Optional[str], bool]:
         """公開投稿の一覧を cursor ベースのページネーションで取得します。
 
@@ -122,7 +212,7 @@ class PostService:
         Returns:
             (posts, next_cursor, has_more) のタプル
             - posts: 投稿リスト
-            - next_cursor: 次ページのカーソル（なければ None）
+            - next_cursor: 次ページのカーソル
             - has_more: 次ページがあるか
         """
         query = (
@@ -145,16 +235,14 @@ class PostService:
         if has_more:
             posts = posts[:limit]
 
+        next_cursor = encode_cursor(posts[-1].created_at, posts[-1].id) if posts and has_more else None
+
         for post in posts:
             _ = post.user
             _ = post.assets
             _ = post.products
             _ = post.tags
-
-        next_cursor = None
-        if has_more and posts:
-            last_post = posts[-1]
-            next_cursor = encode_cursor(last_post.created_at, last_post.id)
+            self._enrich_post_with_asset_products(post)
 
         return posts, next_cursor, has_more
 
@@ -198,6 +286,7 @@ class PostService:
             )
 
         if post.status == PostStatus.PUBLIC:
+            self._enrich_post_with_asset_products(post)
             return post
 
         if not current_user or current_user.id != post.user_id:
@@ -206,6 +295,7 @@ class PostService:
                 detail="You do not have permission to access this post"
             )
 
+        self._enrich_post_with_asset_products(post)
         return post
 
     def update_post(
@@ -255,8 +345,39 @@ class PostService:
 
             post.tags = new_tags
 
+        if "asset_product_pairs" in update_data:
+            self.db.query(PostAsset).filter(PostAsset.post_id == post.id).delete()
+            self.db.flush()
+
+            assets_for_post = self._validate_and_fetch_assets(post_in.asset_ids, current_user)
+            products_for_post = self._validate_and_fetch_products(post_in.product_ids)
+
+            asset_ids_in_pairs = {pair.asset_id for pair in post_in.asset_product_pairs}
+            if not asset_ids_in_pairs.issubset({a.id for a in assets_for_post}):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Some asset_ids in asset_product_pairs are not in asset_ids or not owned by user."
+                )
+            product_ids_in_pairs = {pair.product_id for pair in post_in.asset_product_pairs if pair.product_id}
+            if not product_ids_in_pairs.issubset({p.id for p in products_for_post}):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Some product_ids in asset_product_pairs are not in product_ids."
+                )
+
+            post_assets = []
+            for pair in post_in.asset_product_pairs:
+                post_asset = PostAsset(
+                    post_id=post.id,
+                    asset_id=pair.asset_id,
+                    product_id=pair.product_id
+                )
+                post_assets.append(post_asset)
+            self.db.add_all(post_assets)
+            post.post_assets_links = post_assets
+
         for field, value in update_data.items():
-            if field in {"asset_ids", "product_ids", "tags"}:
+            if field in {"asset_ids", "product_ids", "tags", "asset_product_pairs"}:
                 continue
             setattr(post, field, value)
 

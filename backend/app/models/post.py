@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from app.db.database import Base
 from app.models.post_products import post_products
 from app.models.post_tags import post_tags
-from app.models.post_assets import post_assets
+from app.models.post_assets import post_assets, PostAsset
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -65,7 +65,9 @@ class Post(Base):
     products: Mapped[list["Product"]] = relationship("Product", secondary=post_products, backref="posts")
     tags: Mapped[list["Tag"]] = relationship("Tag", secondary=post_tags, backref="posts")
 
-    assets: Mapped[list["Asset"]] = relationship("Asset", secondary=post_assets, backref="posts")
+    assets: Mapped[list["Asset"]] = relationship("Asset", secondary=post_assets, backref="posts", overlaps="asset")
+    post_assets_links: Mapped[list["PostAsset"]] = relationship(
+        "PostAsset", back_populates="post", cascade="all, delete-orphan", overlaps="assets, posts")
 
 
 __all__ = ["Post"]

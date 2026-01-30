@@ -4,6 +4,7 @@ from __future__ import annotations
 from sqlalchemy import String, Text, Integer, BigInteger, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 from ulid import ULID
 from datetime import datetime
 
