@@ -17,6 +17,7 @@ interface User {
 interface LoginResponse {
   access_token: string;
   refresh_token: string;
+  expires_in: number;
   user?: User;
 }
 
@@ -64,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
             sameSite: "Lax",
           });
           setCookie("refresh_token", response.refresh_token, {
-            maxAge: 7 * 24 * 60 * 60, // 7日
+            maxAge: response.expires_in, // バックエンドから返される秒単位の有効期限を使用
             path: "/",
             sameSite: "Lax",
           });
@@ -74,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
           user: response.user || null,
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
-          refreshTokenExpiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+          refreshTokenExpiresAt: Date.now() + (response.expires_in * 1000), // バックエンドの値を使用
         });
       },
       logout: () => {
@@ -132,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
               sameSite: "Lax",
             });
             setCookie("refresh_token", response.refresh_token, {
-              maxAge: 7 * 24 * 60 * 60,
+              maxAge: response.expires_in,
               path: "/",
               sameSite: "Lax",
             });
@@ -142,11 +143,17 @@ export const useAuthStore = create<AuthState>()(
             accessToken: response.access_token,
             refreshToken: response.refresh_token,
             isAuthenticated: true,
-            refreshTokenExpiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+            refreshTokenExpiresAt: Date.now() + (response.expires_in * 1000),
           });
 
           return true;
         } catch (error) {
+          // ネットワークエラーの場合は静かに失敗（リトライはAPI層で処理）
+          if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            // ネットワーク障害 - 何もしない（クライアント側では対応不可）
+            return false;
+          }
+          // その他のエラー（認証失敗など）はログアウト
           console.error("Failed to refresh access token:", error);
           get().logout();
           return false;
@@ -166,9 +173,14 @@ export const useAuthStore = create<AuthState>()(
 
       initializeFromToken: async () => {
         try {
+          const state = get();
+        
+          if (state.user && state.accessToken) {
+            return;
+          }
+
           const token = getCookie("access_token");
           if (token) {
-            // トークンが存在すればユーザー情報を取得
             const user = await client.get<User>("/api/users/me");
             const refreshToken = getCookie("refresh_token");
             set({
@@ -179,7 +191,6 @@ export const useAuthStore = create<AuthState>()(
               refreshTokenExpiresAt: refreshToken ? Date.now() + (7 * 24 * 60 * 60 * 1000) : null,
             });
           } else {
-            // トークンがない場合はクリア
             set({
               user: null,
               isAuthenticated: false,
@@ -190,7 +201,6 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (err) {
           console.error('Failed to initialize from token:', err);
-          // トークン無効な場合はクリア
           if (typeof window !== "undefined") {
             deleteCookie("access_token", "/");
             deleteCookie("refresh_token", "/");
@@ -237,7 +247,6 @@ export function useAuthHydrated() {
   useEffect(() => {
     if (hasHydrated) {
       setHydrated(true);
-      // Hydration完了後にトークンから情報を復元
       initializeFromToken();
     }
   }, [hasHydrated, initializeFromToken]);

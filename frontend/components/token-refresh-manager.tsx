@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -9,21 +9,31 @@ import { useAuthStore } from '@/stores/auth';
 export function TokenRefreshManager() {
   const refreshAccessToken = useAuthStore((state) => state.refreshAccessToken);
   const shouldRefreshToken = useAuthStore((state) => state.shouldRefreshToken);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
+  const checkAndRefresh = useCallback(() => {
     if (shouldRefreshToken()) {
       refreshAccessToken();
     }
-
-    const interval = setInterval(() => {
-      if (shouldRefreshToken()) {
-        console.log('リフレッシュトークンの期限が近いため、自動更新します');
-        refreshAccessToken();
-      }
-    }, 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
   }, [shouldRefreshToken, refreshAccessToken]);
+
+  useEffect(() => {
+    checkAndRefresh();
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    const checkInterval = process.env.NODE_ENV === 'development' ? 60 * 1000 : 60 * 60 * 1000;
+
+    intervalRef.current = setInterval(checkAndRefresh, checkInterval);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [checkAndRefresh]);
 
   return null;
 }

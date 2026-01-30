@@ -99,19 +99,7 @@ export function useInfiniteScroll<T, C = string | number>({
              return; 
           }
 
-          console.log(
-            `[useInfiniteScroll] Requesting with cursor=${cursor}, limit=${limit}`,
-          );
-          
           const response = await fetchMore(cursor, limit);
-
-          console.log(
-            `[useInfiniteScroll] Fetched with cursor=${cursor}, limit=${limit}`,
-            {
-              itemsReturned: response.items.length,
-              nextCursor: response.nextCursor,
-            },
-          );
 
           if (response.items.length > 0) {
             setItems((prev) => {

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { TokenRefreshManager } from '@/components/token-refresh-manager';
+import { AuthInitializer } from '@/components/auth-initializer';
 import './globals.css';
 
 const geistSans = Geist({
@@ -25,6 +27,8 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning>
       <body className={`${geistSans.className} ${geistMono.className} antialiased`} suppressHydrationWarning>
+        <AuthInitializer />
+        <TokenRefreshManager />
         {children}
       </body>
     </html>
