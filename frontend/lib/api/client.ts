@@ -3,6 +3,9 @@ const API_BASE_URL =
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
 function getStoredToken(explicitToken?: string | null): string | null {
   if (explicitToken) {
     return explicitToken;
@@ -10,7 +13,12 @@ function getStoredToken(explicitToken?: string | null): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.localStorage.getItem("token");
+  // クッキーからトークンを取得
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('access_token='))
+    ?.split('=')[1];
+  return cookieValue || null;
 }
 
 function resolveUrl(path: string): string {
@@ -227,6 +235,51 @@ async function fetchAPI<T>(
       }
     } else if (errorBody.message) {
       errorMessage = String(errorBody.message);
+    }
+    
+    if (response.status === 401 && endpoint !== "/api/auth/refresh" && endpoint !== "/api/auth/login") {
+      if (isRefreshing) {
+        await refreshPromise;
+      } else {
+        isRefreshing = true;
+        try {
+          const { useAuthStore } = await import("@/stores/auth");
+          refreshPromise = (async () => {
+            const success = await useAuthStore.getState().refreshAccessToken();
+            return success;
+          })();
+          
+          const success = await refreshPromise;
+          
+          if (success) {
+            const newToken = getStoredToken(null);
+            if (newToken) {
+              mergedHeaders.set("Authorization", `Bearer ${newToken}`);
+              const retryResponse = await fetch(resolveUrl(endpoint), {
+                ...customConfig,
+                body: resolvedBody,
+                headers: mergedHeaders,
+                credentials: "include",
+              });
+              
+              if (retryResponse.ok || retryResponse.status === 204) {
+                if (retryResponse.status === 204) {
+                  return {} as T;
+                }
+                return retryResponse.json();
+              }
+              
+              const retryErrorBody = await retryResponse.json().catch(() => ({}));
+              throw new ApiError(retryResponse.status, String(retryErrorBody.detail || retryResponse.statusText), retryErrorBody);
+            }
+          }
+        } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
+        } finally {
+          isRefreshing = false;
+          refreshPromise = null;
+        }
+      }
     }
     
     throw new ApiError(response.status, errorMessage, errorBody);
