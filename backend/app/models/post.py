@@ -1,8 +1,9 @@
 from __future__ import annotations
-
+from typing import Optional, List, Dict, Any
+from datetime import datetime
 from sqlalchemy import Column, String, Text, DateTime, func, ForeignKey, Enum, Integer
 from app.models.enums import PostStatus
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 from ulid import ULID
 
@@ -24,10 +25,10 @@ class Post(Base):
     """
     __tablename__ = "posts"
 
-    id = Column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
-    user_id = Column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    caption = Column(Text, nullable=True)
-    status = Column(
+    id: Mapped[str] = mapped_column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
+    user_id: Mapped[str] = mapped_column(String(26), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    caption: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[PostStatus] = mapped_column(
         Enum(
             PostStatus,
             name="post_status",
@@ -38,14 +39,14 @@ class Post(Base):
         nullable=False
     )
 
-    purchase_count = Column(Integer, default=0, nullable=False)
-    view_count = Column(Integer, default=0, nullable=False)
-    like_count = Column(Integer, default=0, nullable=False)
+    purchase_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    view_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    extra_metadata = Column("metadata", JSONB, nullable=True)
+    extra_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
