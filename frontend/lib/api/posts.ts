@@ -75,4 +75,12 @@ export const postsApi = {
       .filter((p) => p.products?.some((prod) => prod.id === productId))
       .slice(0, 4);
   },
+
+  searchPosts: async (query: string): Promise<Post[]> => {
+    if (!query.trim()) return [];
+    const params = new URLSearchParams({ q: query });
+    const response = await client.get<Post[] | { items: Post[] }>(`/api/posts?${params.toString()}`);
+    const items = Array.isArray(response) ? response : response.items || [];
+    return items.map(normalizePost);
+  },
 };

@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.tag import Tag
 from app.models.post import Post
 from app.models.asset import Asset
+from app.models.post_assets import PostAsset
 from app.models.enums import PostStatus
 from app.core.security import hash_password
 
@@ -67,7 +68,7 @@ POST_CAPTIONS = [
 
 POST_PRODUCT_PROBABILITY = 0.7  # 70% probability that a post includes related products
 POST_TAG_PROBABILITY = 0.8
-POST_ASSET_PROBABILITY = 0.7
+# POST_ASSET_PROBABILITY = 0.7  # 廃止: すべての投稿にアセットが必須
 
 CATEGORIES_HIERARCHICAL = {
     "ファッション": [
@@ -798,34 +799,9 @@ def generate_seed_data():
             all_tags = db.query(Tag).all()
             all_products = db.query(Product).limit(500).all()
             
-            posts_per_user = 5
-            for user in all_users[:200]:
-                for _ in range(random.randint(1, posts_per_user)):
-                    caption = random.choice(POST_CAPTIONS)
-                    post = Post(
-                        user_id=user.id,
-                        caption=caption,
-                        status=random.choice([PostStatus.PUBLIC, PostStatus.PUBLIC, PostStatus.DRAFT]),
-                        purchase_count=random.randint(0, 20),
-                        view_count=random.randint(0, 500),
-                        like_count=random.randint(0, 100),
-                    )
-                    db.add(post)
-                    db.flush()
-                    posts_created += 1
-                    
-                    if all_products and random.random() < POST_PRODUCT_PROBABILITY:
-                        selected_products = random.sample(all_products, min(3, len(all_products)))
-                        for product in selected_products:
-                            post.products.append(product)
-                    
-                    if all_tags and random.random() < POST_TAG_PROBABILITY:
-                        selected_tags = random.sample(all_tags, min(3, len(all_tags)))
-                        for tag in selected_tags:
-                            post.tags.append(tag)
+            posts_created = 0
             
-            db.commit()
-            print(f"✅ {posts_created}個の投稿を作成\n")
+            print("投稿の作成はアセット作成後に行われます")
         else:
             print(f"✅ 投稿はすでに{existing_posts}個存在しています\n")
 
@@ -869,19 +845,55 @@ def generate_seed_data():
                     db.commit()
                     print(f"✅ {assets_created}個のアセットを作成\n")
                     
-                    all_posts = db.query(Post).all()
+                    all_users = db.query(User).all()
                     all_assets = db.query(Asset).all()
-                    if all_posts and all_assets:
-                        print("📎 アセットを投稿に関連付け中...")
-                        assets_linked = 0
-                        for post in all_posts:
-                            if random.random() < POST_ASSET_PROBABILITY and all_assets:
-                                selected_assets = random.sample(all_assets, min(2, len(all_assets)))
+                    all_tags = db.query(Tag).all()
+                    all_products = db.query(Product).limit(500).all()
+                    
+                    if all_users and all_assets:
+                        print("📝 投稿を作成中...")
+                        posts_created = 0
+                        posts_per_user = 5
+                        
+                        for user in all_users[:200]:
+                            for _ in range(random.randint(1, posts_per_user)):
+                                caption = random.choice(POST_CAPTIONS)
+                                
+                                post = Post(
+                                    user_id=user.id,
+                                    caption=caption,
+                                    status=random.choice([PostStatus.PUBLIC, PostStatus.PUBLIC, PostStatus.DRAFT]),
+                                    purchase_count=random.randint(0, 20),
+                                    view_count=random.randint(0, 500),
+                                    like_count=random.randint(0, 100),
+                                )
+                                db.add(post)
+                                db.flush()
+                                posts_created += 1
+                                
+                                # 各投稿に最低1つのアセットを必須で紐付け
+                                num_assets_to_link = random.randint(1, min(3, len(all_assets)))
+                                selected_assets = random.sample(all_assets, num_assets_to_link)
                                 for asset in selected_assets:
-                                    post.assets.append(asset)
-                                    assets_linked += 1
+                                    post_asset = PostAsset(
+                                        post_id=post.id,
+                                        asset_id=asset.id,
+                                        product_id=None
+                                    )
+                                    db.add(post_asset)
+                                
+                                if all_products and random.random() < POST_PRODUCT_PROBABILITY:
+                                    selected_products = random.sample(all_products, min(3, len(all_products)))
+                                    for product in selected_products:
+                                        post.products.append(product)
+                                
+                                if all_tags and random.random() < POST_TAG_PROBABILITY:
+                                    selected_tags = random.sample(all_tags, min(3, len(all_tags)))
+                                    for tag in selected_tags:
+                                        post.tags.append(tag)
+                        
                         db.commit()
-                        print(f"✅ {assets_linked}個のアセットを投稿に関連付け\n")
+                        print(f"✅ {posts_created}個の投稿を作成\n")
                     
                     all_products = db.query(Product).all()
                     if all_products and all_assets:

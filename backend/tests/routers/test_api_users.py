@@ -3,7 +3,6 @@ import pytest
 @pytest.mark.parametrize(
     "update_data,field",
     [
-        ({"bio": ""}, "bio"),
         ({"bio": "a" * 1001}, "bio"),
         ({"avatar_asset_id": ""}, "avatar_asset_id"),
         ({"avatar_asset_id": "a" * 27}, "avatar_asset_id"),

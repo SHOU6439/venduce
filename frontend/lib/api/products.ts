@@ -1,5 +1,5 @@
 import { client } from "./client";
-import { Product, PaginatedResponse } from "@/types/api";
+import { Product, PaginatedResponse, PaginatedProductsResponse } from "@/types/api";
 
 const mapProduct = (product: Product): Product => ({
   ...product,

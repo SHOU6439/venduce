@@ -82,32 +82,6 @@ def test_create_post_unauthorized(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_create_post_without_images_success(db_session: Session, authorized_client, test_user):
-    payload = {
-        "caption": "No images here",
-        "tags": ["misc"],
-        "asset_product_pairs": [],
-    }
-
-    response = authorized_client.post("/api/posts", json=payload)
-
-    assert response.status_code == status.HTTP_201_CREATED, response.text
-    data = response.json()
-    assert data["caption"] == "No images here"
-    assert data["user_id"] == test_user.id
-    assert isinstance(data.get("images"), list)
-    assert len(data.get("images")) == 0
-
-    db_session.expire_all()
-    post = db_session.query(Post).filter(Post.id == data["id"]).first()
-    assert post is not None
-
-    # PostAsset テーブルは空であるべき
-    from app.models.post_assets import PostAsset
-    post_assets = db_session.query(PostAsset).filter(PostAsset.post_id == post.id).all()
-    assert len(post_assets) == 0
-
-
 def test_create_post_with_asset_linked_to_product(db_session: Session, authorized_client, test_user):
     asset = AssetFactory(owner_id=test_user.id)
     product = ProductFactory(status="published")
