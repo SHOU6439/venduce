@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, func, ForeignKey, Enum, Integer
+from sqlalchemy import String, Text, DateTime, func, ForeignKey, Enum, Integer
 from app.models.enums import PostStatus
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
