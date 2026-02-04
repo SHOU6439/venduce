@@ -62,6 +62,11 @@ def test_like_not_found(authorized_client, db_session):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+def test_delete_like_not_found(authorized_client, db_session):
+    response = authorized_client.delete("/api/posts/01HXX/likes")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_create_like_unauthorized(client, db_session):
     other_user = UserFactory()
     post = PostFactory(user=other_user)
