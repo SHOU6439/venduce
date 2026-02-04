@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
@@ -27,7 +27,11 @@ class LikeService:
             new_like = Like(user_id=user_id, post_id=post_id)
             self.db.add(new_like)
 
-            post.like_count = Post.like_count + 1
+            self.db.execute(
+                update(Post)
+                .where(Post.id == post_id)
+                .values(like_count=Post.like_count + 1)
+            )
 
             self.db.commit()
             return True
@@ -41,6 +45,11 @@ class LikeService:
         いいねが存在しない場合は何もしません（冪等性）。
         """
         post = self.db.execute(select(Post).where(Post.id == post_id)).scalars().first()
+        if not post:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
 
         result = self.db.execute(
             delete(Like).where(
@@ -50,8 +59,10 @@ class LikeService:
         )
 
         if result.rowcount > 0:
-            if post:
-                post.like_count = Post.like_count - 1
+            self.db.execute(
+                update(Post)
+                .where(Post.id == post_id)
+                .values(like_count=Post.like_count - 1)
+            )
             self.db.commit()
-        else:
-            self.db.rollback()
+
