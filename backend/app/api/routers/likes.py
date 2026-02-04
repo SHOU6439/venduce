@@ -11,6 +11,7 @@ router = APIRouter(tags=["likes"])
 @router.post(
     "/api/posts/{post_id}/likes",
     status_code=status.HTTP_201_CREATED,
+    response_model=None,
     summary="いいねを作成",
     description="指定した投稿にいいねを追加します。既に存在する場合は変更せず成功(204)とします。"
 )
@@ -23,12 +24,12 @@ def create_like(
     is_created = like_service.create_like(user_id=current_user.id, post_id=post_id)
     if not is_created:
         response.status_code = status.HTTP_204_NO_CONTENT
-    return None
 
 
 @router.delete(
     "/api/posts/{post_id}/likes",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     summary="いいねを削除",
     description="指定した投稿のいいねを取り消します。存在しない場合は何もしません。"
 )
