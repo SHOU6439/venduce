@@ -65,18 +65,22 @@ def db_session():
     """直接DBアクセスを必要とするサービス/ユニットテスト用にDBセッションを提供します。"""
     db = TestingSessionLocal()
     try:
-        UserFactory._meta.sqlalchemy_session = db
-        RefreshTokenFactory._meta.sqlalchemy_session = db
         from tests.factories.asset_factory import AssetFactory
+        from tests.factories.tag_factory import TagFactory
+        from tests.factories.payment_method_factory import PaymentMethodFactory
         from tests.factories.post_factory import PostFactory
         from tests.factories.product_factory import ProductFactory
-        from tests.factories.payment_method_factory import PaymentMethodFactory
         from tests.factories.purchase_factory import PurchaseFactory
+
         AssetFactory._meta.sqlalchemy_session = db
+        PaymentMethodFactory._meta.sqlalchemy_session = db
         PostFactory._meta.sqlalchemy_session = db
         ProductFactory._meta.sqlalchemy_session = db
-        PaymentMethodFactory._meta.sqlalchemy_session = db
         PurchaseFactory._meta.sqlalchemy_session = db
+        RefreshTokenFactory._meta.sqlalchemy_session = db
+        TagFactory._meta.sqlalchemy_session = db
+        UserFactory._meta.sqlalchemy_session = db
+
         yield db
     finally:
         db.close()

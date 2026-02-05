@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, String, Text, Integer, BigInteger, DateTime, func
+
+from sqlalchemy import String, Text, Integer, BigInteger, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from ulid import ULID
+from datetime import datetime
 
 from app.db.database import Base
 
@@ -28,30 +31,30 @@ class Asset(Base):
     """
     __tablename__ = "assets"
 
-    id = Column(String(26), primary_key=True, default=lambda: str(ULID()), nullable=False)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True, default=lambda: str(ULID()), nullable=False)
 
-    owner_id = Column(String(26), nullable=False, index=True)
-    purpose = Column(String(32), nullable=False, index=True)
-    status = Column(String(16), nullable=False, default="pending", index=True)
+    owner_id: Mapped[str] = mapped_column(String(26), nullable=False, index=True)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
 
-    storage_key = Column(Text, nullable=False, unique=True)
-    content_type = Column(String(100), nullable=False)
-    extension = Column(String(10), nullable=False)
-    size_bytes = Column(BigInteger, nullable=False)
-    width = Column(Integer, nullable=True)
-    height = Column(Integer, nullable=True)
-    checksum = Column(String(64), nullable=True, index=True)
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    extension: Mapped[str] = mapped_column(String(10), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    checksum: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
-    variants = Column(JSONB, nullable=True)
-    public_url = Column(Text, nullable=True)
-    extra_metadata = Column("metadata", JSONB, nullable=True)
+    variants: Mapped[dict | list | None] = mapped_column(JSONB, nullable=True)
+    public_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extra_metadata: Mapped[dict | list | None] = mapped_column("metadata", JSONB, nullable=True)
 
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 __all__ = ["Asset"]

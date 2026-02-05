@@ -1,9 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Header
 
 from app.deps import get_current_user, get_post_service, get_current_user_optional
 from app.models.user import User
-from app.schemas.post import PostCreate, PostRead
+from app.schemas.post import PostCreate, PostRead, PostUpdate
 from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.services.post_service import PostService
 
@@ -95,3 +95,36 @@ def get_post_detail(
     return PostRead.model_validate(
         post_service.get_post_by_id(post_id=id, current_user=current_user)
     )
+
+
+@router.patch("/{id}", response_model=PostRead)
+def update_post(
+    id: str,
+    post_in: PostUpdate,
+    if_match: Optional[str] = Header(default=None),
+    current_user: User = Depends(get_current_user),
+    post_service: PostService = Depends(get_post_service),
+):
+    """投稿を更新します。
+
+    - **If-Match header**: 楽観的ロックに使用します。`GET /api/posts/{id}` で取得した `updated_at` (timestamp) を指定してください。
+      他者が変更していた場合、`409 Conflict` が返されます。
+    """
+    return PostRead.model_validate(
+        post_service.update_post(
+            post_id=id,
+            post_in=post_in,
+            current_user=current_user,
+            etag=if_match
+        )
+    )
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    post_service: PostService = Depends(get_post_service),
+):
+    """投稿を削除（論理削除）します。"""
+    post_service.delete_post(post_id=id, current_user=current_user)

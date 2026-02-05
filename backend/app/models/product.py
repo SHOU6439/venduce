@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from ulid import ULID
-from sqlalchemy import Column, String, Text, Integer, DateTime, func, ForeignKey
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from sqlalchemy import String, Text, Integer, DateTime, func, ForeignKey
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
+from typing import TYPE_CHECKING
+
 from app.db.database import Base
-from app.models.product_category import ProductCategory
 from app.models.product_assets import product_assets
+
+if TYPE_CHECKING:
+    from app.models.brand import Brand
+    from app.models.category import Category
+    from app.models.asset import Asset
 
 
 class Product(Base):
@@ -27,26 +34,26 @@ class Product(Base):
 
     __tablename__ = "products"
 
-    id = Column(String(26), primary_key=True, index=True, default=lambda: str(ULID()))
-    title = Column(String(255), nullable=False)
-    sku = Column(String(64), nullable=False, unique=True, index=True)
-    description = Column(Text, nullable=True)
-    price_cents = Column(Integer, nullable=False, default=0)
-    currency = Column(String(8), nullable=False, default="JPY")
-    stock_quantity = Column(Integer, nullable=False, default=0)
-    status = Column(String(32), nullable=False, default="draft", index=True)
-    extra_metadata = Column("metadata", JSONB, nullable=True)
-    
-    brand_id = Column(String(26), ForeignKey("brands.id"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True, index=True, default=lambda: str(ULID()))
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    sku: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    price_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="JPY")
+    stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
+    extra_metadata: Mapped[dict | list | None] = mapped_column("metadata", JSONB, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(
+    brand_id: Mapped[str | None] = mapped_column(String(26), ForeignKey("brands.id"), nullable=True, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    brand = relationship("Brand", backref="products")
-    categories = relationship("Category", secondary="product_categories", backref="products")
-    assets = relationship("Asset", secondary=product_assets, backref="products")
+    brand: Mapped["Brand"] = relationship("Brand", backref="products")
+    categories: Mapped[list["Category"]] = relationship("Category", secondary="product_categories", backref="products")
+    assets: Mapped[list["Asset"]] = relationship("Asset", secondary=product_assets, backref="products")
 
 
 __all__ = ["Product"]

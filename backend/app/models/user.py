@@ -1,10 +1,15 @@
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
 from ulid import ULID
 from sqlalchemy import String, DateTime, func, Boolean, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.db.database import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.asset import Asset
 
 
 class User(Base):
@@ -37,13 +42,14 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     confirmation_token: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
     confirmation_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     confirmation_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     bio: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     avatar_asset_id: Mapped[Optional[str]] = mapped_column(String(26), ForeignKey("assets.id"), nullable=True, unique=True)
-    avatar_asset = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
+    avatar_asset Mapped["Asset"] = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
 
 
 __all__ = ["User"]

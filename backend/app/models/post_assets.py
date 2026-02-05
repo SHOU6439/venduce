@@ -14,6 +14,8 @@ class PostAsset(Base):
 
     asset = relationship("Asset", foreign_keys=[asset_id], overlaps="posts")
     product = relationship("Product", foreign_keys=[product_id])
+    post = relationship("Post", foreign_keys=[post_id], back_populates="post_assets_links", overlaps="assets,posts")
+
 
 post_assets = PostAsset.__table__
 
