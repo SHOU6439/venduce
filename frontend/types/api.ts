@@ -105,12 +105,48 @@ export interface Post {
   liked_by_me?: boolean;
 }
 
+export interface PaymentMethod {
+  id: string;
+  user_id: string;
+  method_type: string;
+  is_default: boolean;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface Purchase {
+  id: string;
+  buyer_id: string;
+  product_id: string;
+  product: Product;
+  quantity: number;
+  price_cents: number;
+  total_amount_cents: number;
+  currency: string;
+  payment_method_id: string;
+  payment_method?: PaymentMethod | null;
+  referring_post_id?: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   page: number;
   per_page: number;
   total_pages: number;
+}
+
+export interface PaginatedResponseCursor<T> {
+  items: T[];
+  meta: {
+    next_cursor?: string | null;
+    has_more: boolean;
+    returned: number;
+  };
 }
 
 export interface AssetProductPair {

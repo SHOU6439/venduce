@@ -32,6 +32,7 @@ export function useProfileEdit(initial: ProfileEditInput) {
                 avatar_asset_id = asset.id;
             }
             await usersApi.updateProfile({
+                username: form.username,
                 first_name: form.first_name,
                 last_name: form.last_name,
                 bio: form.bio,

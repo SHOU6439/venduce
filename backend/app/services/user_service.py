@@ -14,7 +14,7 @@ from app.exceptions import (
 )
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.utils import jwt as jwt_utils
 from app.utils.timezone import now_utc
 import secrets
@@ -22,8 +22,14 @@ import secrets
 
 class UserService:
 
-    def update_profile(self, db: Session, user: User, user_update: 'UserUpdate') -> User:
+    def update_profile(self, db: Session, user: User, user_update: UserUpdate) -> User:
         update_data = user_update.model_dump(exclude_unset=True)
+        
+        if 'username' in update_data and update_data['username'] != user.username:
+            existing = db.query(User).filter(User.username == update_data['username']).first()
+            if existing:
+                raise UserAlreadyExists("username already exists")
+        
         if update_data:
             for field, value in update_data.items():
                 setattr(user, field, value)

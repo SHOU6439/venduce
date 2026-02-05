@@ -116,6 +116,27 @@ class PostService:
 
             product_dict = None
             if pa.product:
+                # 商品のアセット情報も取得
+                product_assets = [
+                    {
+                        'id': asset.id,
+                        'owner_id': asset.owner_id,
+                        'purpose': asset.purpose,
+                        'status': asset.status,
+                        'storage_key': asset.storage_key,
+                        'content_type': asset.content_type,
+                        'extension': asset.extension,
+                        'size_bytes': asset.size_bytes,
+                        'width': asset.width,
+                        'height': asset.height,
+                        'checksum': asset.checksum,
+                        'public_url': asset.public_url,
+                        'variants': asset.variants,
+                        'extra_metadata': asset.extra_metadata,
+                    }
+                    for asset in pa.product.assets
+                ]
+                
                 product_dict = {
                     'id': pa.product.id,
                     'title': pa.product.title,
@@ -128,6 +149,7 @@ class PostService:
                     'extra_metadata': pa.product.extra_metadata,
                     'created_at': pa.product.created_at,
                     'updated_at': pa.product.updated_at,
+                    'assets': product_assets,  # アセット情報を追加
                 }
 
             asset_products.append({
@@ -142,7 +164,7 @@ class PostService:
         """`PostCreate` から `Post` を作成して返します。
 
         実行内容（ビジネスルール）:
-        - `asset_product_pairs` が与えられた場合、各アセットが存在し、かつ現在のユーザーの所有であることを検証します。
+        - `asset_product_pairs` は必須で最低1つのアセットが必要です。各アセットが存在し、かつ現在のユーザーの所有であることを検証します。
         - `product_ids` が与えられた場合、該当する製品が存在することを検証します。
         - `tags` はトリム・小文字化して正規化し、既存タグがあれば `usage_count` を増やして再利用、なければ新規作成します。
         - PostAsset テーブルに各画像と商品の紐付けを記録します。
@@ -150,6 +172,53 @@ class PostService:
 
         すべての検証はここに集約され、ルーターは薄く保たれます。
         """
+
+        if not post_in.asset_product_pairs:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one asset is required for post creation",
+            )
+        
+        asset_product_map = self._validate_and_map_asset_products(post_in, current_user)
+        products = self._validate_and_fetch_products(post_in)
+        tags = self._normalize_and_fetch_tags(post_in)
+
+        post_data = post_in.model_dump(exclude_unset=True, exclude={'asset_product_pairs', 'product_ids', 'tags'})
+        post = Post(user_id=current_user.id, **post_data)
+        post.products = products
+        post.tags = tags
+
+        self.db.add(post)
+        self.db.flush()
+
+        for asset_id, product_id in asset_product_map.items():
+            post_asset = PostAsset(
+                post_id=post.id,
+                asset_id=asset_id,
+                product_id=product_id
+            )
+            self.db.add(post_asset)
+
+        self.db.commit()
+        self.db.refresh(post)
+        self._enrich_post_with_asset_products(post)
+        return post
+
+    def _validate_and_map_asset_products(
+        self,
+        post_in: PostCreate,
+        current_user: User
+    ) -> dict:
+        """アセット・商品ペアを検証し、マッピングを返す。
+        
+        Returns:
+            {asset_id: product_id} のマッピング
+        """
+        asset_product_map = {}
+        
+        if not post_in.asset_product_pairs:
+            return asset_product_map
+
         asset_ids = [pair.asset_id for pair in post_in.asset_product_pairs]
         if len(asset_ids) != len(set(asset_ids)):
             raise HTTPException(
@@ -409,6 +478,46 @@ class PostService:
 
         self.db.add(post)
         self.db.commit()
+
+
+    def search_posts(
+        self,
+        *,
+        query: str,
+        limit: int = 20,
+    ) -> List[Post]:
+        """投稿をキャプションとタグで検索します（公開投稿のみ）。
+
+        Args:
+            query: 検索クエリ
+            limit: 取得件数
+
+        Returns:
+            Post: マッチした投稿リスト
+        """
+        if not query.strip():
+            return []
+
+        search_term = f"%{query}%"
+        posts = (
+            self.db.query(Post)
+            .filter(
+                Post.status == PostStatus.PUBLIC,
+                Post.caption.ilike(search_term)
+            )
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        for post in posts:
+            _ = post.user
+            _ = post.assets
+            _ = post.products
+            _ = post.tags
+            self._enrich_post_with_asset_products(post)
+
+        return posts
 
 
 def post_service_factory(db: Session) -> PostService:

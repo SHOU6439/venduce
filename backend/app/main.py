@@ -15,6 +15,7 @@ from app.api.routers import categories as categories_router
 from app.api.routers import brands as brands_router
 from app.api.routers import payment_methods as payment_methods_router
 from app.api.routers import purchases as purchases_router
+from app.api.routers import likes as likes_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -31,6 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def get_application() -> FastAPI:
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(products.router, prefix="/api/products", tags=["products"])
@@ -44,17 +46,17 @@ def get_application() -> FastAPI:
     app.include_router(payment_methods_router.router, prefix="/api/payment-methods", tags=["payment-methods"])
     app.include_router(purchases_router.router, prefix="/api/purchases", tags=["purchases"])
     app.include_router(posts_router.router)
+    app.include_router(likes_router.router)
 
     if not os.path.exists(settings.ASSET_STORAGE_ROOT):
         os.makedirs(settings.ASSET_STORAGE_ROOT)
-    
+
     app.mount(settings.ASSET_PUBLIC_BASE_URL, StaticFiles(directory=settings.ASSET_STORAGE_ROOT), name="storage")
 
     try:
         setup_admin(app)
     except Exception as e:
         print(f"SQLAdmin setup error: {e}")
-
 
     @app.get("/api/health")
     def health_check():
@@ -91,5 +93,6 @@ def get_application() -> FastAPI:
 
     app.openapi = custom_openapi
     return app
+
 
 app = get_application()

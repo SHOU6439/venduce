@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy import String, Text, DateTime, func, ForeignKey, Enum, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.enums import PostStatus
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 from ulid import ULID
 
@@ -34,9 +35,13 @@ class Post(Base):
     __tablename__ = "posts"
 
     id: Mapped[str] = mapped_column(String(26), primary_key=True, default=lambda: str(ULID()), index=True)
+
     user_id: Mapped[str] = mapped_column(String(26), ForeignKey(
-        "users.id", ondelete="CASCADE"), nullable=False, index=True)
-    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
+      "users.id", ondelete="CASCADE"
+    ), nullable=False, index=True)
+
+    caption: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     status: Mapped[PostStatus] = mapped_column(
         Enum(
             PostStatus,
@@ -52,7 +57,7 @@ class Post(Base):
     view_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    extra_metadata: Mapped[dict | list | None] = mapped_column("metadata", JSONB, nullable=True)
+    extra_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

@@ -4,27 +4,30 @@ import { useState, useEffect } from 'react';
 import { useProfileEdit } from '@/features/profile/hooks/useProfileEdit';
 import { calcTotalLikes, calcTotalPurchases } from '@/features/profile/utils';
 import { useRouter } from 'next/navigation';
-import { Grid3x3, LogOut } from 'lucide-react';
+import { Grid3x3, ShoppingBag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usersApi } from '@/lib/api/users';
 import { postsApi } from '@/lib/api/posts';
+import { purchasesApi } from '@/lib/api/purchases';
 import { ApiError } from '@/lib/api/client';
-import { Post, UserProfile } from '@/types/api';
+import { Post, UserProfile, Purchase } from '@/types/api';
 import { getImageUrl } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
+import { Loader2 } from 'lucide-react';
 
 export function ProfileContent() {
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
-  const [editUsername, setEditUsername] = useState('');
 
   const {
     form,
@@ -34,6 +37,7 @@ export function ProfileContent() {
     handleSubmit,
     setForm,
   } = useProfileEdit({
+    username: '',
     first_name: '',
     last_name: '',
     bio: '',
@@ -43,10 +47,10 @@ export function ProfileContent() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [user, postList] = await Promise.all([usersApi.getProfile(), postsApi.getPosts()]);
+        const [userData, postList] = await Promise.all([usersApi.getProfile(), postsApi.getPosts()]);
         const mappedUser = {
-          ...user,
-          avatar_url: (user as any).avatar_asset?.public_url ?? user.avatar_url ?? null,
+          ...userData,
+          avatar_url: (userData as any).avatar_asset?.public_url ?? userData.avatar_url ?? null,
         };
         setProfile(mappedUser);
         setPosts(postList.filter((post) => post.user_id === mappedUser.id));
@@ -66,12 +70,6 @@ export function ProfileContent() {
     load();
   }, [router]);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-    router.refresh();
-  };
-
   if (loading) return <div className="p-8 text-center">プロフィールを読み込み中です...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
   if (!profile) return <div className="p-8 text-center">プロフィール情報が見つかりません。</div>;
@@ -83,12 +81,12 @@ export function ProfileContent() {
 
   const handleEditClick = () => {
     setForm({
+      username: profile.username ?? '',
       first_name: profile.first_name ?? '',
       last_name: profile.last_name ?? '',
       bio: profile.bio ?? '',
       avatar: undefined,
     });
-    setEditUsername(profile.username ?? '');
     setEditAvatarPreview(profile.avatar_url ? getImageUrl(profile.avatar_url) : null);
     setEditing(true);
   };
@@ -120,7 +118,7 @@ export function ProfileContent() {
                   <div>
                     <Avatar className="h-20 w-20">
                       <AvatarImage src={editAvatarPreview ?? getImageUrl(profile.avatar_url ?? undefined)} />
-                      <AvatarFallback>{editUsername[0] || profile.username[0]}</AvatarFallback>
+                      <AvatarFallback>{form.username[0] || profile.username[0]}</AvatarFallback>
                     </Avatar>
                   </div>
                   <div>
@@ -149,8 +147,8 @@ export function ProfileContent() {
                   <input
                     className="w-full rounded border p-2 text-sm"
                     type="text"
-                    value={editUsername}
-                    onChange={e => setEditUsername(e.target.value)}
+                    value={form.username}
+                    onChange={e => handleChange('username', e.target.value)}
                     placeholder="ユーザー名"
                     maxLength={32}
                     disabled={saving}
@@ -223,6 +221,9 @@ export function ProfileContent() {
           <TabsTrigger value="posts" className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
             <Grid3x3 className="h-4 w-4" /> <span>投稿</span>
           </TabsTrigger>
+          <TabsTrigger value="purchases" className="flex-1 gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary" onClick={async () => { if (purchases.length === 0 && user) { setLoadingPurchases(true); try { const response = await purchasesApi.listUserPurchases(user.id, { limit: 20 }); setPurchases(response.items); } catch (err) { console.error('Failed to load purchases', err); } finally { setLoadingPurchases(false); } } }}>
+            <ShoppingBag className="h-4 w-4" /> <span>購入履歴</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="mt-0">
@@ -231,10 +232,57 @@ export function ProfileContent() {
           ) : (
             <div className="grid grid-cols-3 gap-1">
               {posts.map((post) => (
-                <div key={post.id} className="relative aspect-square bg-muted">
+                <div key={post.id} className="relative aspect-square bg-muted cursor-pointer hover:opacity-75 transition" onClick={() => router.push(`/posts/${post.id}`)}>
                   <img src={getImageUrl(post.assets?.[0]?.public_url ?? post.images?.[0]?.public_url ?? post.assets?.[0]?.id)} className="h-full w-full object-cover" alt="ユーザー投稿" />
                 </div>
               ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="purchases" className="mt-0">
+          {loadingPurchases ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : purchases.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">購入履歴がありません。</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {purchases.map((purchase) => {
+                // 商品画像のURLを取得
+                const imageUrl = purchase.product?.images?.[0]
+                  ? getImageUrl(purchase.product.images[0].public_url ?? purchase.product.images[0].id ?? purchase.product.images[0])
+                  : null;
+                
+                return (
+                  <div
+                    key={purchase.id}
+                    className="relative aspect-square bg-muted cursor-pointer hover:opacity-75 transition overflow-hidden"
+                    onClick={() => router.push(`/purchases/${purchase.id}`)}
+                  >
+                    {imageUrl ? (
+                      <>
+                        <img
+                          src={imageUrl}
+                          className="h-full w-full object-cover"
+                          alt={purchase.product.title}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                          <p className="text-xs text-white font-semibold line-clamp-2">{purchase.product.title}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <p className="text-xs text-muted-foreground text-center px-2">{purchase.product.title}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </TabsContent>
