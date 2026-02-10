@@ -82,7 +82,6 @@ class PostService:
         post.asset_products リストを構築します。
         """
 
-
         post_assets = (
             self.db.query(PostAsset)
             .options(
@@ -136,7 +135,7 @@ class PostService:
                     }
                     for asset in pa.product.assets
                 ]
-                
+
                 product_dict = {
                     'id': pa.product.id,
                     'title': pa.product.title,
@@ -178,15 +177,18 @@ class PostService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="At least one asset is required for post creation",
             )
-        
+
         asset_product_map = self._validate_and_map_asset_products(post_in, current_user)
-        products = self._validate_and_fetch_products(post_in)
-        tags = self._normalize_and_fetch_tags(post_in)
+        products = self._validate_and_fetch_products(post_in.product_ids)
+        tags = self._get_or_create_tags(post_in.tags)
 
         post_data = post_in.model_dump(exclude_unset=True, exclude={'asset_product_pairs', 'product_ids', 'tags'})
         post = Post(user_id=current_user.id, **post_data)
         post.products = products
         post.tags = tags
+
+        for tag in tags:
+            tag.usage_count += 1
 
         self.db.add(post)
         self.db.flush()
@@ -210,12 +212,12 @@ class PostService:
         current_user: User
     ) -> dict:
         """アセット・商品ペアを検証し、マッピングを返す。
-        
+
         Returns:
             {asset_id: product_id} のマッピング
         """
         asset_product_map = {}
-        
+
         if not post_in.asset_product_pairs:
             return asset_product_map
 
@@ -226,46 +228,16 @@ class PostService:
                 detail="Duplicate asset_ids found in asset_product_pairs."
             )
 
-        assets = self._validate_and_fetch_assets(asset_ids, current_user)
+        self._validate_and_fetch_assets(asset_ids, current_user)
 
         product_ids_from_pairs = {pair.product_id for pair in post_in.asset_product_pairs if pair.product_id}
-        all_product_ids = list(set(post_in.product_ids) | product_ids_from_pairs)
+        if product_ids_from_pairs:
+            self._validate_and_fetch_products(list(product_ids_from_pairs))
 
-        products = self._validate_and_fetch_products(all_product_ids)
+        for pair in post_in.asset_product_pairs:
+            asset_product_map[pair.asset_id] = pair.product_id
 
-        tags = self._get_or_create_tags(post_in.tags)
-        for tag in tags:
-            tag.usage_count += 1
-
-        post = Post(
-            user_id=current_user.id,
-            caption=post_in.caption,
-            status=post_in.status,
-            extra_metadata=post_in.extra_metadata,
-        )
-
-        post.products = products
-        post.tags = tags
-
-        if post_in.asset_product_pairs:
-            product_map = {p.id: p for p in products}
-
-            post_assets = []
-            for pair in post_in.asset_product_pairs:
-                post_asset = PostAsset(
-                    asset_id=pair.asset_id,
-                    product_id=pair.product_id
-                )
-                post_assets.append(post_asset)
-            post.post_assets_links = post_assets
-
-        self.db.add(post)
-        self.db.commit()
-        self.db.refresh(post)
-
-        self._enrich_post_with_asset_products(post)
-
-        return post
+        return asset_product_map
 
     def get_public_posts(
         self,
@@ -334,7 +306,6 @@ class PostService:
         Raises:
             HTTPException: 404（投稿が存在しない）、403（アクセス権限がない）
         """
-
 
         post = (
             self.db.query(Post)
@@ -459,7 +430,6 @@ class PostService:
     def delete_post(self, *, post_id: str, current_user: User) -> None:
         """投稿を論理削除します。"""
 
-
         post = self.get_post_by_id(post_id=post_id, current_user=current_user)
 
         if post.user_id != current_user.id:
@@ -478,7 +448,6 @@ class PostService:
 
         self.db.add(post)
         self.db.commit()
-
 
     def search_posts(
         self,
