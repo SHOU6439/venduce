@@ -49,7 +49,7 @@ class User(Base):
 
     bio: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     avatar_asset_id: Mapped[Optional[str]] = mapped_column(String(26), ForeignKey("assets.id"), nullable=True, unique=True)
-    avatar_asset Mapped["Asset"] = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
+    avatar_asset: Mapped["Asset"] = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
 
 
 __all__ = ["User"]
