@@ -16,6 +16,7 @@ from app.api.routers import brands as brands_router
 from app.api.routers import payment_methods as payment_methods_router
 from app.api.routers import purchases as purchases_router
 from app.api.routers import likes as likes_router
+from app.api.routers import comments as comments_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -46,6 +47,7 @@ def get_application() -> FastAPI:
     app.include_router(payment_methods_router.router, prefix="/api/payment-methods", tags=["payment-methods"])
     app.include_router(purchases_router.router, prefix="/api/purchases", tags=["purchases"])
     app.include_router(posts_router.router)
+    app.include_router(comments_router.router, prefix="/api", tags=["comments"])
     app.include_router(likes_router.router)
 
     if not os.path.exists(settings.ASSET_STORAGE_ROOT):
