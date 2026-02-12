@@ -143,7 +143,16 @@ export function CommentItem({
               variant="ghost"
               size="sm"
               className="h-auto p-0 text-muted-foreground hover:text-foreground text-xs"
-              onClick={() => setIsReplying(!isReplying)}
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "ログインが必要です",
+                    description: "コメントに返信するにはログインしてください",
+                  });
+                  return;
+                }
+                setIsReplying(!isReplying);
+              }}
             >
               <Reply className="mr-1 h-3 w-3" />
               返信
