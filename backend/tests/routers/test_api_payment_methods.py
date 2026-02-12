@@ -56,15 +56,51 @@ class TestPaymentMethodsCreate:
         assert data["payment_type"] == "credit_card"
         assert data["name"] == "My Visa Card"
         assert data["user_id"] == user.id
-        assert data["is_default"] is False
-    
+        assert data["is_default"] is True
+
+    def test_create_payment_method_auto_default(self, client, auth_headers):
+        """最初の支払い方法は自動的にデフォルトに設定される。"""
+        headers, user = auth_headers
+
+        payload = {
+            "payment_type": "credit_card",
+            "name": "First Card",
+            "details": {"last4": "1111"},
+        }
+
+        response = client.post(
+            "/api/payment-methods",
+            json=payload,
+            headers=headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["is_default"] is True
+
+        payload2 = {
+            "payment_type": "credit_card",
+            "name": "Second Card",
+            "details": {"last4": "2222"},
+        }
+
+        response2 = client.post(
+            "/api/payment-methods",
+            json=payload2,
+            headers=headers,
+        )
+
+        assert response2.status_code == 201
+        data2 = response2.json()
+        assert data2["is_default"] is False
+
     def test_create_payment_method_without_auth(self, client):
         """認証なしでリクエストすると 401 を返す。"""
         payload = {
             "payment_type": "credit_card",
             "name": "My Visa Card",
         }
-        
+
         response = client.post("/api/payment-methods", json=payload)
         assert response.status_code == 401
 
