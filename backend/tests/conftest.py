@@ -47,6 +47,11 @@ _engine = create_engine(
 meta = MetaData()
 meta.reflect(bind=_engine)
 meta.drop_all(bind=_engine)
+
+with _engine.connect() as conn:
+    conn.execute(text("DROP TYPE IF EXISTS post_status CASCADE"))
+    conn.commit()
+
 Base.metadata.create_all(bind=_engine)
 
 TestingSessionLocal = sessionmaker(bind=_engine)
@@ -71,6 +76,7 @@ def db_session():
         from tests.factories.post_factory import PostFactory
         from tests.factories.product_factory import ProductFactory
         from tests.factories.purchase_factory import PurchaseFactory
+        from tests.factories.comment_factory import CommentFactory
 
         AssetFactory._meta.sqlalchemy_session = db
         PaymentMethodFactory._meta.sqlalchemy_session = db
@@ -80,6 +86,7 @@ def db_session():
         RefreshTokenFactory._meta.sqlalchemy_session = db
         TagFactory._meta.sqlalchemy_session = db
         UserFactory._meta.sqlalchemy_session = db
+        CommentFactory._meta.sqlalchemy_session = db
 
         yield db
     finally:
@@ -112,6 +119,11 @@ def override_db():
         meta = MetaData()
         meta.reflect(bind=_engine)
         meta.drop_all(bind=_engine)
+        
+        with _engine.connect() as conn:
+            conn.execute(text("DROP TYPE IF EXISTS post_status CASCADE"))
+            conn.commit()
+
         Base.metadata.create_all(bind=_engine)
 
 
