@@ -5,7 +5,7 @@ from typing import List
 from app.db.database import get_db
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.services.comment_service import CommentService
-from app.deps import get_current_user, get_current_user_optional
+from app.deps import get_current_user
 from app.models.user import User
 
 router = APIRouter()
@@ -32,8 +32,6 @@ def get_comments(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    # 認証は必須ではないが、将来的に非公開投稿などの制御が必要になる可能性あり
-    # current_user: Optional[User] = Depends(get_current_user_optional) 
 ):
     """
     投稿のコメント一覧を取得する (ルートコメントのみ、返信はネストされる)
@@ -53,7 +51,6 @@ def update_comment(
     """
     コメントを編集する (作成者のみ)
     """
-    # CommentCreateを再利用しているが、contentのみ使用
     return CommentService.update_comment(
         db=db, comment_id=comment_id, user_id=current_user.id, content=comment_in.content
     )
