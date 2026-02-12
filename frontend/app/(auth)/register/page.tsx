@@ -2,10 +2,21 @@
 
 import SuccessModal from '@/components/SuccessModal';
 import { apiClient, ApiError } from '@/lib/api/client';
+import { useAuthStore } from '@/stores/auth';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
