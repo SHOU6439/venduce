@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.database import get_db
-from app.schemas.comment import CommentCreate, CommentResponse
+from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from app.services.comment_service import CommentService
 from app.deps import get_current_user
 from app.models.user import User
@@ -44,7 +44,7 @@ def get_comments(
 @router.patch("/comments/{comment_id}", response_model=CommentResponse)
 def update_comment(
     comment_id: str,
-    comment_in: CommentCreate,
+    comment_in: CommentUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
