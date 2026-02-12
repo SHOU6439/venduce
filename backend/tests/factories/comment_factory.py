@@ -18,3 +18,4 @@ class CommentFactory(factory.alchemy.SQLAlchemyModelFactory):
     user_id = None
     created_at = factory.LazyFunction(now_utc)
     updated_at = factory.LazyFunction(now_utc)
+    is_deleted = False
