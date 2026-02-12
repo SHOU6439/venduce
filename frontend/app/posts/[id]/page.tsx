@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { BackButton } from '@/components/back-button';
 import { Header } from '@/components/header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BackButton } from '@/components/back-button';
-import { Post, Product } from '@/types/api';
 import { postsApi } from '@/lib/api/posts';
 import { getImageUrl } from '@/lib/utils';
+import { Post, Product } from '@/types/api';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import { CommentList } from '@/features/comments/components/CommentList';
 
 interface PostDetailPageProps {
   params: Promise<{
@@ -125,16 +127,16 @@ export default function PostDetail({ params }: PostDetailPageProps) {
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-3">関連商品</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {Array.from(
-                  new Map(
-                    post.asset_products
-                      .filter((ap: any) => ap.product) // product が null でないもののみ
-                      .map((ap: any) => [
-                        ap.product.id,
-                        ap.product,
-                      ])
-                  ).values()
-                ).map((product: Product) => (
+                {post.asset_products
+                  .filter((ap: any) => ap.product)
+                  .map((ap: any) => ap.product)
+                  .reduce((acc: Product[], current: Product) => {
+                     if (!acc.find(p => p.id === current.id)) {
+                       acc.push(current);
+                     }
+                     return acc;
+                  }, [])
+                  .map((product: Product) => (
                   <div
                     key={product.id}
                     onClick={() => handleProductClick(product.id)}
@@ -156,6 +158,11 @@ export default function PostDetail({ params }: PostDetailPageProps) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* コメント */}
+        <div className="bg-card rounded-lg border p-6 mb-6">
+          <CommentList postId={post.id} />
         </div>
 
         {/* 戻るボタン */}
