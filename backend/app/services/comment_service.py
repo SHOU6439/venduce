@@ -9,6 +9,8 @@ from app.schemas.comment import CommentCreate
 
 
 class CommentService:
+    MAX_DEPTH = 3
+
     @staticmethod
     def _calculate_depth(db: Session, comment_id: str) -> int:
         """コメントの階層深度を計算する (Root=0)"""
@@ -51,11 +53,10 @@ class CommentService:
                     detail="Parent comment does not belong to this post"
                 )
 
-            MAX_DEPTH = 3
             parent_depth = CommentService._calculate_depth(db, comment_in.parent_comment_id)
 
             final_parent_id = comment_in.parent_comment_id
-            if parent_depth >= MAX_DEPTH:
+            if parent_depth >= CommentService.MAX_DEPTH:
                 final_parent_id = parent_comment.parent_comment_id
         else:
             final_parent_id = None
@@ -82,18 +83,20 @@ class CommentService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
             )
 
+        options = [selectinload(Comment.user)]
+        current_option = selectinload(Comment.replies)
+        options.append(current_option.selectinload(Comment.user))
+
+        for _ in range(CommentService.MAX_DEPTH - 1):
+            current_option = current_option.selectinload(Comment.replies)
+            options.append(current_option.selectinload(Comment.user))
+
         stmt = (
             select(Comment)
             .where(Comment.post_id == post_id)
             .where(Comment.parent_comment_id.is_(None))
             .where(Comment.is_deleted == False)
-            .options(
-                selectinload(Comment.user),
-                selectinload(Comment.replies).selectinload(Comment.user),
-                selectinload(Comment.replies).selectinload(Comment.replies).selectinload(Comment.user),
-                selectinload(Comment.replies).selectinload(Comment.replies).selectinload(
-                    Comment.replies).selectinload(Comment.user)
-            )
+            .options(*options)
             .order_by(Comment.created_at.desc())
             .limit(limit)
             .offset(offset)
