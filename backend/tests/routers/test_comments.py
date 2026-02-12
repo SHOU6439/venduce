@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.models.comment import Comment
 from tests.factories.post_factory import PostFactory
 from tests.factories.comment_factory import CommentFactory
-from tests.factories.asset_factory import AssetFactory
 from tests.factories.user import UserFactory
 
 
