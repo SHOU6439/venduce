@@ -16,6 +16,12 @@ class PaymentMethodService:
         self, db: Session, *, user: User, payload: PaymentMethodCreate
     ) -> PaymentMethod:
         """ユーザーの新しい支払い方法を作成します。"""
+        db.query(User).filter(User.id == user.id).with_for_update().first()
+
+        existing_count = db.query(PaymentMethod).filter(PaymentMethod.user_id == user.id).count()
+        if existing_count == 0:
+            payload.is_default = True
+
         payment_method = PaymentMethod(
             user_id=user.id,
             payment_type=payload.payment_type,

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { client } from "@/lib/api/client";
-import { setCookie, getCookie, deleteCookie } from "@/lib/utils/cookies";
+import { deleteCookie, getCookie, setCookie } from "@/lib/utils/cookies";
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -173,11 +173,7 @@ export const useAuthStore = create<AuthState>()(
 
       initializeFromToken: async () => {
         try {
-          const state = get();
-        
-          if (state.user && state.accessToken) {
-            return;
-          }
+
 
           const token = getCookie("access_token");
           if (token) {
@@ -231,25 +227,19 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: state.refreshToken,
         refreshTokenExpiresAt: state.refreshTokenExpiresAt,
       }),
-
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated?.(true);
-      },
     },
   )
 );
 
 export function useAuthHydrated() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const initializeFromToken = useAuthStore((state) => state.initializeFromToken);
   const [hydrated, setHydrated] = useState(false);
   
   useEffect(() => {
     if (hasHydrated) {
       setHydrated(true);
-      initializeFromToken();
     }
-  }, [hasHydrated, initializeFromToken]);
+  }, [hasHydrated]);
   
   return hydrated;
 }

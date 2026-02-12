@@ -1,30 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useAuthStore, useAuthHydrated } from '@/stores/auth';
-import { useRouter } from 'next/navigation';
-import { Purchase, PaginatedResponseCursor } from '@/types/api';
-import { purchasesApi } from '@/lib/api/purchases';
-import { ApiError } from '@/lib/api/client';
+import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { purchasesApi } from '@/lib/api/purchases';
+import { useAuthStore } from '@/stores/auth';
+import { PaginatedResponseCursor, Purchase } from '@/types/api';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function PurchasesPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const hydrated = useAuthHydrated();
+
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // リダイレクト
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!user) {
-      router.push('/login');
-    }
-  }, [user, router, hydrated]);
 
   const loadMore = useCallback(
     async (cursor?: string | null) => {
@@ -77,12 +69,9 @@ export default function PurchasesPage() {
     return () => observer.disconnect();
   }, [isLoading, hasMore, loadNextPage]);
 
-  if (!hydrated || !user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <AuthGuard>
+      <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto">
         {/* ヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
@@ -173,5 +162,6 @@ export default function PurchasesPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }
