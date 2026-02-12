@@ -39,6 +39,12 @@ class CommentService:
                     status_code=status.HTTP_404_NOT_FOUND, detail="Parent comment not found"
                 )
 
+            if parent_comment.is_deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot reply to a deleted comment"
+                )
+
             if parent_comment.post_id != post_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
