@@ -141,20 +141,21 @@ def test_get_comments_pagination(client, db_session: Session, test_user):
     db_session.commit()
 
     comments = CommentFactory.create_batch(5, post_id=post.id, user_id=test_user.id)
+    comment_ids = {c.id for c in comments}
 
-    response = client.get(f"/api/posts/{post.id}/comments?limit=2")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data) == 2
+    expected_comments = list(reversed(comments))
 
-    response = client.get(f"/api/posts/{post.id}/comments?limit=2&offset=2")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data) == 2
-    response = client.get(f"/api/posts/{post.id}/comments?limit=2&offset=4")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data) == 1
+    page_size = 2
+    for i in range(0, 5, page_size):
+        response = client.get(f"/api/posts/{post.id}/comments?limit={page_size}&offset={i}")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        expected_batch = expected_comments[i : i + page_size]
+
+        assert len(data) == len(expected_batch)
+        for j, item in enumerate(data):
+            assert item["id"] == expected_batch[j].id
 
 
 def test_get_comments_post_not_found(client):
