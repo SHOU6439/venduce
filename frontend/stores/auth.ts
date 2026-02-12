@@ -233,15 +233,13 @@ export const useAuthStore = create<AuthState>()(
 
 export function useAuthHydrated() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const initializeFromToken = useAuthStore((state) => state.initializeFromToken);
   const [hydrated, setHydrated] = useState(false);
   
   useEffect(() => {
     if (hasHydrated) {
       setHydrated(true);
-      initializeFromToken();
     }
-  }, [hasHydrated, initializeFromToken]);
+  }, [hasHydrated]);
   
   return hydrated;
 }
