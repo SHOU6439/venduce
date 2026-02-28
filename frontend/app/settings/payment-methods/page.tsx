@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PaymentMethodsManager } from '@/components/payment-methods-manager';
+import AuthGuard from '@/components/auth-guard';
 
 export default function PaymentMethodsPage() {
   const router = useRouter();
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto">
         {/* ヘッダー */}
@@ -35,5 +37,6 @@ export default function PaymentMethodsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

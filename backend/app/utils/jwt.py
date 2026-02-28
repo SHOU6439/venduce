@@ -108,3 +108,19 @@ def create_refresh_token(subject: str, ttl_days: int | None = None) -> tuple[str
 def decode_token(token: str) -> dict:
     key, alg = _verification_key_and_alg()
     return jwt.decode(token, key, algorithms=[alg])
+
+
+def create_password_reset_token(subject: str) -> tuple[str, int]:
+    """Create a JWT for password reset. Returns (token, expires_in_seconds)."""
+    now = now_utc()
+    expires_delta = timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    expires_at = now + expires_delta
+    payload = {
+        "sub": str(subject),
+        "iat": int(now.timestamp()),
+        "exp": int(expires_at.timestamp()),
+        "typ": "password_reset",
+    }
+    key, alg = _signing_key_and_alg()
+    token = jwt.encode(payload, key, algorithm=alg)
+    return token, int(expires_delta.total_seconds())

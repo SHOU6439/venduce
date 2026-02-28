@@ -10,11 +10,19 @@ from app.services.user_service import UserService
 from app.exceptions import (
     AuthenticationError,
     ConfirmationError,
+    PasswordResetError,
     RefreshTokenError,
     UserAlreadyExists,
 )
 from app.deps import get_user_service
-from app.schemas.auth import LoginRequest, TokenPair, ResendRequest, RefreshRequest
+from app.schemas.auth import (
+    LoginRequest,
+    TokenPair,
+    ResendRequest,
+    RefreshRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from app.utils import jwt as jwt_utils
 from app.core.config import settings
 
@@ -179,3 +187,46 @@ def logout(
         svc.logout(db, payload.refresh_token)
     except RefreshTokenError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
+):
+    """パスワードリセットメールを送信します。
+
+    セキュリティ上、ユーザーが存在しない場合でも同じレスポンスを返します。
+    """
+    result = svc.request_password_reset(db, payload.email)
+
+    if result:
+        token, email = result
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        send_confirmation_email(
+            email,
+            "パスワードリセット - Venduce",
+            template_name="password_reset",
+            context={
+                "reset_url": reset_url,
+                "expire_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+            },
+        )
+
+    return {"message": "パスワードリセットのメールを送信しました。メールをご確認ください。"}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+    svc: UserService = Depends(get_user_service),
+):
+    """トークンを検証し、新しいパスワードを設定します。"""
+    try:
+        svc.reset_password(db, payload.token, payload.new_password)
+    except PasswordResetError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {"message": "パスワードが正常にリセットされました。"}

@@ -17,7 +17,18 @@ from app.models.tag import Tag
 from app.models.post import Post
 from app.models.asset import Asset
 from app.models.post_assets import PostAsset
-from app.models.enums import PostStatus
+from app.models.like import Like
+from app.models.comment import Comment
+from app.models.follow import Follow
+from app.models.payment_method import PaymentMethod
+from app.models.purchase import Purchase
+from app.models.notification import Notification
+from app.models.enums import (
+    PostStatus,
+    PaymentType,
+    PurchaseStatus,
+    NotificationType,
+)
 from app.core.security import hash_password
 
 
@@ -69,6 +80,55 @@ POST_CAPTIONS = [
 POST_PRODUCT_PROBABILITY = 0.7  # 70% probability that a post includes related products
 POST_TAG_PROBABILITY = 0.8
 # POST_ASSET_PROBABILITY = 0.7  # 廃止: すべての投稿にアセットが必須
+
+# ---------- コメントテンプレート ----------
+COMMENT_TEXTS = [
+    "すごくいいですね！参考になります😊",
+    "これ気になってました！レビューありがとうございます✨",
+    "私も買いました！本当にいい商品ですよね👍",
+    "どこで買えますか？教えてほしいです🙏",
+    "色違いもありますか？",
+    "サイズ感はどうですか？",
+    "プレゼントにもいいかも🎁",
+    "コスパ良さそう！",
+    "写真がとても綺麗ですね📸",
+    "次のセール情報あったら教えてください！",
+    "友達にもシェアしました💕",
+    "めっちゃ欲しい！ポチります🛒",
+    "使い心地はどうですか？",
+    "おしゃれ〜！真似したい✨",
+    "これ、前から気になってたんです！",
+    "素敵な投稿ですね🌟",
+    "わかる！私もリピートしてます😆",
+    "詳しいレビュー助かります！",
+    "季節的にちょうどいいですね🌸",
+    "品質良さそうですね！長持ちしますか？",
+]
+
+REPLY_TEXTS = [
+    "ありがとうございます！嬉しいです😊",
+    "はい、おすすめです！",
+    "公式サイトで買えますよ👍",
+    "Mサイズでぴったりでした！",
+    "色違いありますよ！",
+    "ぜひ試してみてください✨",
+    "返信ありがとうございます！",
+    "なるほど、参考になります！",
+]
+
+# ---------- 支払い方法テンプレート ----------
+PAYMENT_METHOD_TEMPLATES = [
+    {"type": PaymentType.CREDIT_CARD, "name": "Visa ****1234", "details": {"brand": "Visa", "last4": "1234", "exp_month": 12, "exp_year": 2028}},
+    {"type": PaymentType.CREDIT_CARD, "name": "Mastercard ****5678", "details": {"brand": "Mastercard", "last4": "5678", "exp_month": 6, "exp_year": 2027}},
+    {"type": PaymentType.CREDIT_CARD, "name": "JCB ****9012", "details": {"brand": "JCB", "last4": "9012", "exp_month": 3, "exp_year": 2029}},
+    {"type": PaymentType.CONVENIENCE_STORE, "name": "コンビニ払い", "details": {"store": "セブン-イレブン"}},
+    {"type": PaymentType.CONVENIENCE_STORE, "name": "コンビニ払い", "details": {"store": "ファミリーマート"}},
+    {"type": PaymentType.BANK_TRANSFER, "name": "銀行振込（三菱UFJ）", "details": {"bank": "三菱UFJ銀行", "branch": "渋谷支店"}},
+    {"type": PaymentType.BANK_TRANSFER, "name": "銀行振込（みずほ）", "details": {"bank": "みずほ銀行", "branch": "新宿支店"}},
+    {"type": PaymentType.DIGITAL_WALLET, "name": "PayPay", "details": {"provider": "PayPay"}},
+    {"type": PaymentType.DIGITAL_WALLET, "name": "楽天ペイ", "details": {"provider": "楽天ペイ"}},
+    {"type": PaymentType.DIGITAL_WALLET, "name": "LINE Pay", "details": {"provider": "LINE Pay"}},
+]
 
 CATEGORIES_HIERARCHICAL = {
     "ファッション": [
@@ -913,6 +973,343 @@ def generate_seed_data():
         else:
             print(f"✅ アセットはすでに{existing_assets}個存在しています\n")
 
+        # ----------------------------------------------------------------
+        # フォロー関係の作成
+        # ----------------------------------------------------------------
+        print("👥 フォロー関係を作成中...")
+        existing_follows = db.query(Follow).count()
+        if existing_follows == 0:
+            all_users = db.query(User).all()
+            follows_created = 0
+            # 各ユーザーがランダムに 5〜20 人をフォロー（最初の 300 ユーザー）
+            for user in all_users[:300]:
+                num_to_follow = random.randint(5, min(20, len(all_users) - 1))
+                candidates = [u for u in all_users if u.id != user.id]
+                selected = random.sample(candidates, num_to_follow)
+                for target in selected:
+                    follow = Follow(
+                        follower_id=user.id,
+                        following_id=target.id,
+                    )
+                    db.add(follow)
+                    follows_created += 1
+
+                if follows_created % 500 == 0:
+                    db.flush()
+
+            db.commit()
+            print(f"✅ {follows_created}個のフォロー関係を作成\n")
+        else:
+            print(f"✅ フォロー関係はすでに{existing_follows}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # いいねの作成
+        # ----------------------------------------------------------------
+        print("❤️  いいねを作成中...")
+        existing_likes = db.query(Like).count()
+        if existing_likes == 0:
+            all_users = db.query(User).all()
+            all_posts = db.query(Post).filter(Post.status == PostStatus.PUBLIC).all()
+            likes_created = 0
+
+            if all_posts:
+                # 各ユーザーがランダムに 3〜15 件の公開投稿にいいね（最初の 300 ユーザー）
+                for user in all_users[:300]:
+                    num_likes = random.randint(3, min(15, len(all_posts)))
+                    liked_posts = random.sample(all_posts, num_likes)
+                    for post in liked_posts:
+                        if post.user_id == user.id:
+                            continue
+                        like = Like(
+                            user_id=user.id,
+                            post_id=post.id,
+                        )
+                        db.add(like)
+                        likes_created += 1
+
+                    if likes_created % 500 == 0:
+                        db.flush()
+
+                db.commit()
+
+                # like_count を実際のいいね数に更新
+                for post in all_posts:
+                    actual_count = db.query(Like).filter(Like.post_id == post.id).count()
+                    post.like_count = actual_count
+                db.commit()
+
+            print(f"✅ {likes_created}個のいいねを作成\n")
+        else:
+            print(f"✅ いいねはすでに{existing_likes}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # コメントの作成
+        # ----------------------------------------------------------------
+        print("💬 コメントを作成中...")
+        existing_comments = db.query(Comment).count()
+        if existing_comments == 0:
+            all_users = db.query(User).all()
+            all_posts = db.query(Post).filter(Post.status == PostStatus.PUBLIC).all()
+            comments_created = 0
+
+            if all_posts and all_users:
+                # 公開投稿にランダムにコメント。一部は返信付き。
+                for post in random.sample(all_posts, min(300, len(all_posts))):
+                    num_comments = random.randint(1, 5)
+                    for _ in range(num_comments):
+                        commenter = random.choice(all_users)
+                        comment = Comment(
+                            post_id=post.id,
+                            user_id=commenter.id,
+                            content=random.choice(COMMENT_TEXTS),
+                        )
+                        db.add(comment)
+                        db.flush()
+                        comments_created += 1
+
+                        # 50% の確率で返信を 1〜2 件追加
+                        if random.random() < 0.5:
+                            num_replies = random.randint(1, 2)
+                            for __ in range(num_replies):
+                                replier = random.choice(all_users)
+                                reply = Comment(
+                                    post_id=post.id,
+                                    user_id=replier.id,
+                                    content=random.choice(REPLY_TEXTS),
+                                    parent_comment_id=comment.id,
+                                )
+                                db.add(reply)
+                                comments_created += 1
+
+                    if comments_created % 200 == 0:
+                        db.flush()
+
+                db.commit()
+            print(f"✅ {comments_created}個のコメント（返信含む）を作成\n")
+        else:
+            print(f"✅ コメントはすでに{existing_comments}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # 支払い方法の作成
+        # ----------------------------------------------------------------
+        print("💳 支払い方法を作成中...")
+        existing_pms = db.query(PaymentMethod).count()
+        if existing_pms == 0:
+            all_users = db.query(User).all()
+            pms_created = 0
+
+            # 最初の 500 ユーザーに 1〜2 件の支払い方法を登録
+            for idx, user in enumerate(all_users[:500]):
+                num_methods = random.randint(1, 2)
+                selected_templates = random.sample(PAYMENT_METHOD_TEMPLATES, num_methods)
+                for j, tmpl in enumerate(selected_templates):
+                    pm = PaymentMethod(
+                        user_id=user.id,
+                        payment_type=tmpl["type"],
+                        name=tmpl["name"],
+                        details=tmpl["details"],
+                        is_default=(j == 0),
+                    )
+                    db.add(pm)
+                    pms_created += 1
+
+                if (idx + 1) % 100 == 0:
+                    db.flush()
+                    print(f"  ✓ {idx + 1}名の支払い方法を登録")
+
+            db.commit()
+            print(f"✅ {pms_created}個の支払い方法を作成\n")
+        else:
+            print(f"✅ 支払い方法はすでに{existing_pms}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # 購入履歴の作成
+        # ----------------------------------------------------------------
+        print("🛒 購入履歴を作成中...")
+        existing_purchases = db.query(Purchase).count()
+        if existing_purchases == 0:
+            all_users = db.query(User).all()
+            all_products = db.query(Product).filter(Product.status == "published").all()
+            all_posts = db.query(Post).filter(Post.status == PostStatus.PUBLIC).all()
+            purchases_created = 0
+
+            if all_products:
+                # 支払い方法を持つユーザーのみ購入対象
+                users_with_pm = (
+                    db.query(User)
+                    .join(PaymentMethod, PaymentMethod.user_id == User.id)
+                    .distinct()
+                    .limit(300)
+                    .all()
+                )
+
+                for user in users_with_pm:
+                    # ユーザーのデフォルト支払い方法を取得
+                    pm = (
+                        db.query(PaymentMethod)
+                        .filter(PaymentMethod.user_id == user.id, PaymentMethod.is_default == True)
+                        .first()
+                    )
+                    if not pm:
+                        pm = (
+                            db.query(PaymentMethod)
+                            .filter(PaymentMethod.user_id == user.id)
+                            .first()
+                        )
+                    if not pm:
+                        continue
+
+                    num_purchases = random.randint(1, 8)
+                    purchased_products = random.sample(
+                        all_products, min(num_purchases, len(all_products))
+                    )
+
+                    for product in purchased_products:
+                        quantity = random.randint(1, 3)
+                        total = product.price_cents * quantity
+
+                        # 30% の確率で投稿経由
+                        referring_post = None
+                        if all_posts and random.random() < 0.3:
+                            referring_post = random.choice(all_posts)
+
+                        status = random.choices(
+                            [PurchaseStatus.COMPLETED, PurchaseStatus.PENDING, PurchaseStatus.REFUNDED],
+                            weights=[85, 10, 5],
+                            k=1,
+                        )[0]
+
+                        purchase = Purchase(
+                            buyer_id=user.id,
+                            product_id=product.id,
+                            quantity=quantity,
+                            price_cents=product.price_cents,
+                            total_amount_cents=total,
+                            currency="JPY",
+                            payment_method_id=pm.id,
+                            referring_post_id=referring_post.id if referring_post else None,
+                            status=status,
+                        )
+                        db.add(purchase)
+                        purchases_created += 1
+
+                    if purchases_created % 200 == 0:
+                        db.flush()
+
+                db.commit()
+
+                # purchase_count を実際の投稿経由購入数に更新
+                for post in all_posts:
+                    actual_count = (
+                        db.query(Purchase)
+                        .filter(
+                            Purchase.referring_post_id == post.id,
+                            Purchase.status == PurchaseStatus.COMPLETED,
+                        )
+                        .count()
+                    )
+                    post.purchase_count = actual_count
+                db.commit()
+
+            print(f"✅ {purchases_created}個の購入履歴を作成\n")
+        else:
+            print(f"✅ 購入履歴はすでに{existing_purchases}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # 通知の作成
+        # ----------------------------------------------------------------
+        print("🔔 通知を作成中...")
+        existing_notifications = db.query(Notification).count()
+        if existing_notifications == 0:
+            notifications_created = 0
+
+            # いいね通知: いいねの一部から生成
+            recent_likes = db.query(Like).limit(200).all()
+            for like_rec in recent_likes:
+                post = db.query(Post).filter(Post.id == like_rec.post_id).first()
+                if not post or post.user_id == like_rec.user_id:
+                    continue
+                notif = Notification(
+                    user_id=post.user_id,
+                    actor_id=like_rec.user_id,
+                    type=NotificationType.LIKE,
+                    entity_id=post.id,
+                    message="あなたの投稿にいいねしました",
+                    is_read=random.choice([True, True, False]),
+                )
+                db.add(notif)
+                notifications_created += 1
+
+            db.flush()
+
+            # フォロー通知
+            recent_follows = db.query(Follow).limit(200).all()
+            for follow_rec in recent_follows:
+                notif = Notification(
+                    user_id=follow_rec.following_id,
+                    actor_id=follow_rec.follower_id,
+                    type=NotificationType.FOLLOW,
+                    entity_id=follow_rec.follower_id,
+                    message="あなたをフォローしました",
+                    is_read=random.choice([True, True, False]),
+                )
+                db.add(notif)
+                notifications_created += 1
+
+            db.flush()
+
+            # コメント通知
+            recent_comments = db.query(Comment).filter(Comment.parent_comment_id == None).limit(150).all()
+            for comment_rec in recent_comments:
+                post = db.query(Post).filter(Post.id == comment_rec.post_id).first()
+                if not post or post.user_id == comment_rec.user_id:
+                    continue
+                notif = Notification(
+                    user_id=post.user_id,
+                    actor_id=comment_rec.user_id,
+                    type=NotificationType.COMMENT,
+                    entity_id=comment_rec.id,
+                    message="あなたの投稿にコメントしました",
+                    is_read=random.choice([True, False]),
+                )
+                db.add(notif)
+                notifications_created += 1
+
+            db.flush()
+
+            # 購入通知（投稿経由の購入）
+            post_purchases = (
+                db.query(Purchase)
+                .filter(
+                    Purchase.referring_post_id != None,
+                    Purchase.status == PurchaseStatus.COMPLETED,
+                )
+                .limit(100)
+                .all()
+            )
+            for purch in post_purchases:
+                post = db.query(Post).filter(Post.id == purch.referring_post_id).first()
+                if not post:
+                    continue
+                notif = Notification(
+                    user_id=post.user_id,
+                    actor_id=purch.buyer_id,
+                    type=NotificationType.PURCHASE,
+                    entity_id=purch.id,
+                    message="あなたの投稿経由で商品が購入されました",
+                    is_read=random.choice([True, False]),
+                )
+                db.add(notif)
+                notifications_created += 1
+
+            db.commit()
+            print(f"✅ {notifications_created}個の通知を作成\n")
+        else:
+            print(f"✅ 通知はすでに{existing_notifications}個存在しています\n")
+
+        # ----------------------------------------------------------------
+        # 統計出力
+        # ----------------------------------------------------------------
         print(f"✅ seedデータ生成完了")
         print(f"  📊 統計:")
         print(f"     - ユーザー: {db.query(User).count()}名")
@@ -923,6 +1320,12 @@ def generate_seed_data():
         print(f"     - タグ: {db.query(Tag).count()}個")
         print(f"     - 投稿: {db.query(Post).count()}個")
         print(f"     - アセット: {db.query(Asset).count()}個")
+        print(f"     - いいね: {db.query(Like).count()}個")
+        print(f"     - コメント: {db.query(Comment).count()}個")
+        print(f"     - フォロー: {db.query(Follow).count()}個")
+        print(f"     - 支払い方法: {db.query(PaymentMethod).count()}個")
+        print(f"     - 購入履歴: {db.query(Purchase).count()}個")
+        print(f"     - 通知: {db.query(Notification).count()}個")
 
     except Exception as e:
         db.rollback()

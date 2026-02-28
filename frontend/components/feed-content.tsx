@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { buttonVariants, Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import {
   Dialog,
@@ -14,11 +15,14 @@ import {
 } from '@/components/ui/dialog';
 
 import { postsApi } from '@/lib/api/posts';
+import { followsApi } from '@/lib/api/follows';
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll';
 import { Post, Product } from '@/types/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import LikeAnimation from '@/components/animation/likeAnimation';
 import { PurchaseForm } from '@/components/purchase-form';
+import { ApiError } from '@/lib/api/client';
+import { useAuthStore } from '@/stores/auth';
 
 interface PostItemProps {
   post: Post;
@@ -46,10 +50,16 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
   };
 
   return (
-    <article className="w-[50%] overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
+    <article className="w-full md:w-[50%] overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg" onClick={handlePostClick}>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between p-3 rounded-t-lg">
+        <div
+          className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg px-2 py-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (post.user?.username) router.push(`/users/${post.user.username}`);
+          }}
+        >
           <Avatar>
             <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
             <AvatarFallback>{post.user?.username?.[0] ?? '?'}</AvatarFallback>
@@ -57,6 +67,13 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
           <div className="leading-tight">
             <p className="font-semibold text-sm">{post.user?.username ?? '匿名ユーザー'}</p>
           </div>
+        </div>
+        <div
+          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors p-1"
+          onClick={handlePostClick}
+          title="投稿を見る"
+        >
+          ›
         </div>
       </div>
 
@@ -74,7 +91,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 
                     {/* 画像に紐づいた商品へのボタン */}
                     {linkedProduct && (
-                      <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 px-3 shadow-md bg-white/90 text-black hover:bg-white')}>
                           <ShoppingCart className="h-4 w-4" />
                           詳細
@@ -124,7 +141,15 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
         <p className="mb-1 text-sm font-semibold">{post.like_count ?? 0} likes</p>
         <div className="space-y-1">
           <p className="text-sm">
-            <span className="font-semibold mr-2">{post.user?.username ?? 'ユーザー'}</span>
+            <span
+              className="font-semibold mr-2 cursor-pointer hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (post.user?.username) router.push(`/users/${post.user.username}`);
+              }}
+            >
+              {post.user?.username ?? 'ユーザー'}
+            </span>
             {post.caption?.split(/(\s+|#[^\s#]+)/g).map((part, i) => {
               if (part.startsWith('#')) {
                 return (
@@ -154,19 +179,23 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 }
 
 export function FeedContent() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => !!state.user);
+  const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
+
+  // おすすめフィード
   const {
-    items: posts,
-    setItems: setPosts,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    error,
-    sentinelRef,
+    items: discoverPosts,
+    setItems: setDiscoverPosts,
+    isLoading: discoverLoading,
+    isLoadingMore: discoverLoadingMore,
+    hasMore: discoverHasMore,
+    error: discoverError,
+    sentinelRef: discoverSentinelRef,
   } = useInfiniteScroll<Post>({
     limit: 10,
     fetchMore: async (cursor, limit) => {
       const response = await postsApi.getPostsInfinite({ cursor: cursor as string, limit });
-      
       return {
         items: response.items,
         nextCursor: response.meta.next_cursor,
@@ -174,42 +203,131 @@ export function FeedContent() {
     },
   });
 
-  const handleLikeToggle = (postId: string, isLiked: boolean) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => {
-        if (post.id === postId) {
-          const newCount = isLiked ? (post.like_count || 0) + 1 : Math.max(0, (post.like_count || 0) - 1);
-          return {
-            ...post,
-            liked_by_me: isLiked,
-            like_count: newCount,
-          };
-        }
-        return post;
-      })
+  // フォロー中フィード
+  const {
+    items: followingPosts,
+    setItems: setFollowingPosts,
+    isLoading: followingLoading,
+    isLoadingMore: followingLoadingMore,
+    hasMore: followingHasMore,
+    error: followingError,
+    sentinelRef: followingSentinelRef,
+  } = useInfiniteScroll<Post>({
+    limit: 10,
+    fetchMore: async (cursor, limit) => {
+      const response = await followsApi.getFollowFeed(cursor as string | undefined, limit);
+      return {
+        items: response.items,
+        nextCursor: response.meta.next_cursor,
+      };
+    },
+  });
+
+  const handleLikeToggle = async (postId: string, isLiked: boolean) => {
+    const updatePosts = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
+      setter((prevPosts) =>
+        prevPosts.map((post) => {
+          if (post.id === postId) {
+            const newCount = isLiked ? (post.like_count || 0) + 1 : Math.max(0, (post.like_count || 0) - 1);
+            return { ...post, liked_by_me: isLiked, like_count: newCount };
+          }
+          return post;
+        })
+      );
+    };
+
+    // 楽観的更新
+    updatePosts(setDiscoverPosts);
+    updatePosts(setFollowingPosts);
+
+    try {
+      if (isLiked) {
+        await postsApi.likePost(postId);
+      } else {
+        await postsApi.unlikePost(postId);
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        router.push('/login');
+        return;
+      }
+      console.error("いいねの更新に失敗しました", error);
+      // ロールバック
+      const revert = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
+        setter((prevPosts) =>
+          prevPosts.map((post) => {
+            if (post.id === postId) {
+              const revertedCount = isLiked
+                ? Math.max(0, (post.like_count || 0) - 1)
+                : (post.like_count || 0) + 1;
+              return { ...post, liked_by_me: !isLiked, like_count: revertedCount };
+            }
+            return post;
+          })
+        );
+      };
+      revert(setDiscoverPosts);
+      revert(setFollowingPosts);
+    }
+  };
+
+  const renderFeed = (
+    posts: Post[],
+    isLoading: boolean,
+    isLoadingMore: boolean,
+    hasMore: boolean,
+    error: Error | null,
+    sentinelRef: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    if (isLoading) {
+      return <div className="flex justify-center p-8">読み込み中...</div>;
+    }
+    if (error) {
+      return <div className="flex justify-center p-8 text-sm text-destructive">{error.message}</div>;
+    }
+    return (
+      <div className="space-y-4 md:space-y-6 flex flex-col items-center mt-6 mb-6">
+        {posts.map((post) => (
+          <PostItem key={post.id} post={post} onLikeToggle={handleLikeToggle} />
+        ))}
+        <div ref={sentinelRef} className="w-full h-10 flex items-center justify-center">
+          {isLoadingMore && <div className="text-sm text-muted-foreground">追加読み込み中...</div>}
+          {!hasMore && posts.length > 0 && <div className="text-sm text-muted-foreground p-4">すべての投稿を表示しました</div>}
+          {!hasMore && posts.length === 0 && <div className="text-sm text-muted-foreground p-4">投稿がありません</div>}
+        </div>
+      </div>
     );
   };
 
-  if (isLoading) {
-    return <div className="flex justify-center p-8">読み込み中...</div>;
-  }
-
-  if (error) {
-    return <div className="flex justify-center p-8 text-sm text-destructive">{error.message}</div>;
+  if (!isAuthenticated) {
+    // 未ログインではおすすめのみ
+    return renderFeed(discoverPosts, discoverLoading, discoverLoadingMore, discoverHasMore, discoverError, discoverSentinelRef);
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 flex flex-col items-center mt-6 mb-6">
-      {posts.map((post) => (
-        <PostItem key={post.id} post={post} onLikeToggle={handleLikeToggle} />
-      ))}
-      
-      {/* Infinite Scroll Sentinel */}
-      <div ref={sentinelRef} className="w-full h-10 flex items-center justify-center">
-        {isLoadingMore && <div className="text-sm text-muted-foreground">追加読み込み中...</div>}
-        {!hasMore && posts.length > 0 && <div className="text-sm text-muted-foreground p-4">すべての投稿を表示しました</div>}
-        {!hasMore && posts.length === 0 && <div className="text-sm text-muted-foreground p-4">投稿がありません</div>}
-      </div>
-    </div>
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'discover' | 'following')} className="w-full">
+      <TabsList className="w-full justify-center rounded-none border-b border-border bg-transparent p-0">
+        <TabsTrigger
+          value="discover"
+          className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+        >
+          おすすめ
+        </TabsTrigger>
+        <TabsTrigger
+          value="following"
+          className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+        >
+          フォロー中
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="discover" className="mt-0">
+        {renderFeed(discoverPosts, discoverLoading, discoverLoadingMore, discoverHasMore, discoverError, discoverSentinelRef)}
+      </TabsContent>
+
+      <TabsContent value="following" className="mt-0">
+        {renderFeed(followingPosts, followingLoading, followingLoadingMore, followingHasMore, followingError, followingSentinelRef)}
+      </TabsContent>
+    </Tabs>
   );
 }

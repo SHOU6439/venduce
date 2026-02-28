@@ -15,6 +15,10 @@ from .payment_method import PaymentMethod
 from .purchase import Purchase
 from .like import Like
 from .comment import Comment
+from .follow import Follow
+from .badge import Badge, UserBadge
+from .notification import Notification
 
 __all__ = ["User", "RefreshToken", "Asset", "Product", "Category", "Brand", "Tag", "Post", "PostTag", "post_tags", "PostAsset", "post_assets",
-           "ProductAsset", "product_assets", "PostProduct", "post_products", "ProductCategory", "PaymentMethod", "Purchase", "Like", "Comment"]
+           "ProductAsset", "product_assets", "PostProduct", "post_products", "ProductCategory", "PaymentMethod", "Purchase", "Like", "Comment", "Follow",
+           "Badge", "UserBadge", "Notification"]

@@ -8,7 +8,11 @@ from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.schemas.product import ProductRead
 from app.schemas.payment_method import PaymentMethodRead
 from app.services.purchase_service import PurchaseService
-from app.deps import get_current_user, get_purchase_service
+from app.services.badge_service import BadgeService
+from app.services.notification_service import NotificationService
+from app.models.enums import BadgeCategory, NotificationType
+from app.deps import get_current_user, get_purchase_service, get_badge_service, get_notification_service
+from app.core.ws_manager import fire_and_forget_broadcast
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -20,18 +24,60 @@ def create_purchase(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     service: PurchaseService = Depends(get_purchase_service),
+    badge_service: BadgeService = Depends(get_badge_service),
+    notification_service: NotificationService = Depends(get_notification_service),
 ):
     """支払い方法選択後に購入記録を作成します。
     
     referring_post_id が指定された場合：
     - 購入が投稿に帰属
     - 投稿の purchase_count がインクリメント
+    - 投稿者のバッジ自動判定を実行
     
     referring_post_id が None の場合：
     - 直接購入（投稿への帰属なし）
     - ユーザーの購入履歴のみ記録
     """
-    return service.create_purchase(db, payload=payload, buyer=current_user)
+    purchase = service.create_purchase(db, payload=payload, buyer=current_user)
+
+    # 投稿経由の購入の場合、投稿者に対してバッジ自動付与を判定
+    if payload.referring_post_id and purchase.referring_post:
+        post_owner_id = purchase.referring_post.user_id
+        badge_service.ensure_default_badges()
+        badge_service.evaluate_and_award(
+            post_owner_id,
+            categories=[BadgeCategory.DRIVEN_PURCHASES],
+        )
+
+    # 購入者自身の購入数バッジを判定
+    try:
+        badge_service.ensure_default_badges()
+        badge_service.evaluate_and_award(
+            current_user.id,
+            categories=[BadgeCategory.PURCHASES_MADE],
+        )
+    except Exception:
+        pass
+
+    # ランキングに影響するため全クライアントに通知
+    fire_and_forget_broadcast("ranking_updated")
+
+    # 投稿経由の購入の場合、投稿主に「購入されました」通知を送信
+    if payload.referring_post_id and purchase.referring_post:
+        post_owner_id = purchase.referring_post.user_id
+        if post_owner_id != current_user.id:
+            try:
+                notification_service.create_notification(
+                    user_id=post_owner_id,
+                    actor_id=current_user.id,
+                    notification_type=NotificationType.PURCHASE,
+                    entity_id=payload.referring_post_id,
+                    message=f"{current_user.username} があなたの投稿から商品を購入しました",
+                )
+            except Exception:
+                pass
+
+    return purchase
 
 
 @router.get("/{user_id}", response_model=PaginatedResponse[PurchaseRead])

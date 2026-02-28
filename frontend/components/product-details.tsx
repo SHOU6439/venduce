@@ -13,8 +13,10 @@ import { Product, Post } from '@/types/api';
 import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
 import { PurchaseForm } from '@/components/purchase-form';
 import { BackButton } from '@/components/back-button';
+import { useAuthStore } from '@/stores/auth';
 
 export function ProductDetails({ productId }: { productId: string }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,16 @@ export function ProductDetails({ productId }: { productId: string }) {
           </div>
 
           {/* Purchase Form */}
-          <PurchaseForm product={product} />
+          {isAuthenticated ? (
+            <PurchaseForm product={product} />
+          ) : (
+            <div className="p-4 rounded border border-border bg-muted/50 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">購入するにはログインしてください</p>
+              <Link href="/login">
+                <Button variant="default" className="w-full">ログインして購入</Button>
+              </Link>
+            </div>
+          )}
 
           {/* Related Posts */}
           <div>

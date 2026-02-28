@@ -19,6 +19,10 @@ class RefreshTokenError(VenduceError):
     """Raised when refresh token handling encounters an invalid or revoked token."""
 
 
+class PasswordResetError(VenduceError):
+    """Raised when password reset fails (invalid/expired token, user not found, etc.)."""
+
+
 class AuthenticationError(VenduceError):
     """Authentication/authorization failure that carries HTTP-friendly metadata."""
 
@@ -35,6 +39,7 @@ class AuthenticationError(VenduceError):
 __all__ = [
     "AuthenticationError",
     "ConfirmationError",
+    "PasswordResetError",
     "VenduceError",
     "RefreshTokenError",
     "UserAlreadyExists",

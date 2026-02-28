@@ -244,12 +244,14 @@ class PostService:
         *,
         cursor: Optional[str] = None,
         limit: int = 20,
+        user_id: Optional[str] = None,
     ) -> Tuple[List[Post], Optional[str], bool]:
         """公開投稿の一覧を cursor ベースのページネーションで取得します。
 
         Args:
             cursor: 継続取得用のカーソル（Base64 エンコード済み）
             limit: 取得件数（1-100）
+            user_id: 指定すると特定ユーザーの投稿のみに絞り込む
 
         Returns:
             (posts, next_cursor, has_more) のタプル
@@ -263,6 +265,9 @@ class PostService:
             .filter(Post.deleted_at.is_(None))
             .order_by(Post.created_at.desc(), Post.id.desc())
         )
+
+        if user_id:
+            query = query.filter(Post.user_id == user_id)
 
         if cursor:
             cursor_created_at, cursor_id = decode_cursor(cursor)
@@ -287,6 +292,26 @@ class PostService:
             self._enrich_post_with_asset_products(post)
 
         return posts, next_cursor, has_more
+
+    def get_posts_by_user(self, *, user_id: str) -> List[Post]:
+        """指定ユーザーの全投稿（削除済み除く）を新しい順で返します。
+
+        プロフィールの累計いいね数・購入数集計に使用します。
+
+        Args:
+            user_id: ユーザー ID
+
+        Returns:
+            投稿リスト（集計用のため assets/products は読み込まない）
+        """
+        return (
+            self.db.query(Post)
+            .filter(Post.user_id == user_id)
+            .filter(Post.deleted_at.is_(None))
+            .filter(Post.status == PostStatus.PUBLIC)
+            .order_by(Post.created_at.desc())
+            .all()
+        )
 
     def get_post_by_id(
         self,

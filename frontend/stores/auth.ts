@@ -12,6 +12,7 @@ interface User {
   last_name?: string;
   is_active: boolean;
   is_superuser: boolean;
+  is_admin: boolean;
 }
 
 interface LoginResponse {
@@ -173,9 +174,19 @@ export const useAuthStore = create<AuthState>()(
 
       initializeFromToken: async () => {
         try {
+          let token = getCookie("access_token");
 
+          // access_token がない場合、refresh_token でリフレッシュを試みる
+          if (!token) {
+            const existingRefresh = getCookie("refresh_token");
+            if (existingRefresh) {
+              const refreshed = await get().refreshAccessToken();
+              if (refreshed) {
+                token = getCookie("access_token");
+              }
+            }
+          }
 
-          const token = getCookie("access_token");
           if (token) {
             const user = await client.get<User>("/api/users/me");
             const refreshToken = getCookie("refresh_token");

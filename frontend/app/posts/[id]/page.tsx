@@ -9,6 +9,8 @@ import { Post, Product } from '@/types/api';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import LikeAnimation from '@/components/animation/likeAnimation';
+import { ApiError } from '@/lib/api/client';
 
 import { CommentList } from '@/features/comments/components/CommentList';
 
@@ -55,6 +57,47 @@ export default function PostDetail({ params }: PostDetailPageProps) {
     router.push(`/products/${productId}`);
   };
 
+  const handleLikeToggle = async (isLiked: boolean) => {
+    if (!post) return;
+    // 楽観的更新
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            liked_by_me: isLiked,
+            like_count: isLiked
+              ? (prev.like_count || 0) + 1
+              : Math.max(0, (prev.like_count || 0) - 1),
+          }
+        : prev
+    );
+    try {
+      if (isLiked) {
+        await postsApi.likePost(post.id);
+      } else {
+        await postsApi.unlikePost(post.id);
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push('/login');
+        return;
+      }
+      console.error('いいねの更新に失敗しました', err);
+      // ロールバック
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              liked_by_me: !isLiked,
+              like_count: isLiked
+                ? Math.max(0, (prev.like_count || 0) - 1)
+                : (prev.like_count || 0) + 1,
+            }
+          : prev
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -95,7 +138,12 @@ export default function PostDetail({ params }: PostDetailPageProps) {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         {/* 投稿 */}
         <div className="bg-card rounded-lg border p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
+          <div
+            className="flex items-center gap-4 mb-4 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg px-2 py-1 -mx-2"
+            onClick={() => {
+              if (post.user?.username) router.push(`/users/${post.user.username}`);
+            }}
+          >
             <Avatar>
               <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
               <AvatarFallback>{post.user?.username?.[0] ?? '?'}</AvatarFallback>
@@ -121,6 +169,16 @@ export default function PostDetail({ params }: PostDetailPageProps) {
               ))}
             </div>
           )}
+
+          {/* いいねボタン */}
+          <div className="flex items-center gap-2 mb-4">
+            <LikeAnimation
+              isLiked={post.liked_by_me ?? false}
+              onToggle={handleLikeToggle}
+              sizeClass="w-7 h-7"
+            />
+            <span className="text-sm font-semibold">{post.like_count ?? 0} likes</span>
+          </div>
 
           {/* 関連商品 */}
           {post.asset_products && post.asset_products.length > 0 && (

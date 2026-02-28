@@ -85,6 +85,8 @@ test:
 seed:
 	@echo "seedデータを生成中..."
 	docker compose exec -T backend python -c "import sys; sys.path.insert(0, '/app'); from scripts.seed_data import generate_seed_data; generate_seed_data()"
+	@echo "バッジ定義をシード中..."
+	docker compose exec -T backend python -c "from app.db.database import SessionLocal; from app.services.badge_service import BadgeService; db = SessionLocal(); svc = BadgeService(db); svc.ensure_default_badges(); badges = svc.get_all_badges(); print(f'  バッジ {len(badges)} 件登録済み'); db.close()"
 
 db-merge:
 	@echo "マイグレーションの競合を解消（merge heads）します..."

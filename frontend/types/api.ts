@@ -15,11 +15,24 @@ export interface User {
   created_at: string;
   is_confirmed: boolean;
   is_active: boolean;
+  is_admin: boolean;
   avatar_url?: string | null;
+  avatar_asset?: { public_url?: string | null } | null;
   bio?: string | null;
+  is_purchase_history_public: boolean;
 }
 
 export type UserProfile = User;
+
+export interface PublicUserProfile {
+  id: string;
+  username: string;
+  display_name?: string | null;
+  bio?: string | null;
+  avatar_asset?: { public_url?: string | null } | null;
+  created_at: string;
+  is_purchase_history_public: boolean;
+}
 
 export interface Category {
   id: string;
@@ -158,4 +171,118 @@ export interface CreatePostPayload {
   caption: string;
   asset_product_pairs: AssetProductPair[];
   tags?: string[];
+}
+
+export interface UserPostStats {
+  post_count: number;
+  total_likes: number;
+  total_purchases: number;
+}
+
+export interface UserRankingItem {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string | null;
+  total_likes: number;
+  total_purchases: number;
+  rank: number;
+}
+
+export interface RankingResponse {
+  items: UserRankingItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+}
+
+export interface FollowStatus {
+  is_following: boolean;
+  follower_count: number;
+  following_count: number;
+}
+
+export interface FollowUserItem {
+  id: string;
+  username: string;
+  bio?: string | null;
+  avatar_url?: string | null;
+  is_following: boolean;
+}
+
+export interface BadgeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  threshold: number;
+  sort_order: number;
+  category: string;
+}
+
+export interface UserBadge {
+  badge: BadgeDefinition;
+  awarded_at: string;
+}
+
+export interface BadgeNotification {
+  badges: BadgeDefinition[];
+}
+
+// 売れている商品ランキング
+export interface TrendingProductItem {
+  product: Product;
+  total_purchases: number;
+  rank: number;
+}
+
+export interface TrendingProductsResponse {
+  items: TrendingProductItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+}
+
+// いいねが多い商品ランキング
+export interface MostLikedProductItem {
+  product: Product;
+  total_likes: number;
+  rank: number;
+}
+
+export interface MostLikedProductsResponse {
+  items: MostLikedProductItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+}
+
+// 通知
+export type NotificationType = "like" | "follow" | "comment" | "purchase" | "ranking";
+
+export interface NotificationActor {
+  id: string;
+  username: string;
+  avatar_url?: string | null;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  actor_id?: string | null;
+  actor?: NotificationActor | null;
+  type: NotificationType;
+  entity_id?: string | null;
+  message?: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface UnreadCountResponse {
+  count: number;
 }

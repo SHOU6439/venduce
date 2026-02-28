@@ -24,4 +24,20 @@ class ResendRequest(AppModel):
     email: EmailStr
 
 
-__all__ = ["LoginRequest", "TokenPair", "RefreshRequest", "ResendRequest"]
+class ForgotPasswordRequest(AppModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(AppModel):
+    token: str
+    new_password: str
+
+
+__all__ = [
+    "LoginRequest",
+    "TokenPair",
+    "RefreshRequest",
+    "ResendRequest",
+    "ForgotPasswordRequest",
+    "ResetPasswordRequest",
+]

@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { productsApi } from '@/lib/api/products';
 import { postsApi } from '@/lib/api/posts';
-import { Product, Post } from '@/types/api';
+import { usersApi } from '@/lib/api/users';
+import { Product, Post, PublicUserProfile } from '@/types/api';
 import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
@@ -19,14 +20,16 @@ export default function SearchPage() {
   
   const [products, setProducts] = useState<Product[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [users, setUsers] = useState<PublicUserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'posts'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'posts' | 'users'>('products');
 
   useEffect(() => {
     if (!query.trim()) {
       setProducts([]);
       setPosts([]);
+      setUsers([]);
       return;
     }
 
@@ -35,13 +38,15 @@ export default function SearchPage() {
         setLoading(true);
         setError(null);
 
-        const [productsData, postsData] = await Promise.all([
+        const [productsData, postsData, usersData] = await Promise.all([
           productsApi.searchProducts(query).catch(() => []),
           postsApi.searchPosts(query).catch(() => []),
+          usersApi.searchUsers(query).catch(() => []),
         ]);
 
         setProducts(productsData);
         setPosts(postsData);
+        setUsers(usersData);
       } catch (err) {
         setError(err instanceof Error ? err.message : '検索に失敗しました');
       } finally {
@@ -71,7 +76,7 @@ export default function SearchPage() {
         </div>
 
         <div className="container mx-auto px-4 border-t">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'products' | 'posts')}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'products' | 'posts' | 'users')}>
             <TabsList className="border-0 bg-transparent">
               <TabsTrigger value="products" className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
                 商品
@@ -80,6 +85,10 @@ export default function SearchPage() {
               <TabsTrigger value="posts" className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
                 投稿
                 {posts.length > 0 && <span className="ml-2 text-xs">({posts.length})</span>}
+              </TabsTrigger>
+              <TabsTrigger value="users" className="border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
+                ユーザー
+                {users.length > 0 && <span className="ml-2 text-xs">({users.length})</span>}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -166,7 +175,7 @@ export default function SearchPage() {
                           {post.caption}
                         </p>
                         {post.assets && post.assets.length > 0 && (
-                          <div className="grid grid-cols-4 gap-2 mb-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                             {post.assets.slice(0, 4).map((asset) => (
                               <div key={asset.id} className="aspect-square rounded overflow-hidden bg-muted">
                                 <img
@@ -178,6 +187,37 @@ export default function SearchPage() {
                             ))}
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div>
+                {users.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    {query ? 'ユーザーが見つかりません' : '検索してください'}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {users.map((user) => (
+                      <div
+                        key={user.id}
+                        onClick={() => router.push(`/users/${user.username}`)}
+                        className="flex items-center gap-4 rounded-lg border p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                      >
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={getImageUrl(user.avatar_asset?.public_url ?? undefined)} />
+                          <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{user.username}</p>
+                          {user.bio && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{user.bio}</p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
