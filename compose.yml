@@ -68,6 +68,15 @@ services:
       - '8025:8025' # UI
       - '1025:1025' # SMTP
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    depends_on:
+      - nginx
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+
 volumes:
   postgres_data:
   frontend_node_modules:
