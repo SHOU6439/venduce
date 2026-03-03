@@ -105,6 +105,10 @@ export function useWebSocket(): WsEventBus {
                 clearInterval(pingTimerRef.current);
                 pingTimerRef.current = null;
             }
+            // このインスタンスが現在の wsRef と同じ場合のみリセット/再接続する。
+            // cleanup → remount の間に古い ws の onclose が非同期発火しても
+            // 新しい接続（wsRef に格納済み）を null 上書きしないようにする。
+            if (wsRef.current !== ws) return;
             wsRef.current = null;
             if (!mountedRef.current) return;
             const delay =

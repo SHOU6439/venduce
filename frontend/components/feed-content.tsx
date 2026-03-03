@@ -21,15 +21,20 @@ import { Post, Product } from '@/types/api';
 import { getImageUrl, cn } from '@/lib/utils';
 import LikeAnimation from '@/components/animation/likeAnimation';
 import { PurchaseForm } from '@/components/purchase-form';
+import { PostMenu } from '@/components/post-menu';
 import { ApiError } from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth';
+import { useBadgeStore } from '@/stores/badge';
+import { HashtagCaption } from '@/components/hashtag-caption';
 
 interface PostItemProps {
   post: Post;
   onLikeToggle: (postId: string, isLiked: boolean) => void;
+  onPostUpdated: (updated: Post) => void;
+  onPostDeleted: (postId: string) => void;
 }
 
-function PostItem({ post, onLikeToggle }: PostItemProps) {
+function PostItem({ post, onLikeToggle, onPostUpdated, onPostDeleted }: PostItemProps) {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
@@ -52,7 +57,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
   return (
     <article className="w-full md:w-[50%] overflow-hidden border-b border-border bg-card pb-4 md:rounded-xl md:border">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 rounded-t-lg">
+      <div className="flex items-center p-3 rounded-t-lg">
         <div
           className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg px-2 py-1"
           onClick={(e) => {
@@ -69,7 +74,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
           </div>
         </div>
         <div
-          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors p-1"
+          className="ml-auto cursor-pointer text-muted-foreground hover:text-foreground transition-colors p-2 min-h-9 min-w-9 flex items-center justify-center"
           onClick={handlePostClick}
           title="投稿を見る"
         >
@@ -92,7 +97,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
                     {/* 画像に紐づいた商品へのボタン */}
                     {linkedProduct && (
                       <div className="absolute bottom-4 right-4 flex gap-2 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        <Link href={`/product/${linkedProduct.id}`} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 px-3 shadow-md bg-white/90 text-black hover:bg-white')}>
+                        <Link href={`/product/${linkedProduct.id}?referringPostId=${post.id}`} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 px-3 shadow-md bg-white/90 text-black hover:bg-white')}>
                           <ShoppingCart className="h-4 w-4" />
                           詳細
                         </Link>
@@ -131,14 +136,20 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
 
       {/* Actions & Caption */}
       <div className="px-3 pt-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={handlePostClick}>
-        <div className="mb-2 flex gap-4 items-center">
+        <div className="mb-2 flex items-center">
           <div className="-ml-3" onClick={(e) => e.stopPropagation()}>
             <LikeAnimation isLiked={post.liked_by_me ?? false} onToggle={(isLiked) => onLikeToggle(post.id, isLiked)} sizeClass="w-7 h-7" />
           </div>
-          {/* 他のアクションボタンが必要な場合はここに追加 */}
+          <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+            <PostMenu
+              post={post}
+              onUpdated={onPostUpdated}
+              onDeleted={onPostDeleted}
+            />
+          </div>
         </div>
 
-        <p className="mb-1 text-sm font-semibold">{post.like_count ?? 0} likes</p>
+        <p className="mb-1 text-sm font-semibold">{post.like_count ?? 0}</p>
         <div className="space-y-1">
           <p className="text-sm">
             <span
@@ -150,16 +161,7 @@ function PostItem({ post, onLikeToggle }: PostItemProps) {
             >
               {post.user?.username ?? 'ユーザー'}
             </span>
-            {post.caption?.split(/(\s+|#[^\s#]+)/g).map((part, i) => {
-              if (part.startsWith('#')) {
-                return (
-                  <span key={i} className="text-blue-500 font-medium mr-0.5">
-                    {part}
-                  </span>
-                );
-              }
-              return part;
-            })}
+            <HashtagCaption caption={post.caption} />
           </p>
         </div>
       </div>
@@ -223,6 +225,8 @@ export function FeedContent() {
     },
   });
 
+  const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+
   const handleLikeToggle = async (postId: string, isLiked: boolean) => {
     const updatePosts = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
       setter((prevPosts) =>
@@ -239,6 +243,11 @@ export function FeedContent() {
     // 楽観的更新
     updatePosts(setDiscoverPosts);
     updatePosts(setFollowingPosts);
+
+    // はじめてのいいねバッジを楽観的に即時表示
+    if (isLiked) {
+      triggerOptimistic('first-like');
+    }
 
     try {
       if (isLiked) {
@@ -271,6 +280,22 @@ export function FeedContent() {
     }
   };
 
+  const handlePostUpdated = (updated: Post) => {
+    const replacer = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
+      setter((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    };
+    replacer(setDiscoverPosts);
+    replacer(setFollowingPosts);
+  };
+
+  const handlePostDeleted = (postId: string) => {
+    const remover = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
+      setter((prev) => prev.filter((p) => p.id !== postId));
+    };
+    remover(setDiscoverPosts);
+    remover(setFollowingPosts);
+  };
+
   const renderFeed = (
     posts: Post[],
     isLoading: boolean,
@@ -288,7 +313,13 @@ export function FeedContent() {
     return (
       <div className="space-y-4 md:space-y-6 flex flex-col items-center mt-6 mb-6">
         {posts.map((post) => (
-          <PostItem key={post.id} post={post} onLikeToggle={handleLikeToggle} />
+          <PostItem
+            key={post.id}
+            post={post}
+            onLikeToggle={handleLikeToggle}
+            onPostUpdated={handlePostUpdated}
+            onPostDeleted={handlePostDeleted}
+          />
         ))}
         <div ref={sentinelRef} className="w-full h-10 flex items-center justify-center">
           {isLoadingMore && <div className="text-sm text-muted-foreground">追加読み込み中...</div>}

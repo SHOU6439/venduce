@@ -13,9 +13,11 @@ import { postsApi } from '@/lib/api/posts';
 import { productsApi } from '@/lib/api/products';
 import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
 import { Product, Asset, AssetProductPair } from '@/types/api';
+import { useBadgeStore } from '@/stores/badge';
 
 export function CreatePost() {
   const router = useRouter();
+  const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
   const [step, setStep] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -170,6 +172,8 @@ export function CreatePost() {
         asset_product_pairs: assetProductPairs,
         tags: tags,
       });
+      // 初投稿バッジを楽観的に即時表示（ページ遷移後のフィードでエフェクト表示）
+      triggerOptimistic('first-post');
       router.push("/feed");
       router.refresh();
     } catch (error) {

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { BadgeDefinition } from '@/types/api';
 import { badgesApi } from '@/lib/api/badges';
 import { useAuthStore } from '@/stores/auth';
 import { useWsEvents } from '@/components/ws-provider';
+import { useBadgeStore } from '@/stores/badge';
 
 /** バッジアイコン SVG（badge-display.tsx と統一 / icon フィールドベース） */
 function BadgeIconLarge({ icon, color }: { icon: string; color: string }) {
@@ -205,47 +206,110 @@ export function BadgeNotificationManager() {
     const [queue, setQueue] = useState<BadgeDefinition[]>([]);
     const [current, setCurrent] = useState<BadgeDefinition | null>(null);
 
+    const loadOwnedSlugs = useBadgeStore((state) => state.loadOwnedSlugs);
+    const addOwnedSlug = useBadgeStore((state) => state.addOwnedSlug);
+    const resetBadgeStore = useBadgeStore((state) => state.reset);
+    const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+    const pendingOptimistic = useBadgeStore((state) => state.pendingOptimistic);
+    const consumePendingOptimistic = useBadgeStore((state) => state.consumePendingOptimistic);
+
+    // 最新の ownedSlugs / current を ref で保持（タイマー系 effect が deps に引きずられないようにする）
+    const ownedSlugsRef = useRef(ownedSlugs);
+    const currentRef = useRef(current);
+    useEffect(() => { ownedSlugsRef.current = ownedSlugs; });
+    useEffect(() => { currentRef.current = current; });
+
+    /**
+     * HTTP フェッチ / WS 経由バッジのキュー追加。
+     * queue / current / ownedSlugs に既に存在するものはスキップ。
+     */
+    const enqueueUnique = useCallback((badges: BadgeDefinition[]) => {
+        setQueue((prev) => {
+            const usedSlugs = new Set([
+                ...prev.map((b) => b.slug),
+                ...(currentRef.current ? [currentRef.current.slug] : []),
+            ]);
+            const newOnes = badges.filter(
+                (b) => !usedSlugs.has(b.slug) && !ownedSlugsRef.current.has(b.slug),
+            );
+            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+        });
+    }, []);  // ownedSlugsRef / currentRef は ref 経由なので deps 不要
+
+    // enqueueUnique の最新参照を ref で保持
+    const enqueueUniqueRef = useRef(enqueueUnique);
+    useEffect(() => { enqueueUniqueRef.current = enqueueUnique; });
+
+    // ログイン時: 所持済みslugをロード / ログアウト時: ストアリセット
+    useEffect(() => {
+        if (user) {
+            loadOwnedSlugs();
+        } else {
+            resetBadgeStore();
+            setQueue([]);
+            setCurrent(null);
+        }
+    }, [user, loadOwnedSlugs, resetBadgeStore]);
+
+    // 楽観的キュー（first-like 等）を直接 setQueue へ流し込む。
+    // triggerOptimistic は ownedSlugs を事前に更新しないため、ownedSlugs チェックは不要。
+    // queue / current の重複チェックのみ行う。
+    useEffect(() => {
+        if (pendingOptimistic.length > 0) {
+            const badges = consumePendingOptimistic();
+            setQueue((prev) => {
+                const usedSlugs = new Set([
+                    ...prev.map((b) => b.slug),
+                    ...(currentRef.current ? [currentRef.current.slug] : []),
+                ]);
+                const newOnes = badges.filter((b) => !usedSlugs.has(b.slug));
+                return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+            });
+        }
+    }, [pendingOptimistic, consumePendingOptimistic]);
+
     // 初回: HTTP で未通知バッジを取得（WS 接続前に付与されたバッジの救済）
     useEffect(() => {
         if (!user) return;
-
         const fetchUnnotified = async () => {
             try {
                 const data = await badgesApi.getNotifications();
                 if (data.badges.length > 0) {
-                    setQueue((prev) => [...prev, ...data.badges]);
+                    enqueueUniqueRef.current(data.badges);
                 }
             } catch {
                 // 認証切れ等はスルー
             }
         };
-
         const timer = setTimeout(fetchUnnotified, 2000);
         return () => clearTimeout(timer);
-    }, [user]);
+    }, [user]);  // enqueueUnique は ref 経由（deps から除外）
 
     // WebSocket: badge_awarded イベントでリアルタイム受信
     useEffect(() => {
         if (!user) return;
-
         const handler = (e: CustomEvent) => {
             const badge = e.detail as BadgeDefinition;
             if (badge && badge.name) {
-                setQueue((prev) => [...prev, badge]);
+                // enqueue を先に呼ぶ（addOwnedSlug は非同期でstateを更新するため、
+                // enqueueUnique 実行時点では ownedSlugsRef がまだ古い値 → 正しくキューに入る）
+                enqueueUniqueRef.current([badge]);
+                addOwnedSlug(badge.slug);
             }
         };
-
         ws.addEventListener('badge_awarded', handler as any);
         return () => ws.removeEventListener('badge_awarded', handler as any);
-    }, [user, ws]);
+    }, [user, ws, addOwnedSlug]);
 
-    // キューから1つずつ表示
+    // キューから1つずつ表示。setCurrent と同時に markShown して
+    // 以降の HTTP フェッチ / WS で同じバッジが再表示されないようにする。
     useEffect(() => {
         if (current || queue.length === 0) return;
         const [next, ...rest] = queue;
         setCurrent(next);
+        addOwnedSlug(next.slug);  // markShown
         setQueue(rest);
-    }, [queue, current]);
+    }, [queue, current, addOwnedSlug]);
 
     const handleDone = useCallback(() => {
         setCurrent(null);

@@ -109,26 +109,47 @@ class ConnectionManager:
 # グローバルシングルトン
 ws_manager = ConnectionManager()
 
+# アプリ起動時に保存するメインイベントループ
+# def (同期) エンドポイントのスレッドプールからでも WS 送信できるようにする
+_main_loop: asyncio.AbstractEventLoop | None = None
+
+
+def set_main_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """アプリ起動時にメインのイベントループを登録する。"""
+    global _main_loop
+    _main_loop = loop
+
+
+def _schedule(coro) -> None:
+    """
+    async コルーチンを適切なループにスケジュールする共通ヘルパー。
+
+    - 非同期コンテキスト (async def エンドポイント) → loop.create_task()
+    - 同期コンテキスト (def エンドポイント / スレッドプール) → run_coroutine_threadsafe()
+    - ループ未登録の場合（テスト等）→ 何もしない
+    """
+    try:
+        # async コンテキストからの呼び出し
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        # sync スレッドからの呼び出し: 起動時に保存したループ経由でスケジュール
+        if _main_loop is not None and _main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(coro, _main_loop)
+        else:
+            coro.close()  # "coroutine was never awaited" 警告を防ぐ
+
 
 def fire_and_forget_broadcast(event: str, payload: dict[str, Any] | None = None) -> None:
     """
     同期コンテキスト (FastAPI の def エンドポイント等) から
     非同期 broadcast をスケジュールするヘルパー。
-    ループが取得できない場合は何もしない（テスト等）。
     """
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(ws_manager.broadcast(event, payload))
-    except RuntimeError:
-        pass
+    _schedule(ws_manager.broadcast(event, payload))
 
 
 def fire_and_forget_send_to_user(
     user_id: str, event: str, payload: dict[str, Any] | None = None,
 ) -> None:
     """同期コンテキストから特定ユーザーへのイベント送信をスケジュール。"""
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(ws_manager.send_to_user(user_id, event, payload))
-    except RuntimeError:
-        pass
+    _schedule(ws_manager.send_to_user(user_id, event, payload))

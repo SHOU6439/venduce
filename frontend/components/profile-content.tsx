@@ -51,6 +51,9 @@ export function ProfileContent() {
   const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
   const [followListUsers, setFollowListUsers] = useState<FollowUserItem[]>([]);
   const [followListLoading, setFollowListLoading] = useState(false);
+  const [followListCursor, setFollowListCursor] = useState<string | null>(null);
+  const [followListHasMore, setFollowListHasMore] = useState(false);
+  const [followListLoadingMore, setFollowListLoadingMore] = useState(false);
 
   const {
     form,
@@ -112,16 +115,39 @@ export function ProfileContent() {
     setFollowListOpen(true);
     setFollowListLoading(true);
     setFollowListUsers([]);
+    setFollowListCursor(null);
+    setFollowListHasMore(false);
+    setFollowListLoadingMore(false);
     try {
       const res =
         type === 'followers'
           ? await followsApi.getFollowers(profile.id)
           : await followsApi.getFollowing(profile.id);
       setFollowListUsers(res.items);
+      setFollowListCursor(res.meta.next_cursor ?? null);
+      setFollowListHasMore(res.meta.has_more);
     } catch (err) {
       console.error(`Failed to load ${type}`, err);
     } finally {
       setFollowListLoading(false);
+    }
+  };
+
+  const loadMoreFollowList = async () => {
+    if (!profile?.id || !followListHasMore || followListLoadingMore || !followListCursor) return;
+    setFollowListLoadingMore(true);
+    try {
+      const res =
+        followListType === 'followers'
+          ? await followsApi.getFollowers(profile.id, followListCursor)
+          : await followsApi.getFollowing(profile.id, followListCursor);
+      setFollowListUsers((prev) => [...prev, ...res.items]);
+      setFollowListCursor(res.meta.next_cursor ?? null);
+      setFollowListHasMore(res.meta.has_more);
+    } catch (err) {
+      console.error(`Failed to load more ${followListType}`, err);
+    } finally {
+      setFollowListLoadingMore(false);
     }
   };
 
@@ -305,17 +331,17 @@ export function ProfileContent() {
               </div>
               <div
                 className="cursor-pointer hover:opacity-70 transition-opacity"
-                onClick={() => openFollowList('followers')}
-              >
-                <p className="font-semibold text-lg">{(followStatus?.follower_count ?? 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">フォロワー</p>
-              </div>
-              <div
-                className="cursor-pointer hover:opacity-70 transition-opacity"
                 onClick={() => openFollowList('following')}
               >
                 <p className="font-semibold text-lg">{(followStatus?.following_count ?? 0).toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">フォロー中</p>
+              </div>
+              <div
+                className="cursor-pointer hover:opacity-70 transition-opacity"
+                onClick={() => openFollowList('followers')}
+              >
+                <p className="font-semibold text-lg">{(followStatus?.follower_count ?? 0).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">フォロワー</p>
               </div>
               <div>
                 <p className="font-semibold text-lg">{totalLikes.toLocaleString()}</p>
@@ -494,6 +520,20 @@ export function ProfileContent() {
                   </div>
                 </div>
               ))}
+              {followListHasMore && (
+                <div className="pt-2 text-center">
+                  {followListLoadingMore ? (
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <button
+                      onClick={loadMoreFollowList}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      もっと見る
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

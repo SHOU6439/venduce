@@ -21,12 +21,14 @@ import { Header } from '@/components/header';
 import { BackButton } from '@/components/back-button';
 import { useAuthStore } from '@/stores/auth';
 import { BadgeList } from '@/components/badge-display';
+import { useBadgeStore } from '@/stores/badge';
 
 export default function UserProfilePage() {
     const params = useParams();
     const router = useRouter();
     const username = params.username as string;
     const currentUser = useAuthStore((state) => state.user);
+    const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
 
     const [profile, setProfile] = useState<PublicUserProfile | null>(null);
     const [stats, setStats] = useState<UserPostStats | null>(null);
@@ -50,6 +52,9 @@ export default function UserProfilePage() {
     const [followListType, setFollowListType] = useState<'followers' | 'following'>('followers');
     const [followListUsers, setFollowListUsers] = useState<FollowUserItem[]>([]);
     const [followListLoading, setFollowListLoading] = useState(false);
+    const [followListCursor, setFollowListCursor] = useState<string | null>(null);
+    const [followListHasMore, setFollowListHasMore] = useState(false);
+    const [followListLoadingMore, setFollowListLoadingMore] = useState(false);
 
     // バッジ
     const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
@@ -112,6 +117,8 @@ export default function UserProfilePage() {
                 );
             } else {
                 await followsApi.followUser(profile.id);
+                // はじめてのフォローバッジを楽観的に即時表示
+                triggerOptimistic('first-follow');
                 setFollowStatus((prev) =>
                     prev
                         ? { ...prev, is_following: true, follower_count: prev.follower_count + 1 }
@@ -132,12 +139,17 @@ export default function UserProfilePage() {
             setFollowListOpen(true);
             setFollowListLoading(true);
             setFollowListUsers([]);
+            setFollowListCursor(null);
+            setFollowListHasMore(false);
+            setFollowListLoadingMore(false);
             try {
                 const res =
                     type === 'followers'
                         ? await followsApi.getFollowers(profile.id)
                         : await followsApi.getFollowing(profile.id);
                 setFollowListUsers(res.items);
+                setFollowListCursor(res.meta.next_cursor ?? null);
+                setFollowListHasMore(res.meta.has_more);
             } catch (err) {
                 console.error(`Failed to load ${type}`, err);
             } finally {
@@ -146,6 +158,24 @@ export default function UserProfilePage() {
         },
         [profile?.id],
     );
+
+    const loadMoreFollowList = useCallback(async () => {
+        if (!profile?.id || !followListHasMore || followListLoadingMore || !followListCursor) return;
+        setFollowListLoadingMore(true);
+        try {
+            const res =
+                followListType === 'followers'
+                    ? await followsApi.getFollowers(profile.id, followListCursor)
+                    : await followsApi.getFollowing(profile.id, followListCursor);
+            setFollowListUsers((prev) => [...prev, ...res.items]);
+            setFollowListCursor(res.meta.next_cursor ?? null);
+            setFollowListHasMore(res.meta.has_more);
+        } catch (err) {
+            console.error(`Failed to load more ${followListType}`, err);
+        } finally {
+            setFollowListLoadingMore(false);
+        }
+    }, [profile?.id, followListType, followListHasMore, followListLoadingMore, followListCursor]);
 
     const handleLoadLikedPosts = async () => {
         if (likedPostsLoaded) return;
@@ -183,7 +213,6 @@ export default function UserProfilePage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-background">
-                <Header />
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
@@ -194,7 +223,6 @@ export default function UserProfilePage() {
     if (error || !profile) {
         return (
             <div className="min-h-screen bg-background">
-                <Header />
                 <div className="mx-auto max-w-4xl p-4">
                     <BackButton showLabel label="戻る" />
                     <div className="mt-8 text-center">
@@ -261,21 +289,21 @@ export default function UserProfilePage() {
                                 </div>
                                 <div
                                     className="cursor-pointer hover:opacity-70 transition-opacity"
-                                    onClick={() => openFollowList('followers')}
-                                >
-                                    <p className="text-lg font-semibold">
-                                        {(followStatus?.follower_count ?? 0).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">フォロワー</p>
-                                </div>
-                                <div
-                                    className="cursor-pointer hover:opacity-70 transition-opacity"
                                     onClick={() => openFollowList('following')}
                                 >
                                     <p className="text-lg font-semibold">
                                         {(followStatus?.following_count ?? 0).toLocaleString()}
                                     </p>
                                     <p className="text-xs text-muted-foreground">フォロー中</p>
+                                </div>
+                                <div
+                                    className="cursor-pointer hover:opacity-70 transition-opacity"
+                                    onClick={() => openFollowList('followers')}
+                                >
+                                    <p className="text-lg font-semibold">
+                                        {(followStatus?.follower_count ?? 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">フォロワー</p>
                                 </div>
                                 <div>
                                     <p className="text-lg font-semibold">
@@ -518,6 +546,20 @@ export default function UserProfilePage() {
                                     </div>
                                 </div>
                             ))}
+                            {followListHasMore && (
+                                <div className="pt-2 text-center">
+                                    {followListLoadingMore ? (
+                                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                                    ) : (
+                                        <button
+                                            onClick={loadMoreFollowList}
+                                            className="text-sm text-primary hover:underline"
+                                        >
+                                            もっと見る
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </DialogContent>

@@ -126,7 +126,6 @@ export default function NotificationsPage() {
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen bg-background">
-                <Header />
                 <div className="container mx-auto px-4 py-16 text-center">
                     <p className="text-muted-foreground">
                         ログインして通知を確認しましょう

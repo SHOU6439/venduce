@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
@@ -69,6 +71,13 @@ def get_application() -> FastAPI:
         setup_admin(app)
     except Exception as e:
         print(f"SQLAdmin setup error: {e}")
+
+    @app.on_event("startup")
+    async def _capture_event_loop():
+        """メインのイベントループを ws_manager に登録する。
+        def エンドポイント（スレッドプール）から WS 送信を可能にする。"""
+        from app.core.ws_manager import set_main_loop
+        set_main_loop(asyncio.get_running_loop())
 
     @app.get("/api/health")
     def health_check():

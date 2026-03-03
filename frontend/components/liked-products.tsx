@@ -14,7 +14,7 @@ import { useWsEvents } from '@/components/ws-provider';
 
 const PAGE_SIZE = 10;
 
-export function LikedProducts() {
+export function LikedProducts({ isActive = false }: { isActive?: boolean }) {
     const ws = useWsEvents();
 
     const [items, setItems] = useState<MostLikedProductItem[]>([]);
@@ -24,6 +24,7 @@ export function LikedProducts() {
     const [error, setError] = useState<string | null>(null);
 
     const observerRef = useRef<IntersectionObserver | null>(null);
+    const sentinelNodeRef = useRef<HTMLDivElement | null>(null);
     const offsetRef = useRef(0);
     const isLoadingRef = useRef(false);
     const hasMoreRef = useRef(true);
@@ -105,11 +106,35 @@ export function LikedProducts() {
     }, [loadInitial]);
 
     // ------------------------------------------------------------------
+    // タブがアクティブになったとき、sentinel がビューポート内に入るまでページをロードし続ける
+    // ------------------------------------------------------------------
+
+    const fillToViewport = useCallback(async () => {
+        while (hasMoreRef.current) {
+            const sentinel = sentinelNodeRef.current;
+            if (sentinel) {
+                const rect = sentinel.getBoundingClientRect();
+                if (rect.top > window.innerHeight) break;
+            }
+            if (isLoadingRef.current) break;
+            await loadMore();
+            await new Promise<void>((r) => setTimeout(r, 50));
+        }
+    }, [loadMore]);
+
+    useEffect(() => {
+        if (isActive && !isInitialLoad) {
+            fillToViewport();
+        }
+    }, [isActive, isInitialLoad, fillToViewport]);
+
+    // ------------------------------------------------------------------
     // 無限スクロール: callback ref パターン
     // ------------------------------------------------------------------
 
     const sentinelCallbackRef = useCallback(
         (node: HTMLDivElement | null) => {
+            sentinelNodeRef.current = node;
             if (observerRef.current) {
                 observerRef.current.disconnect();
                 observerRef.current = null;

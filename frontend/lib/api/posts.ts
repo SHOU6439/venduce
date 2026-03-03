@@ -1,5 +1,5 @@
 import { client } from './client';
-import { Post, CreatePostPayload } from '@/types/api';
+import { Post, CreatePostPayload, PostUpdatePayload } from '@/types/api';
 
 const normalizePost = (post: Post): Post => {
   let user = post.user;
@@ -58,14 +58,18 @@ export const postsApi = {
     return normalizePost(post);
   },
 
-  createPost: async (data: {
-    caption: string;
-    asset_ids: string[];
-    product_ids: string[];
-    tags?: string[];
-  }) => {
+  createPost: async (data: CreatePostPayload) => {
     const created = await client.post<Post>("/api/posts", data);
     return normalizePost(created);
+  },
+
+  updatePost: async (id: string, data: PostUpdatePayload): Promise<Post> => {
+    const updated = await client.patch<Post>(`/api/posts/${id}`, data);
+    return normalizePost(updated);
+  },
+
+  deletePost: async (id: string): Promise<void> => {
+    await client.delete<void>(`/api/posts/${id}`);
   },
 
   getRelatedPosts: async (productId: string): Promise<Post[]> => {

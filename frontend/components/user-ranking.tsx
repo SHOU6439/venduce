@@ -14,7 +14,7 @@ import { useWsEvents } from '@/components/ws-provider';
 
 const PAGE_SIZE = 10;
 
-export function UserRanking() {
+export function UserRanking({ isActive = false }: { isActive?: boolean }) {
     const router = useRouter();
     const ws = useWsEvents();
 
@@ -27,6 +27,7 @@ export function UserRanking() {
     const [total, setTotal] = useState(0);
 
     const observerRef = useRef<IntersectionObserver | null>(null);
+    const sentinelNodeRef = useRef<HTMLDivElement | null>(null);
     const offsetRef = useRef(0);
     const isLoadingRef = useRef(false);
     const hasMoreRef = useRef(true);
@@ -127,12 +128,37 @@ export function UserRanking() {
     }, [loadInitial]);
 
     // ------------------------------------------------------------------
+    // タブがアクティブになったとき、sentinel がビューポート内に入るまでページをロードし続ける
+    // ------------------------------------------------------------------
+
+    const fillToViewport = useCallback(async () => {
+        while (hasMoreRef.current) {
+            const sentinel = sentinelNodeRef.current;
+            if (sentinel) {
+                const rect = sentinel.getBoundingClientRect();
+                if (rect.top > window.innerHeight) break; // sentinel が画面下に出たら終了
+            }
+            if (isLoadingRef.current) break;
+            await loadMore();
+            // state 反映を待つ
+            await new Promise<void>((r) => setTimeout(r, 50));
+        }
+    }, [loadMore]);
+
+    useEffect(() => {
+        if (isActive && !isInitialLoad) {
+            fillToViewport();
+        }
+    }, [isActive, isInitialLoad, fillToViewport]);
+
+    // ------------------------------------------------------------------
     // 無限スクロール: callback ref パターン
     // sentinel 要素がマウントされた瞬間に observer を接続する
     // ------------------------------------------------------------------
 
     const sentinelCallbackRef = useCallback(
         (node: HTMLDivElement | null) => {
+            sentinelNodeRef.current = node;
             // 前の observer を切断
             if (observerRef.current) {
                 observerRef.current.disconnect();

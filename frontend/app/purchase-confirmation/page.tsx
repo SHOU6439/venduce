@@ -9,6 +9,7 @@ import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { getImageUrl, formatCurrencyFromMinorUnit } from '@/lib/utils';
+import { useBadgeStore } from '@/stores/badge';
 
 export default function PurchaseConfirmationPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function PurchaseConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
 
   useEffect(() => {
     const load = async () => {
@@ -70,6 +72,9 @@ export default function PurchaseConfirmationPage() {
         payment_method_id: paymentMethod.id,
         referring_post_id: referringPostId || null,
       });
+
+      // はじめてのお買い物バッジを楽観的に即時表示
+      triggerOptimistic('buyer-first');
 
       // 注文完了ページにクエリパラメータで情報を渡す
       const params = new URLSearchParams({

@@ -12,6 +12,7 @@ import { Product, Post, PublicUserProfile } from '@/types/api';
 import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
+import { HashtagCaption } from '@/components/hashtag-caption';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -153,40 +154,36 @@ export default function SearchPage() {
                     {query ? '投稿が見つかりません' : '検索してください'}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {posts.map((post) => (
                       <div
                         key={post.id}
                         onClick={() => handlePostClick(post.id)}
                         className="rounded-lg border p-4 hover:shadow-lg transition-shadow cursor-pointer"
                       >
-                        <div className="flex items-center gap-3 mb-3">
-                          <Avatar>
-                            <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
-                            <AvatarFallback>{post.user?.username?.[0] ?? 'U'}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold text-sm">
-                              {post.user?.username ?? 'ユーザー'}
-                            </p>
-                          </div>
+                        <div className="aspect-square rounded-lg bg-muted mb-3 flex items-center justify-center overflow-hidden">
+                          {post.assets && post.assets.length > 0 ? (
+                            <img
+                              src={getImageUrl(post.assets[0].public_url || '')}
+                              alt="投稿画像"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground text-xs">画像なし</span>
+                          )}
                         </div>
-                        <p className="text-sm mb-3 line-clamp-3">
-                          {post.caption}
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={getImageUrl(post.user?.avatar_url ?? undefined)} />
+                            <AvatarFallback className="text-[10px]">{post.user?.username?.[0] ?? 'U'}</AvatarFallback>
+                          </Avatar>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {post.user?.username ?? 'ユーザー'}
+                          </p>
+                        </div>
+                        <p className="text-sm line-clamp-2">
+                          <HashtagCaption caption={post.caption} />
                         </p>
-                        {post.assets && post.assets.length > 0 && (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                            {post.assets.slice(0, 4).map((asset) => (
-                              <div key={asset.id} className="aspect-square rounded overflow-hidden bg-muted">
-                                <img
-                                  src={getImageUrl(asset.public_url || '')}
-                                  alt="投稿画像"
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>

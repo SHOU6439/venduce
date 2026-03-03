@@ -173,6 +173,13 @@ export interface CreatePostPayload {
   tags?: string[];
 }
 
+export interface PostUpdatePayload {
+  caption?: string | null;
+  status?: string;
+  tags?: string[];
+  extra_metadata?: Record<string, unknown> | null;
+}
+
 export interface UserPostStats {
   post_count: number;
   total_likes: number;
