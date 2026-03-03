@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import EmailStr, Field, ConfigDict
 from app.schemas.base import AppModel
 from app.schemas.asset import AssetRead
@@ -64,3 +64,27 @@ class RegistrationResponse(AppModel):
 # 前方参照 "AssetRead" を解決
 UserRead.model_rebuild()
 PublicUserRead.model_rebuild()
+
+
+class UserPostStats(AppModel):
+    post_count: int
+    total_likes: int
+    total_purchases: int
+
+
+class UserRankingItem(AppModel):
+    user_id: str
+    username: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    total_likes: int
+    total_purchases: int
+    rank: int
+
+
+class RankingResponse(AppModel):
+    items: List["UserRankingItem"]
+    total: int
+    offset: int
+    limit: int
+    has_more: bool

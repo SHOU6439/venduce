@@ -2,7 +2,7 @@ from typing import Any, Optional, List
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,14 @@ from app.models.post import Post
 from app.models.product import Product
 from app.models.post_products import post_products
 from app.models.enums import PostStatus
-from app.schemas.product import ProductRead, ProductList
+from app.schemas.product import (
+    ProductRead,
+    ProductList,
+    MostLikedProductItem,
+    MostLikedProductsResponse,
+    TrendingProductItem,
+    TrendingProductsResponse,
+)
 from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.services.product_service import ProductService
 from app.deps import get_product_service, get_current_user_optional
@@ -26,20 +33,6 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 # いいねが多い商品ランキング（オフセットページネーション）
 # ------------------------------------------------------------------
-
-class MostLikedProductItem(BaseModel):
-    product: ProductRead
-    total_likes: int
-    rank: int
-
-
-class MostLikedProductsResponse(BaseModel):
-    items: List[MostLikedProductItem]
-    total: int
-    offset: int
-    limit: int
-    has_more: bool
-
 
 @router.get("/most-liked", response_model=MostLikedProductsResponse, summary="Most liked products ranking")
 def get_most_liked_products(
@@ -94,20 +87,6 @@ def get_most_liked_products(
 # ------------------------------------------------------------------
 # 売れている商品ランキング（購入回数順、オフセットページネーション）
 # ------------------------------------------------------------------
-
-class TrendingProductItem(BaseModel):
-    product: ProductRead
-    total_purchases: int
-    rank: int
-
-
-class TrendingProductsResponse(BaseModel):
-    items: List[TrendingProductItem]
-    total: int
-    offset: int
-    limit: int
-    has_more: bool
-
 
 @router.get("/trending", response_model=TrendingProductsResponse, summary="Trending products by purchase count")
 def get_trending_products(

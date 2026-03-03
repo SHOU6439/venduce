@@ -1,39 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional
-from pydantic import BaseModel
-from datetime import datetime
+from typing import List
 from app.models.user import User
 from app.deps import get_current_user, get_current_user_optional, get_badge_service
 from app.services.badge_service import BadgeService
+from app.schemas.badge import BadgeRead, UserBadgeRead, NewBadgeNotification
 
 
 router = APIRouter(prefix="/api/badges", tags=["badges"])
-
-
-# ------------------------------------------------------------------
-# レスポンスモデル
-# ------------------------------------------------------------------
-
-class BadgeRead(BaseModel):
-    id: str
-    slug: str
-    name: str
-    description: str
-    icon: str
-    color: str
-    threshold: int
-    sort_order: int
-    category: str
-
-
-class UserBadgeRead(BaseModel):
-    badge: BadgeRead
-    awarded_at: datetime
-
-
-class NewBadgeNotification(BaseModel):
-    """未通知バッジ一覧（フロントエンドのエフェクト用）。"""
-    badges: List[BadgeRead]
 
 
 def _badge_to_read(b) -> BadgeRead:

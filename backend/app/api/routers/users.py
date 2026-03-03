@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from typing import List, Optional
-from app.schemas.user import UserRead, UserUpdate, PublicUserRead
+from app.schemas.user import UserRead, UserUpdate, PublicUserRead, UserPostStats, UserRankingItem, RankingResponse
 from app.schemas.asset import AssetRead
 from app.schemas.post import PostRead
 from app.schemas.purchase import PurchaseRead
@@ -16,31 +16,6 @@ from app.deps import get_current_user, get_user_service, get_post_service, get_l
 from app.services.post_service import PostService
 from app.services.like_service import LikeService
 from app.services.purchase_service import PurchaseService
-from pydantic import BaseModel
-
-
-class UserPostStats(BaseModel):
-    post_count: int
-    total_likes: int
-    total_purchases: int
-
-
-class UserRankingItem(BaseModel):
-    user_id: str
-    username: str
-    display_name: str
-    avatar_url: str | None
-    total_likes: int
-    total_purchases: int
-    rank: int
-
-
-class RankingResponse(BaseModel):
-    items: List[UserRankingItem]
-    total: int
-    offset: int
-    limit: int
-    has_more: bool
 
 
 router = APIRouter()

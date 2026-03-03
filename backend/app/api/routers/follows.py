@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel
 from app.models.user import User
 from app.schemas.user import PublicUserRead
 from app.schemas.asset import AssetRead
 from app.schemas.post import PostRead
 from app.schemas.pagination import PaginatedResponse, CursorMeta
+from app.schemas.follow import FollowStatus, FollowUserItem
 from app.db.database import get_db
 from app.deps import get_current_user, get_current_user_optional, get_follow_service, get_like_service, get_badge_service, get_notification_service
 from app.services.follow_service import FollowService
@@ -17,20 +17,6 @@ from app.models.enums import BadgeCategory, NotificationType
 
 
 router = APIRouter(prefix="/api/follows", tags=["follows"])
-
-
-class FollowStatus(BaseModel):
-    is_following: bool
-    follower_count: int
-    following_count: int
-
-
-class FollowUserItem(BaseModel):
-    id: str
-    username: str
-    bio: str | None = None
-    avatar_url: str | None = None
-    is_following: bool = False
 
 
 # --- フォローフィード (/{user_id} より先に定義) ---

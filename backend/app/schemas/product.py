@@ -59,4 +59,43 @@ class ProductList(AppModel):
     total_pages: int
 
 
-__all__ = ["CategoryBase", "ProductBase", "ProductCreate", "ProductRead", "ProductList", "ProductCursorPaginatedResponse"]
+class MostLikedProductItem(AppModel):
+    product: ProductRead
+    total_likes: int
+    rank: int
+
+
+class MostLikedProductsResponse(AppModel):
+    items: List[MostLikedProductItem]
+    total: int
+    offset: int
+    limit: int
+    has_more: bool
+
+
+class TrendingProductItem(AppModel):
+    product: ProductRead
+    total_purchases: int
+    rank: int
+
+
+class TrendingProductsResponse(AppModel):
+    items: List[TrendingProductItem]
+    total: int
+    offset: int
+    limit: int
+    has_more: bool
+
+
+__all__ = [
+    "CategoryBase",
+    "ProductBase",
+    "ProductCreate",
+    "ProductRead",
+    "ProductList",
+    "ProductCursorPaginatedResponse",
+    "MostLikedProductItem",
+    "MostLikedProductsResponse",
+    "TrendingProductItem",
+    "TrendingProductsResponse",
+]

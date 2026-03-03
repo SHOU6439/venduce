@@ -7,7 +7,6 @@ is_admin=True のユーザーのみアクセス可能。
 import os
 from typing import Optional, List
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 from datetime import datetime
@@ -24,6 +23,32 @@ from app.models.badge import Badge, UserBadge
 from app.models.purchase import Purchase
 from app.models.enums import ProductStatus
 from app.schemas.asset import AssetRead
+from app.schemas.admin import (
+    AdminPaginatedResponse,
+    DashboardStats,
+    AdminUserRead,
+    AdminUserUpdate,
+    AdminUserListResponse,
+    AdminAssetInfo,
+    AdminProductRead,
+    AdminProductCreate,
+    AdminProductUpdate,
+    AdminProductListResponse,
+    AdminCategoryRead,
+    AdminCategoryCreate,
+    AdminCategoryUpdate,
+    AdminCategoryListResponse,
+    AdminBrandRead,
+    AdminBrandCreate,
+    AdminBrandUpdate,
+    AdminBrandListResponse,
+    AdminPostRead,
+    AdminPostUpdate,
+    AdminPostListResponse,
+    AdminPurchaseRead,
+    AdminPurchaseUpdate,
+    AdminPurchaseListResponse,
+)
 from app.services.asset_service import AssetService
 from app.utils.file_validation import (
     assert_allowed_image, detect_mime_type, extract_image_info, FileValidationError,
@@ -31,30 +56,10 @@ from app.utils.file_validation import (
 
 router = APIRouter()
 
-# ═══════════════════════════════════════════════════════════
-# 共通スキーマ
-# ═══════════════════════════════════════════════════════════
-
-class AdminPaginatedResponse(BaseModel):
-    items: list
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
 
 # ═══════════════════════════════════════════════════════════
 # ダッシュボード
 # ═══════════════════════════════════════════════════════════
-
-class DashboardStats(BaseModel):
-    total_users: int
-    total_products: int
-    total_posts: int
-    total_categories: int
-    total_brands: int
-    total_purchases: int
-
 
 @router.get("/dashboard", response_model=DashboardStats)
 def get_dashboard(
@@ -74,41 +79,6 @@ def get_dashboard(
 # ═══════════════════════════════════════════════════════════
 # ユーザー管理
 # ═══════════════════════════════════════════════════════════
-
-class AdminUserRead(BaseModel):
-    id: str
-    email: str
-    username: str
-    first_name: str
-    last_name: str
-    bio: Optional[str] = None
-    avatar_asset: Optional[AssetRead] = None
-    is_active: bool
-    is_confirmed: bool
-    is_admin: bool
-    is_purchase_history_public: bool
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminUserUpdate(BaseModel):
-    username: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    bio: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_admin: Optional[bool] = None
-
-
-class AdminUserListResponse(BaseModel):
-    items: List[AdminUserRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
 
 @router.get("/users", response_model=AdminUserListResponse)
 def list_users(
@@ -194,63 +164,6 @@ def delete_user(
 # ═══════════════════════════════════════════════════════════
 # 商品管理
 # ═══════════════════════════════════════════════════════════
-
-class AdminAssetInfo(BaseModel):
-    id: str
-    public_url: Optional[str] = None
-    content_type: str = ""
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminProductRead(BaseModel):
-    id: str
-    title: str
-    sku: str
-    description: Optional[str] = None
-    price_cents: int
-    currency: str
-    stock_quantity: int
-    status: str
-    brand_id: Optional[str] = None
-    images: List[AdminAssetInfo] = []
-    category_ids: List[str] = []
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminProductCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    sku: str = Field(..., min_length=1, max_length=64)
-    description: Optional[str] = None
-    price_cents: int = Field(..., ge=1)
-    currency: str = Field(default="JPY", min_length=3, max_length=8)
-    stock_quantity: int = Field(default=1, ge=0)
-    status: ProductStatus = Field(default=ProductStatus.DRAFT)
-    brand_id: Optional[str] = None
-    category_ids: List[str] = Field(default_factory=list)
-    asset_ids: List[str] = Field(default_factory=list)
-
-
-class AdminProductUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    price_cents: Optional[int] = Field(None, ge=0)
-    stock_quantity: Optional[int] = Field(None, ge=0)
-    status: Optional[ProductStatus] = None
-    brand_id: Optional[str] = None
-    category_ids: Optional[List[str]] = None
-    asset_ids: Optional[List[str]] = None
-
-
-class AdminProductListResponse(BaseModel):
-    items: List[AdminProductRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
 
 MIME_SAMPLE_BYTES = 4096
 
@@ -456,42 +369,6 @@ def delete_product(
 # カテゴリ管理
 # ═══════════════════════════════════════════════════════════
 
-class AdminCategoryRead(BaseModel):
-    id: str
-    name: str
-    slug: str
-    description: Optional[str] = None
-    parent_id: Optional[str] = None
-    is_active: bool
-    created_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminCategoryCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    slug: Optional[str] = Field(None, min_length=1, max_length=128)
-    description: Optional[str] = None
-    parent_id: Optional[str] = None
-    is_active: bool = True
-
-
-class AdminCategoryUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
-    description: Optional[str] = None
-    parent_id: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-class AdminCategoryListResponse(BaseModel):
-    items: List[AdminCategoryRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
-
 @router.get("/categories", response_model=AdminCategoryListResponse)
 def list_categories(
     page: int = Query(1, ge=1),
@@ -578,39 +455,6 @@ def delete_category(
 # ブランド管理
 # ═══════════════════════════════════════════════════════════
 
-class AdminBrandRead(BaseModel):
-    id: str
-    name: str
-    slug: str
-    description: Optional[str] = None
-    is_active: bool
-    created_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminBrandCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    slug: Optional[str] = Field(None, min_length=1, max_length=128)
-    description: Optional[str] = None
-    is_active: bool = True
-
-
-class AdminBrandUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-class AdminBrandListResponse(BaseModel):
-    items: List[AdminBrandRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
-
 @router.get("/brands", response_model=AdminBrandListResponse)
 def list_brands(
     page: int = Query(1, ge=1),
@@ -695,35 +539,6 @@ def delete_brand(
 # ═══════════════════════════════════════════════════════════
 # 投稿管理
 # ═══════════════════════════════════════════════════════════
-
-class AdminPostRead(BaseModel):
-    id: str
-    user_id: str
-    username: Optional[str] = None
-    caption: Optional[str] = None
-    status: str
-    purchase_count: int
-    view_count: int
-    like_count: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminPostUpdate(BaseModel):
-    caption: Optional[str] = None
-    status: Optional[str] = None
-
-
-class AdminPostListResponse(BaseModel):
-    items: List[AdminPostRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
 
 def _post_to_read(post: Post) -> AdminPostRead:
     return AdminPostRead(
@@ -827,37 +642,6 @@ def delete_post(
 # ═══════════════════════════════════════════════════════════
 # 購入管理
 # ═══════════════════════════════════════════════════════════
-
-class AdminPurchaseRead(BaseModel):
-    id: str
-    buyer_id: str
-    buyer_username: Optional[str] = None
-    product_id: str
-    product_title: Optional[str] = None
-    quantity: int
-    price_cents: int
-    total_amount_cents: int
-    currency: str
-    status: str
-    referring_post_id: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AdminPurchaseUpdate(BaseModel):
-    status: Optional[str] = None
-    quantity: Optional[int] = Field(None, ge=1)
-
-
-class AdminPurchaseListResponse(BaseModel):
-    items: List[AdminPurchaseRead]
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
 
 def _purchase_to_read(p: Purchase) -> AdminPurchaseRead:
     return AdminPurchaseRead(
