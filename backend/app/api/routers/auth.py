@@ -23,6 +23,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
 )
+from app.schemas.user import UserRead
 from app.utils import jwt as jwt_utils
 from app.core.config import settings
 
@@ -116,7 +117,13 @@ def login(
     except AuthenticationError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
+    user = svc.get_user_by_email(db, payload.email)
+    return TokenPair(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in,
+        user=UserRead.model_validate(user) if user else None,
+    )
 
 
 @router.post("/token", response_model=TokenPair, summary="OAuth2 password token endpoint")

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -185,6 +185,24 @@ export function FeedContent() {
   const isAuthenticated = useAuthStore((state) => !!state.user);
   const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
 
+  // fetchMore を useCallback で安定化。インラインで定義すると badge store 更新のたびに
+  // 新しい関数参照が生まれ、IntersectionObserver が disconnect/reconnect を繰り返してしまう。
+  const fetchDiscoverPosts = useCallback(async (cursor: any, limit: number) => {
+    const response = await postsApi.getPostsInfinite({ cursor: cursor as string, limit });
+    return {
+      items: response.items,
+      nextCursor: response.meta.next_cursor,
+    };
+  }, []);
+
+  const fetchFollowingPosts = useCallback(async (cursor: any, limit: number) => {
+    const response = await followsApi.getFollowFeed(cursor as string | undefined, limit);
+    return {
+      items: response.items,
+      nextCursor: response.meta.next_cursor,
+    };
+  }, []);
+
   // おすすめフィード
   const {
     items: discoverPosts,
@@ -196,13 +214,7 @@ export function FeedContent() {
     sentinelRef: discoverSentinelRef,
   } = useInfiniteScroll<Post>({
     limit: 10,
-    fetchMore: async (cursor, limit) => {
-      const response = await postsApi.getPostsInfinite({ cursor: cursor as string, limit });
-      return {
-        items: response.items,
-        nextCursor: response.meta.next_cursor,
-      };
-    },
+    fetchMore: fetchDiscoverPosts,
   });
 
   // フォロー中フィード
@@ -216,16 +228,13 @@ export function FeedContent() {
     sentinelRef: followingSentinelRef,
   } = useInfiniteScroll<Post>({
     limit: 10,
-    fetchMore: async (cursor, limit) => {
-      const response = await followsApi.getFollowFeed(cursor as string | undefined, limit);
-      return {
-        items: response.items,
-        nextCursor: response.meta.next_cursor,
-      };
-    },
+    fetchMore: fetchFollowingPosts,
   });
 
   const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+  const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+  const isOwnedSlugsLoaded = useBadgeStore((state) => state.isOwnedSlugsLoaded);
+  const user = useAuthStore((state) => state.user);
 
   const handleLikeToggle = async (postId: string, isLiked: boolean) => {
     const updatePosts = (setter: React.Dispatch<React.SetStateAction<Post[]>>) => {
@@ -245,7 +254,8 @@ export function FeedContent() {
     updatePosts(setFollowingPosts);
 
     // はじめてのいいねバッジを楽観的に即時表示
-    if (isLiked) {
+    // ログイン済み かつ ownedSlugs のロード完了後にのみ発火（未ログイン時の誤発火防止）
+    if (isLiked && user && isOwnedSlugsLoaded && !ownedSlugs.has('first-like')) {
       triggerOptimistic('first-like');
     }
 
@@ -302,7 +312,7 @@ export function FeedContent() {
     isLoadingMore: boolean,
     hasMore: boolean,
     error: Error | null,
-    sentinelRef: React.RefObject<HTMLDivElement | null>,
+    sentinelRef: (el: HTMLDivElement | null) => void,
   ) => {
     if (isLoading) {
       return <div className="flex justify-center p-8">読み込み中...</div>;

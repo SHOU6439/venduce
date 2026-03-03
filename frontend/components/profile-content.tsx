@@ -17,7 +17,7 @@ import {
 import { usersApi } from '@/lib/api/users';
 import { followsApi } from '@/lib/api/follows';
 import { badgesApi } from '@/lib/api/badges';
-import { postsApi } from '@/lib/api/posts';
+
 import { purchasesApi } from '@/lib/api/purchases';
 import { ApiError } from '@/lib/api/client';
 import { Post, UserProfile, Purchase, UserPostStats, FollowStatus, FollowUserItem, UserBadge } from '@/types/api';
@@ -71,21 +71,28 @@ export function ProfileContent() {
   });
 
   useEffect(() => {
+    if (!user) return;
+
     const load = async () => {
       try {
-        const [userData, postList, statsData] = await Promise.all([
+        // プロフィール・自分の投稿・統計・バッジを並列取得
+        const [userData, postsData, statsData, badgesData] = await Promise.all([
           usersApi.getProfile(),
-          postsApi.getPosts(),
+          usersApi.getUserPosts(user.username),
           usersApi.getMyStats(),
+          badgesApi.getMyBadges(),
         ]);
         const mappedUser = {
           ...userData,
           avatar_url: (userData as any).avatar_asset?.public_url ?? userData.avatar_url ?? null,
         };
         setProfile(mappedUser);
-        setPosts(postList.filter((post) => post.user_id === mappedUser.id));
+        setPosts(postsData.items);
         setStats(statsData);
+        setUserBadges(badgesData);
         setError(null);
+        // フォロー状態はIDが確定してから fire-and-forget で取得（初期表示をブロックしない）
+        followsApi.getFollowStatus(mappedUser.id).then(setFollowStatus).catch(() => {});
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           router.push('/login');
@@ -99,15 +106,7 @@ export function ProfileContent() {
     };
 
     load();
-  }, [router]);
-
-  // 自分のフォローステータスとバッジを取得（認証後に取得）
-  const isAuthenticated = useAuthStore((state) => !!state.user);
-  useEffect(() => {
-    if (!profile?.id || !isAuthenticated) return;
-    followsApi.getFollowStatus(profile.id).then(setFollowStatus).catch(() => {});
-    badgesApi.getMyBadges().then(setUserBadges).catch(() => {});
-  }, [profile?.id, isAuthenticated]);
+  }, [user, router]);
 
   const openFollowList = async (type: 'followers' | 'following') => {
     if (!profile?.id) return;

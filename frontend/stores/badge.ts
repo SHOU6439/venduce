@@ -65,6 +65,8 @@ export const FIRST_ACTION_DEFS: Record<string, BadgeDefinition> = {
 interface BadgeStoreState {
     /** 所持済みバッジのslugセット（重複発火防止） */
     ownedSlugs: Set<string>;
+    /** loadOwnedSlugs() の完了フラグ */
+    isOwnedSlugsLoaded: boolean;
     /** 楽観的エフェクト表示キュー（BadgeNotificationManagerが消費） */
     pendingOptimistic: BadgeDefinition[];
 
@@ -99,13 +101,14 @@ interface BadgeStoreState {
 // ------------------------------------------------------------------
 export const useBadgeStore = create<BadgeStoreState>((set, get) => ({
     ownedSlugs: new Set(),
+    isOwnedSlugsLoaded: false,
     pendingOptimistic: [],
 
     loadOwnedSlugs: async () => {
         try {
             const badges = await badgesApi.getMyBadges();
             const slugs = new Set(badges.map((ub) => ub.badge.slug));
-            set({ ownedSlugs: slugs });
+            set({ ownedSlugs: slugs, isOwnedSlugsLoaded: true });
         } catch {
             // 認証切れ等は無視
         }
@@ -141,6 +144,6 @@ export const useBadgeStore = create<BadgeStoreState>((set, get) => ({
     },
 
     reset: () => {
-        set({ ownedSlugs: new Set(), pendingOptimistic: [] });
+        set({ ownedSlugs: new Set(), isOwnedSlugsLoaded: false, pendingOptimistic: [] });
     },
 }));

@@ -26,6 +26,8 @@ export default function PurchaseConfirmationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+  const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+  const isOwnedSlugsLoaded = useBadgeStore((state) => state.isOwnedSlugsLoaded);
 
   useEffect(() => {
     const load = async () => {
@@ -74,7 +76,11 @@ export default function PurchaseConfirmationPage() {
       });
 
       // はじめてのお買い物バッジを楽観的に即時表示
-      triggerOptimistic('buyer-first');
+      // ownedSlugs のロード完了後かつ未所持の場合のみ表示
+      // (未ロードの場合は WS の badge_awarded イベントで表示される)
+      if (isOwnedSlugsLoaded && !ownedSlugs.has('buyer-first')) {
+        triggerOptimistic('buyer-first');
+      }
 
       // 注文完了ページにクエリパラメータで情報を渡す
       const params = new URLSearchParams({

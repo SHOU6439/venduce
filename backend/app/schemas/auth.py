@@ -1,6 +1,7 @@
 from pydantic import EmailStr
 from app.schemas.base import AppModel
 from typing import Optional
+from app.schemas.user import UserRead
 
 
 class LoginRequest(AppModel):
@@ -14,6 +15,7 @@ class TokenPair(AppModel):
     refresh_token: str
     expires_in: int
     token_type: str = "bearer"
+    user: Optional["UserRead"] = None
 
 
 class RefreshRequest(AppModel):

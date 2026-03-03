@@ -23,9 +23,16 @@ export function useInfiniteScroll<T, R extends { items: T[]; meta: { next_cursor
   const [error, setError] = useState<Error | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const hasInitialized = useRef(false);
+  const prevSkipRef = useRef(options.skip ?? false);
 
   // 初回ロード
   useEffect(() => {
+    // skip が true → false に変化したら初期化フラグをリセット（auth 確定後の再ロードに対応）
+    if (prevSkipRef.current && !options.skip) {
+      hasInitialized.current = false;
+    }
+    prevSkipRef.current = options.skip ?? false;
+
     if (options.skip || hasInitialized.current) return;
 
     hasInitialized.current = true;

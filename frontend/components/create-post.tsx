@@ -18,6 +18,8 @@ import { useBadgeStore } from '@/stores/badge';
 export function CreatePost() {
   const router = useRouter();
   const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+  const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+  const isOwnedSlugsLoaded = useBadgeStore((state) => state.isOwnedSlugsLoaded);
   const [step, setStep] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -173,7 +175,9 @@ export function CreatePost() {
         tags: tags,
       });
       // 初投稿バッジを楽観的に即時表示（ページ遷移後のフィードでエフェクト表示）
-      triggerOptimistic('first-post');
+      if (isOwnedSlugsLoaded && !ownedSlugs.has('first-post')) {
+        triggerOptimistic('first-post');
+      }
       router.push("/feed");
       router.refresh();
     } catch (error) {

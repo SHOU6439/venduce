@@ -29,6 +29,8 @@ export default function UserProfilePage() {
     const username = params.username as string;
     const currentUser = useAuthStore((state) => state.user);
     const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+    const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+    const isOwnedSlugsLoaded = useBadgeStore((state) => state.isOwnedSlugsLoaded);
 
     const [profile, setProfile] = useState<PublicUserProfile | null>(null);
     const [stats, setStats] = useState<UserPostStats | null>(null);
@@ -72,6 +74,7 @@ export default function UserProfilePage() {
         const load = async () => {
             setLoading(true);
             try {
+                // プロフィール・統計・投稿を並列取得
                 const [profileData, statsData, postsData] = await Promise.all([
                     usersApi.getUserByUsername(username),
                     usersApi.getUserStats(username),
@@ -81,6 +84,15 @@ export default function UserProfilePage() {
                 setStats(statsData);
                 setPosts(postsData.items);
                 setError(null);
+                // フォロー状態とバッジをIDが確定してから並列取得（ウォーターフォール解消）
+                const [badgesData, followData] = await Promise.all([
+                    badgesApi.getUserBadges(profileData.id),
+                    isAuthenticated
+                        ? followsApi.getFollowStatus(profileData.id)
+                        : Promise.resolve(null),
+                ]);
+                setUserBadges(badgesData);
+                if (followData) setFollowStatus(followData);
             } catch (err: any) {
                 if (err?.status === 404) {
                     setError('ユーザーが見つかりません。');
@@ -93,16 +105,7 @@ export default function UserProfilePage() {
         };
 
         load();
-    }, [username]);
-
-    // フォロー状態とバッジを取得（認証状態が確定してからフェッチ）
-    useEffect(() => {
-        if (!profile?.id) return;
-        if (isAuthenticated) {
-            followsApi.getFollowStatus(profile.id).then(setFollowStatus).catch(() => {});
-        }
-        badgesApi.getUserBadges(profile.id).then(setUserBadges).catch(() => {});
-    }, [profile?.id, isAuthenticated]);
+    }, [username, isAuthenticated]);
 
     const handleFollowToggle = useCallback(async () => {
         if (!profile?.id || followLoading) return;
@@ -118,7 +121,9 @@ export default function UserProfilePage() {
             } else {
                 await followsApi.followUser(profile.id);
                 // はじめてのフォローバッジを楽観的に即時表示
-                triggerOptimistic('first-follow');
+                if (isOwnedSlugsLoaded && !ownedSlugs.has('first-follow')) {
+                    triggerOptimistic('first-follow');
+                }
                 setFollowStatus((prev) =>
                     prev
                         ? { ...prev, is_following: true, follower_count: prev.follower_count + 1 }
