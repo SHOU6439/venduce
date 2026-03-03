@@ -15,21 +15,32 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 /**
- * API のベース URL から WebSocket URL を導出する。
- * http:// → ws://, https:// → wss://
+ * 実行環境に応じてWebSocket URLを導出する。
+ * ブラウザ上（typeof window !== 'undefined'）の場合は現在のプロトコル/ホストから導出。
  */
 function deriveWsUrl(): string {
     const override = process.env.NEXT_PUBLIC_WS_BASE_URL;
     if (override) return override;
 
-    return API_BASE_URL.replace(/^http/, 'ws');
+    if (API_BASE_URL && API_BASE_URL.startsWith('http')) {
+        return API_BASE_URL.replace(/^http/, 'ws');
+    }
+
+    if (typeof window !== 'undefined') {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const basePath = API_BASE_URL ? API_BASE_URL : '';
+        return `${protocol}//${host}${basePath}`;
+    }
+
+    return 'ws://127.0.0.1:8000';
 }
 
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000]; // 指数バックオフ

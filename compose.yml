@@ -45,6 +45,8 @@ services:
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules # ホストと分離
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
       - BACKEND_INTERNAL_URL=http://backend:8000
