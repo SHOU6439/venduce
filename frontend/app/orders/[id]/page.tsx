@@ -205,20 +205,6 @@ export default function OrderDetailPage() {
                 フィードに戻る
               </Button>
             </div>
-
-            {/* ヘルプ */}
-            <div className="rounded border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm text-blue-900">
-                ご質問やご不明な点がある場合は、
-                <Link
-                  href="/help"
-                  className="font-medium underline hover:no-underline"
-                >
-                  ヘルプセンター
-                </Link>
-                をご参照ください。
-              </p>
-            </div>
           </div>
         )}
       </div>
