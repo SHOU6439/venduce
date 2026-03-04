@@ -25,6 +25,7 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserRead
 from app.utils import jwt as jwt_utils
+from app.utils.timezone import now_utc
 from app.core.config import settings
 
 from app.core.security import verify_password
@@ -111,7 +112,7 @@ def login(
 ):
     remember = getattr(payload, "remember", False)
     try:
-        access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
+        access_token, refresh_token, expires_in, refresh_expires_in = svc.authenticate_and_issue_tokens(
             db, payload.email, payload.password, remember
         )
     except AuthenticationError as e:
@@ -122,6 +123,7 @@ def login(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=expires_in,
+        refresh_expires_in=refresh_expires_in,
         user=UserRead.model_validate(user) if user else None,
     )
 
@@ -135,13 +137,13 @@ def login_with_password_grant(
     """OAuth2 passwordフローからトークンを発行するエンドポイント"""
     remember = "remember" in (form_data.scopes or [])
     try:
-        access_token, refresh_token, expires_in = svc.authenticate_and_issue_tokens(
+        access_token, refresh_token, expires_in, refresh_expires_in = svc.authenticate_and_issue_tokens(
             db, form_data.username, form_data.password, remember
         )
     except AuthenticationError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
-    return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in)
+    return TokenPair(access_token=access_token, refresh_token=refresh_token, expires_in=expires_in, refresh_expires_in=refresh_expires_in)
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -163,7 +165,7 @@ def refresh(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token payload")
 
     try:
-        new_refresh_token = svc.rotate_refresh_token(
+        new_refresh_token, new_expires_at = svc.rotate_refresh_token(
             db,
             payload.refresh_token,
             lambda ttl_days: jwt_utils.create_refresh_token(subject=str(sub), ttl_days=ttl_days),
@@ -172,7 +174,8 @@ def refresh(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
     access_token, expires_in = jwt_utils.create_access_token(subject=str(sub))
-    return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in)
+    refresh_expires_in = int((new_expires_at - now_utc()).total_seconds())
+    return TokenPair(access_token=access_token, refresh_token=new_refresh_token, expires_in=expires_in, refresh_expires_in=refresh_expires_in)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

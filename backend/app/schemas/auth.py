@@ -14,6 +14,7 @@ class TokenPair(AppModel):
     access_token: str
     refresh_token: str
     expires_in: int
+    refresh_expires_in: int
     token_type: str = "bearer"
     user: Optional["UserRead"] = None
 

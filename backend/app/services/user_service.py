@@ -215,7 +215,7 @@ class UserService:
         new_refresh_token, new_expires_at = create_new_refresh_token_fn(ttl_days=remember_days)
         self.save_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
         
-        return new_refresh_token
+        return new_refresh_token, new_expires_at
     
     def logout(self, db: Session, refresh_token_str: str) -> None:
         """
@@ -276,7 +276,8 @@ class UserService:
 
         self.save_refresh_token(db, str(user.id), refresh_token, expires_at)
 
-        return access_token, refresh_token, expires_in
+        refresh_expires_in = int((expires_at - now_utc()).total_seconds())
+        return access_token, refresh_token, expires_in, refresh_expires_in
 
     def request_password_reset(self, db: Session, email: str) -> tuple[str, str] | None:
         """パスワードリセットを要求し、JWTトークンを生成します。
