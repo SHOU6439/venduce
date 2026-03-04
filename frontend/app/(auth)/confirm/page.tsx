@@ -22,6 +22,7 @@ function ConfirmContent() {
     const confirmAccount = async () => {
       try {
         await apiClient.post(`/api/auth/confirm?token=${token}`);
+        localStorage.removeItem('register_pending_email');
         setStatus('success');
       } catch (err) {
         setStatus('error');
