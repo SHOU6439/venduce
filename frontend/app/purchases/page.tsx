@@ -1,6 +1,7 @@
 'use client';
 
 import AuthGuard from '@/components/auth-guard';
+import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { purchasesApi } from '@/lib/api/purchases';
@@ -84,8 +85,9 @@ export default function PurchasesPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background">
+        <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}

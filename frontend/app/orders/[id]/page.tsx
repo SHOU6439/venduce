@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Purchase } from '@/types/api';
 import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/header';
 import { ArrowLeft, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/utils';
@@ -93,8 +94,9 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}

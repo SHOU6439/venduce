@@ -1,6 +1,7 @@
 'use client';
 
 import { BackButton } from '@/components/back-button';
+import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { purchasesApi } from '@/lib/api/purchases';
 import { getImageUrl } from '@/lib/utils';
@@ -95,8 +96,9 @@ export default function PurchaseDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <BackButton />
           <h1 className="text-2xl font-bold">購入詳細</h1>

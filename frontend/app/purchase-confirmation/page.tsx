@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/header';
 import { paymentMethodsApi } from '@/lib/api/payment-methods';
 import { productsApi } from '@/lib/api/products';
 import { purchasesApi } from '@/lib/api/purchases';
@@ -130,8 +131,9 @@ export default function PurchaseConfirmationPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}

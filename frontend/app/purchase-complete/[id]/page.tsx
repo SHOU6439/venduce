@@ -6,6 +6,7 @@ import { Purchase } from '@/types/api';
 import { purchasesApi } from '@/lib/api/purchases';
 import { ApiError } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/header';
 import { CheckCircle } from 'lucide-react';
 
 export default function PurchaseCompletePage() {
@@ -61,7 +62,9 @@ export default function PurchaseCompletePage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
+      <Header />
+      <div className="flex items-center justify-center py-20">
       <div className="max-w-md w-full mx-auto p-6 text-center">
         <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-6" />
 
@@ -102,6 +105,7 @@ export default function PurchaseCompletePage() {
             フィードに戻る
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );
