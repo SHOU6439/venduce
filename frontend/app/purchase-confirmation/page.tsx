@@ -1,15 +1,15 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { paymentMethodsApi } from '@/lib/api/payment-methods';
+import { productsApi } from '@/lib/api/products';
+import { purchasesApi } from '@/lib/api/purchases';
+import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
+import { useBadgeStore } from '@/stores/badge';
+import { PaymentMethod, Product } from '@/types/api';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Product, PaymentMethod } from '@/types/api';
-import { productsApi } from '@/lib/api/products';
-import { paymentMethodsApi } from '@/lib/api/payment-methods';
-import { purchasesApi } from '@/lib/api/purchases';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getImageUrl, formatCurrencyFromMinorUnit } from '@/lib/utils';
-import { useBadgeStore } from '@/stores/badge';
 
 export default function PurchaseConfirmationPage() {
   const router = useRouter();
@@ -86,7 +86,7 @@ export default function PurchaseConfirmationPage() {
       const params = new URLSearchParams({
         productId: product.id,
         productTitle: product.title,
-        productImage: product.images?.[0]?.id || product.images?.[0] || '',
+        productImage: typeof product.images?.[0] === 'string' ? product.images[0] : '',
         quantity: String(quantity),
         totalAmount: String(product.price_cents * quantity),
       });
