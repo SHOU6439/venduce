@@ -23,7 +23,7 @@ services:
       - '8000:8000'
     environment:
       DATABASE_URL: postgresql://venduce_user:venduce_password@postgres:5432/venduce_db
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-development}
       MAIL_ENABLED: 'true'
       MAIL_HOST: mailhog
       MAIL_PORT: '1025'
@@ -49,7 +49,7 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-development}
       - BACKEND_INTERNAL_URL=http://backend:8000
     depends_on:
       - backend
