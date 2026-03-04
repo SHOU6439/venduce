@@ -6,7 +6,7 @@ from app.deps import get_brand_service
 from app.services.brand_service import BrandService
 from app.schemas.brand import BrandRead
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.get("/", response_model=List[BrandRead])

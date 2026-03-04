@@ -15,7 +15,7 @@ from app.deps import get_current_user, get_purchase_service, get_badge_service, 
 from app.core.ws_manager import fire_and_forget_broadcast
 from sqlalchemy.orm import Session
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=PurchaseRead, status_code=status.HTTP_201_CREATED)

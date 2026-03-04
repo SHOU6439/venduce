@@ -22,7 +22,7 @@ from app.schemas.notification import (
 )
 from app.schemas.pagination import PaginatedResponse, CursorMeta
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 def _to_read(n: Notification) -> NotificationRead:

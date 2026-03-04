@@ -26,7 +26,7 @@ from app.services.product_service import ProductService
 from app.deps import get_product_service, get_current_user_optional
 from app.utils import jwt as jwt_utils
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 logger = logging.getLogger(__name__)
 
 

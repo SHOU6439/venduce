@@ -11,7 +11,7 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.enums import NotificationType
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)

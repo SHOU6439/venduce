@@ -31,7 +31,7 @@ from app.core.config import settings
 from app.core.security import verify_password
 
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_202_ACCEPTED)

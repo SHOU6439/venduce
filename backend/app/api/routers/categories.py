@@ -6,7 +6,7 @@ from app.deps import get_category_service
 from app.services.category_service import CategoryService
 from app.schemas.category import CategoryRead
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.get("/", response_model=List[CategoryRead])

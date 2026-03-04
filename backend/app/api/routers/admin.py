@@ -54,7 +54,7 @@ from app.utils.file_validation import (
     assert_allowed_image, detect_mime_type, extract_image_info, FileValidationError,
 )
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 # ═══════════════════════════════════════════════════════════

@@ -11,7 +11,7 @@ from typing import Optional
 from app.core.ws_manager import ws_manager
 from app.utils import jwt as jwt_utils
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 def _authenticate(token: str | None) -> str | None:

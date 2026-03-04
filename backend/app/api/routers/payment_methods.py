@@ -8,7 +8,7 @@ from app.services.payment_method_service import PaymentMethodService
 from app.deps import get_current_user, get_payment_method_service
 from sqlalchemy.orm import Session
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=PaymentMethodRead, status_code=status.HTTP_201_CREATED)

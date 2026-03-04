@@ -18,7 +18,7 @@ from app.services.like_service import LikeService
 from app.services.purchase_service import PurchaseService
 
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 @router.get("/me", response_model=UserRead)
 def read_user_me(

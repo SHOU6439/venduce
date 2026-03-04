@@ -20,7 +20,7 @@ from app.utils.file_validation import (
 
 MIME_SAMPLE_BYTES = 4096
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("", response_model=AssetRead, status_code=status.HTTP_201_CREATED)
