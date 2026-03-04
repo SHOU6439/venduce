@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Purchase } from '@/types/api';
 import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { ArrowLeft, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-reac
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/utils';
 
-export default function OrderDetailPage() {
+function OrderDetailContent() {
   const params = useParams();
   const searchParamsHook = useSearchParams();
   const router = useRouter();
@@ -211,5 +211,17 @@ export default function OrderDetailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrderDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex justify-center py-24">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <OrderDetailContent />
+    </Suspense>
   );
 }

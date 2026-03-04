@@ -10,9 +10,9 @@ import { useBadgeStore } from '@/stores/badge';
 import { PaymentMethod, Product } from '@/types/api';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function PurchaseConfirmationPage() {
+function PurchaseConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -235,5 +235,20 @@ export default function PurchaseConfirmationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PurchaseConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex justify-center py-24">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      </div>
+    }>
+      <PurchaseConfirmationContent />
+    </Suspense>
   );
 }
