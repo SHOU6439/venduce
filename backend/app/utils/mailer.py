@@ -27,8 +27,8 @@ def send_confirmation_email(
     プレーンテキストの `body` をそのまま本文として使います。
     """
 
-    if not settings.MAIL_ENABLED:
-        # 開発モードでは実際には送信せず、送信予定内容を出力します。
+    if not settings.MAIL_ENABLED and settings.APP_ENV != "production":
+        # 開発モード（MAIL_ENABLED=false かつ APP_ENV≠production）では実際には送信せず、送信予定内容を出力します。
         rendered = body or ""
         if template_name and _jinja_env:
             try:
@@ -37,7 +37,7 @@ def send_confirmation_email(
             except Exception:
                 # テンプレートが無い／レンダリング失敗は無視してフォールバック
                 pass
-        print(f"[mailer] MAIL_ENABLED が False - 送信先 {to_email} に送信する予定: {subject}\n{rendered}")
+        print(f"[mailer] 開発モード - 送信先 {to_email} に送信する予定: {subject}\n{rendered}")
         return
 
     msg = EmailMessage()
