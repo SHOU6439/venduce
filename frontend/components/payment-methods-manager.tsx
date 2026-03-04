@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { PaymentMethod } from '@/types/api';
-import { paymentMethodsApi } from '@/lib/api/payment-methods';
 import { Button } from '@/components/ui/button';
-import { Trash2, Check } from 'lucide-react';
+import { paymentMethodsApi } from '@/lib/api/payment-methods';
+import { PaymentMethod } from '@/types/api';
+import { Check, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { PaymentMethodForm } from './payment-method-form';
 
 export function PaymentMethodsManager() {
@@ -116,7 +116,7 @@ export function PaymentMethodsManager() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{method.type}</p>
+                      <p className="text-sm text-muted-foreground">{method.payment_type}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {!method.is_default && (

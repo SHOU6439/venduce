@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useAuthStore, useAuthHydrated } from '@/stores/auth';
-import { Purchase } from '@/types/api';
-import { purchasesApi } from '@/lib/api/purchases';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { getImageUrl } from '@/lib/utils';
 import { BackButton } from '@/components/back-button';
+import { Button } from '@/components/ui/button';
+import { purchasesApi } from '@/lib/api/purchases';
+import { getImageUrl } from '@/lib/utils';
+import { useAuthHydrated, useAuthStore } from '@/stores/auth';
+import { Purchase } from '@/types/api';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function PurchaseDetailPage() {
   const router = useRouter();
@@ -187,7 +187,7 @@ export default function PurchaseDetailPage() {
             {purchase.payment_method && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground mb-2">支払い方法</p>
-                <p className="font-medium">{purchase.payment_method.method_type}</p>
+                <p className="font-medium">{purchase.payment_method.payment_type}</p>
               </div>
             )}
 

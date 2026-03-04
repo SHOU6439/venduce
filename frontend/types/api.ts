@@ -121,9 +121,10 @@ export interface Post {
 export interface PaymentMethod {
   id: string;
   user_id: string;
-  method_type: string;
+  payment_type: string;
+  name: string;
   is_default: boolean;
-  metadata?: Record<string, unknown> | null;
+  details?: Record<string, unknown> | null;
   created_at: string;
   updated_at?: string | null;
 }

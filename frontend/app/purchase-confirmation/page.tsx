@@ -200,7 +200,7 @@ export default function PurchaseConfirmationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{paymentMethod.name}</p>
-                <p className="text-sm text-muted-foreground">{paymentMethod.type}</p>
+                <p className="text-sm text-muted-foreground">{paymentMethod.payment_type}</p>
               </div>
               <Button
                 variant="outline"
