@@ -2,15 +2,15 @@
 
 import type React from 'react';
 
-import { Suspense, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { apiClient, ApiError } from '@/lib/api/client';
+import { AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { apiClient, ApiError } from '@/lib/api/client';
-import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Suspense, useState } from 'react';
 
 function ResetPasswordContent() {
     const searchParams = useSearchParams();
@@ -66,7 +66,7 @@ function ResetPasswordContent() {
         setLoading(true);
 
         try {
-            await apiClient.post('/api/auth/reset-password', {
+            await apiClient.post('/auth/reset-password', {
                 token,
                 new_password: newPassword,
             });

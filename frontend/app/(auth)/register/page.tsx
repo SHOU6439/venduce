@@ -50,7 +50,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await apiClient.post('/api/auth/register', formData);
+      await apiClient.post('/auth/register', formData);
       localStorage.setItem('register_pending_email', formData.email);
       setRegisteredEmail(formData.email);
       setShowSuccessModal(true);

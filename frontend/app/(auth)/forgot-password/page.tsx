@@ -2,14 +2,14 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Link from 'next/link';
 import { apiClient, ApiError } from '@/lib/api/client';
-import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
         setLoading(true);
 
         try {
-            await apiClient.post('/api/auth/forgot-password', { email });
+            await apiClient.post('/auth/forgot-password', { email });
             setSuccess(true);
         } catch (err) {
             if (err instanceof ApiError) {
