@@ -6,6 +6,10 @@ import { BadgeNotificationManager } from '@/components/animation/badgeNotificati
 import { WebSocketProvider } from '@/components/ws-provider';
 import './globals.css';
 
+// Next.js 16.0.10 Turbopack の /_global-error プリレンダリングバグを回避するため
+// アプリ全体を動的レンダリングにする。静的生成は行わない。
+export const dynamic = 'force-dynamic';
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],

@@ -48,7 +48,7 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=${APP_ENV:-development}
       - APP_ENV=${APP_ENV:-development}
       - BACKEND_INTERNAL_URL=http://backend:8000
     command: sh -c 'if [ "$$APP_ENV" = "production" ]; then npm start; else npm run dev; fi'

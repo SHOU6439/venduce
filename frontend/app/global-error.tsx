@@ -1,11 +1,10 @@
 'use client';
 
 /**
- * ルートレイアウトレベルで発生したエラーのフォールバック
- * Next.js App Router では global-error.tsx が必須
+ * ルートレイアウトレベルで発生したエラーのフォールバック。
+ * Next.js App Router では global-error.tsx が必須。
  */
 export default function GlobalError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
