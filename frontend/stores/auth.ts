@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+// 複数の呼び出し元が同時に refreshAccessToken() を呼んでも
+// バックエンドへのリクエストは1回だけ実行する
+let _isRefreshing = false;
+let _refreshPromise: Promise<boolean> | null = null;
+
 interface User {
   id: string;
   email: string;
@@ -40,7 +45,7 @@ interface AuthState {
   setUser: (user: User) => void;
   refreshAccessToken: () => Promise<boolean>;
   setTokens: (accessToken: string, refreshToken: string, expiresIn?: number) => void;
-  setHasHydrated?: (hydrated: boolean) => void;
+  setHasHydrated: (hydrated: boolean) => void;
   initializeFromToken: () => Promise<void>;
   shouldRefreshToken: () => boolean;
 }
@@ -117,55 +122,67 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshAccessToken: async () => {
-        try {
-          const refreshToken = getCookie("refresh_token");
-          
-          if (!refreshToken) {
-            return false;
-          }
-
-          const response = await client.post<LoginResponse>(
-            "/api/auth/refresh",
-            { refresh_token: refreshToken },
-          );
-
-          const refreshExpiresAt = Date.now() + (response.refresh_expires_in * 1000);
-
-          if (typeof window !== "undefined") {
-            setCookie("access_token", response.access_token, {
-              maxAge: response.expires_in,
-              path: "/",
-              sameSite: "Lax",
-            });
-            setCookie("refresh_token", response.refresh_token, {
-              maxAge: response.refresh_expires_in,
-              path: "/",
-              sameSite: "Lax",
-            });
-          }
-
-          set({
-            accessToken: response.access_token,
-            refreshToken: response.refresh_token,
-            isAuthenticated: true,
-            refreshTokenExpiresAt: refreshExpiresAt,
-          });
-
-          return true;
-        } catch (error) {
-          // ネットワーク障害 / サーバー一時停止（5xx）はセッションを維持したまま失敗
-          if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            return false;
-          }
-          if (error instanceof ApiError && error.status >= 500) {
-            // 5xx はサーバー側の一時エラー。クッキーを消さず静かに失敗
-            return false;
-          }
-          // 401/403 などの認証エラーのみログアウト
-          console.error("Failed to refresh access token:", error);
-          get().logout();
-          return false;
+        // 既にリフレッシュ中なら同じ Promise を返す（race condition 防止）
+        if (_isRefreshing && _refreshPromise) {
+          return _refreshPromise;
         }
+
+        _isRefreshing = true;
+        _refreshPromise = (async () => {
+          try {
+            const refreshToken = getCookie("refresh_token");
+
+            if (!refreshToken) {
+              return false;
+            }
+
+            const response = await client.post<LoginResponse>(
+              "/api/auth/refresh",
+              { refresh_token: refreshToken },
+            );
+
+            const refreshExpiresAt = Date.now() + (response.refresh_expires_in * 1000);
+
+            if (typeof window !== "undefined") {
+              setCookie("access_token", response.access_token, {
+                maxAge: response.expires_in,
+                path: "/",
+                sameSite: "Lax",
+              });
+              setCookie("refresh_token", response.refresh_token, {
+                maxAge: response.refresh_expires_in,
+                path: "/",
+                sameSite: "Lax",
+              });
+            }
+
+            set({
+              accessToken: response.access_token,
+              refreshToken: response.refresh_token,
+              isAuthenticated: true,
+              refreshTokenExpiresAt: refreshExpiresAt,
+            });
+
+            return true;
+          } catch (error) {
+            // ネットワーク障害 / サーバー一時停止（5xx）はセッションを維持したまま失敗
+            if (error instanceof TypeError && error.message === 'Failed to fetch') {
+              return false;
+            }
+            if (error instanceof ApiError && error.status >= 500) {
+              return false;
+            }
+            // 401/403 などの認証エラーのみログアウト
+            console.error("Failed to refresh access token:", error);
+            get().logout();
+            return false;
+          } finally {
+            _isRefreshing = false;
+            _refreshPromise = null;
+          }
+        })();
+
+        return _refreshPromise;
       },
 
       shouldRefreshToken: () => {

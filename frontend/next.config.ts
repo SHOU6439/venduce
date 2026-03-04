@@ -8,9 +8,7 @@ const backendInternalUrl =
     "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
-    experimental: {
-        allowedDevOrigins: ["venduce.com", "localhost"],
-    },
+    allowedDevOrigins: ["venduce.com", "localhost"],
     async rewrites() {
         return [
             {

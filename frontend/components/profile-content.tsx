@@ -444,7 +444,7 @@ export function ProfileContent() {
               {purchases.map((purchase) => {
                 // 商品画像のURLを取得
                 const imageUrl = purchase.product?.images?.[0]
-                  ? getImageUrl(purchase.product.images[0].public_url ?? purchase.product.images[0].id ?? purchase.product.images[0])
+                  ? getImageUrl(purchase.product.images[0])
                   : null;
                 
                 return (
@@ -463,7 +463,7 @@ export function ProfileContent() {
                             e.currentTarget.style.display = 'none';
                           }}
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2">
                           <p className="text-xs text-white font-semibold line-clamp-2">{purchase.product.title}</p>
                         </div>
                       </>

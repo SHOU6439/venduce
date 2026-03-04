@@ -23,7 +23,7 @@ import { NotificationBell } from "@/components/notification-bell";
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<{
     username: string;
@@ -40,7 +40,9 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // hasHydrated が true になるまで待つ（initializeFromToken 完了後）
+    // 初期化中のリフレッシュと getProfile の競合を防ぐ
+    if (isAuthenticated && hasHydrated) {
       const loadProfile = async () => {
         try {
           setLoading(true);
@@ -57,7 +59,7 @@ export function Header() {
       };
       loadProfile();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasHydrated]);
 
   // ルート遷移時にモバイルメニューを閉じる
   useEffect(() => {
