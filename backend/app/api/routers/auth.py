@@ -48,7 +48,7 @@ def register(
     confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
-        "Confirm your account",
+        "「Venduce」メールアドレスの確認",
         template_name="confirm",
         context={
             "first_name": user.first_name,
@@ -91,7 +91,7 @@ def resend(
     confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
     send_confirmation_email(
         user.email,
-        "Confirm your account",
+        "「Venduce」メールアドレスの確認",
         template_name="confirm",
         context={
             "first_name": user.first_name,
@@ -216,7 +216,7 @@ def forgot_password(
         reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
         send_confirmation_email(
             email,
-            "パスワードリセット - Venduce",
+            "「Venduce」パスワードリセット",
             template_name="password_reset",
             context={
                 "reset_url": reset_url,
