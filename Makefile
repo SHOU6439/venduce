@@ -25,10 +25,10 @@ build:
 	docker compose build
 
 env-file:
-	@python setup.py env
+	@python3 setup.py env
 
 keys:
-	@python setup.py keys
+	@python3 setup.py keys
 
 up:
 	@echo "Dockerコンテナを起動中..."
@@ -51,7 +51,7 @@ clean:
 destroy:
 	@echo "【警告】データベースのボリュームを含む全データを削除します。"
 	@echo "本当によろしいですか？ (y/N)"
-	@python -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
+	@python3 -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
 	docker compose down --volumes
 	docker system prune -f
 	@echo "全データの削除（初期化）が完了しました。"
