@@ -27,7 +27,10 @@ function resolveUrl(path: string): string {
     return normalizedPath;
   }
 
-  return `${API_BASE_URL}${normalizedPath}`;
+  let finalUrl = `${API_BASE_URL}${normalizedPath}`;
+  // URLのパス部の末尾スラッシュを除去する（バックエンドでのHTTPへのリダイレクト防止）
+  finalUrl = finalUrl.replace(/\/+(\?|$)/, "$1");
+  return finalUrl;
 }
 
 export class ApiError extends Error {
