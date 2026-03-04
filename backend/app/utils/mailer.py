@@ -1,7 +1,10 @@
 from typing import Optional, Dict
+import logging
 import smtplib
 from email.message import EmailMessage
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Jinja2 をインポートします。存在しない場合はプレーンテキストのみで安全にフォールバックします。
 try:
@@ -55,7 +58,7 @@ def send_confirmation_email(
     if settings.APP_ENV == "production":
         # 本番環境: Resend API 経由で実メール送信
         if not settings.RESEND_API_KEY:
-            print(f"[mailer] RESEND_API_KEY 未設定のため送信スキップ - To: {to_email}")
+            logger.warning("[mailer] RESEND_API_KEY 未設定のため送信スキップ - To: %s", to_email)
             return
 
         import resend  # 遅延インポート（テスト時のモックのしやすさのため）
@@ -70,7 +73,12 @@ def send_confirmation_email(
         if html_body:
             params["html"] = html_body
 
-        resend.Emails.send(params)
+        try:
+            result = resend.Emails.send(params)
+            logger.info("[mailer] メール送信成功 - To: %s, id: %s", to_email, result.get("id"))
+        except Exception as e:
+            logger.error("[mailer] メール送信失敗 - To: %s, error: %s", to_email, e, exc_info=True)
+            raise
     else:
         # 開発環境: MailHog (SMTP) 経由で送信
         msg = EmailMessage()
@@ -81,7 +89,12 @@ def send_confirmation_email(
         if html_body:
             msg.add_alternative(html_body, subtype="html")
 
-        with smtplib.SMTP(settings.MAIL_HOST, settings.MAIL_PORT) as smtp:
-            if settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
-                smtp.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-            smtp.send_message(msg)
+        try:
+            with smtplib.SMTP(settings.MAIL_HOST, settings.MAIL_PORT) as smtp:
+                if settings.MAIL_USERNAME and settings.MAIL_PASSWORD:
+                    smtp.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+                smtp.send_message(msg)
+            logger.info("[mailer] SMTP送信成功 - To: %s", to_email)
+        except Exception as e:
+            logger.error("[mailer] SMTP送信失敗 - To: %s, error: %s", to_email, e, exc_info=True)
+            raise

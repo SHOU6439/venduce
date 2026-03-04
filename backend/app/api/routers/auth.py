@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+import logging
 
 from app.utils.mailer import send_confirmation_email
 
@@ -33,6 +34,8 @@ from app.core.security import verify_password
 
 router = APIRouter(redirect_slashes=False)
 
+logger = logging.getLogger(__name__)
+
 
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_202_ACCEPTED)
 def register(
@@ -46,17 +49,20 @@ def register(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email or username already exists")
 
     confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
-    send_confirmation_email(
-        user.email,
-        "「Venduce」メールアドレスの確認",
-        template_name="confirm",
-        context={
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "confirm_url": confirm_url,
-            "token": token,
-        },
-    )
+    try:
+        send_confirmation_email(
+            user.email,
+            "「Venduce」メールアドレスの確認",
+            template_name="confirm",
+            context={
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "confirm_url": confirm_url,
+                "token": token,
+            },
+        )
+    except Exception as e:
+        logger.error("[register] 確認メール送信失敗 - email: %s, error: %s", user.email, e, exc_info=True)
 
     return RegistrationResponse(message="confirmation sent", confirmation_token=token)
 
@@ -89,17 +95,20 @@ def resend(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     confirm_url = f"{settings.FRONTEND_URL}/confirm?token={token}"
-    send_confirmation_email(
-        user.email,
-        "「Venduce」メールアドレスの確認",
-        template_name="confirm",
-        context={
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "confirm_url": confirm_url,
-            "token": token,
-        },
-    )
+    try:
+        send_confirmation_email(
+            user.email,
+            "「Venduce」メールアドレスの確認",
+            template_name="confirm",
+            context={
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "confirm_url": confirm_url,
+                "token": token,
+            },
+        )
+    except Exception as e:
+        logger.error("[resend_confirmation] 確認メール送信失敗 - email: %s, error: %s", user.email, e, exc_info=True)
 
     return RegistrationResponse(message="confirmation resent", confirmation_token=token)
 
@@ -214,15 +223,18 @@ def forgot_password(
     if result:
         token, email = result
         reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        send_confirmation_email(
-            email,
-            "「Venduce」パスワードリセット",
-            template_name="password_reset",
-            context={
-                "reset_url": reset_url,
-                "expire_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
-            },
-        )
+        try:
+            send_confirmation_email(
+                email,
+                "「Venduce」パスワードリセット",
+                template_name="password_reset",
+                context={
+                    "reset_url": reset_url,
+                    "expire_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+                },
+            )
+        except Exception as e:
+            logger.error("[forgot_password] パスワードリセットメール送信失敗 - email: %s, error: %s", email, e, exc_info=True)
 
     return {"message": "パスワードリセットのメールを送信しました。メールをご確認ください。"}
 
