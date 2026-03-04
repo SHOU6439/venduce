@@ -45,7 +45,7 @@ up:
 
 prod-up:
 	@echo "Dockerコンテナを起動中（本番モード: cloudflaredあり）..."
-	docker compose --profile production up -d
+	docker compose -f compose.yml -f compose.prod.yml --profile production up -d
 
 down:
 	@echo "Dockerコンテナを停止中..."
