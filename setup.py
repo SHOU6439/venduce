@@ -16,16 +16,17 @@ import re
 from pathlib import Path
 
 
-def setup_env_files():
+def setup_env_files(production=False):
     """Setup .env and frontend/.env.local files from examples."""
     print("環境ファイルをセットアップ中...")
 
     env_file = Path(".env")
-    env_example = Path(".env.example")
+    env_example = Path(".env.production.example") if production else Path(".env.example")
 
     if not env_file.exists():
         if env_example.exists():
-            print(f"'.env' が見つかりません。'.env.example' をコピーして作成します...")
+            label = "本番用" if production else "開発用"
+            print(f"'.env' が見つかりません。'{env_example}' ({label}) をコピーして作成します...")
             shutil.copy(env_example, env_file)
             print(f"✓ {env_file} を作成しました")
         else:
@@ -167,7 +168,8 @@ def main():
     command = sys.argv[1].lower()
 
     if command == "env":
-        setup_env_files()
+        production = "--prod" in sys.argv
+        setup_env_files(production=production)
     elif command == "keys":
         generate_jwt_keys()
     else:

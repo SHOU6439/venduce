@@ -77,6 +77,8 @@ services:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
+    profiles:
+      - production
     depends_on:
       - nginx
     environment:

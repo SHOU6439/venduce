@@ -1,12 +1,14 @@
-.PHONY: help setup up down logs clean rebuild nocache test seed
+.PHONY: help setup prod-setup up prod-up down logs clean rebuild nocache test seed env-file prod-env-file
 
 help:
 	@echo "使い方: make [コマンド]"
 	@echo ""
 	@echo "利用可能なコマンド:"
-	@echo "  setup	- バックエンドとフロントエンドの初期セットアップ"
-	@echo "  up	   - Dockerコンテナを起動"
-	@echo "  down	 - Dockerコンテナを停止"
+	@echo "  setup       - バックエンドとフロントエンドの初期セットアップ（開発用）"
+	@echo "  prod-setup  - バックエンドとフロントエンドの初期セットアップ（本番用: .env.production.example を使用）"
+	@echo "  up       - Dockerコンテナを起動（開発用: cloudflaredなし）"
+	@echo "  prod-up   - Dockerコンテナを起動（本番用: cloudflaredあり）"
+	@echo "  down      - Dockerコンテナを停止"
 	@echo "  logs	 - コンテナのログを表示"
 	@echo "  clean	- コンテナを停止し、不要なリソースを削除"
 	@echo "  destroy	- データベースを含む全データを完全削除（初期化）"
@@ -20,6 +22,10 @@ setup: build env-file keys up migrate test-db
 	@echo ""
 	@echo "セットアップが完了しました！"
 
+prod-setup: build prod-env-file keys prod-up migrate test-db
+	@echo ""
+	@echo "本番セットアップが完了しました！"
+
 build:
 	@echo "Dockerイメージをビルド中..."
 	docker compose build
@@ -27,12 +33,19 @@ build:
 env-file:
 	@python3 setup.py env
 
+prod-env-file:
+	@python3 setup.py env --prod
+
 keys:
 	@python3 setup.py keys
 
 up:
-	@echo "Dockerコンテナを起動中..."
+	@echo "Dockerコンテナを起動中（開発モード: cloudflaredなし）..."
 	docker compose up -d
+
+prod-up:
+	@echo "Dockerコンテナを起動中（本番モード: cloudflaredあり）..."
+	docker compose --profile production up -d
 
 down:
 	@echo "Dockerコンテナを停止中..."
