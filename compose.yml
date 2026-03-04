@@ -24,7 +24,6 @@ services:
     environment:
       DATABASE_URL: postgresql://venduce_user:venduce_password@postgres:5432/venduce_db
       APP_ENV: ${APP_ENV:-development}
-      MAIL_ENABLED: 'true'
       MAIL_HOST: mailhog
       MAIL_PORT: '1025'
     depends_on:
