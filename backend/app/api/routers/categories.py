@@ -9,7 +9,7 @@ from app.schemas.category import CategoryRead
 router = APIRouter(redirect_slashes=False)
 
 
-@router.get("/", response_model=List[CategoryRead])
+@router.get("", response_model=List[CategoryRead])
 def list_categories(
     db: Session = Depends(get_db),
     svc: CategoryService = Depends(get_category_service),

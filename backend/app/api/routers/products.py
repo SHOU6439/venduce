@@ -181,7 +181,7 @@ def get_trending_products(
     return TrendingProductsResponse(items=items, total=total, offset=offset, limit=limit, has_more=has_more)
 
 
-@router.get("/", summary="List products")
+@router.get("", summary="List products")
 def list_products(
     response: Response,
     page: Optional[int] = Query(None, ge=1, description="ページ番号（従来方式）"),

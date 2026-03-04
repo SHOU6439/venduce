@@ -9,7 +9,7 @@ from app.models.user import User
 router = APIRouter(redirect_slashes=False)
 
 
-@router.post("/", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
 def create_category(
     payload: CategoryCreate,
     db: Session = Depends(get_db),

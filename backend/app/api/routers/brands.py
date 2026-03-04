@@ -9,7 +9,7 @@ from app.schemas.brand import BrandRead
 router = APIRouter(redirect_slashes=False)
 
 
-@router.get("/", response_model=List[BrandRead])
+@router.get("", response_model=List[BrandRead])
 def list_brands(db: Session = Depends(get_db), svc: BrandService = Depends(get_brand_service)):
     brands = svc.list(db)
     return [BrandRead.model_validate(b) for b in brands]
