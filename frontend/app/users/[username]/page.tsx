@@ -320,7 +320,7 @@ export default function UserProfilePage() {
                                     <p className="text-lg font-semibold">
                                         {(stats?.total_purchases ?? 0).toLocaleString()}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">推定購入</p>
+                                    <p className="text-xs text-muted-foreground">購入貢献数</p>
                                 </div>
                             </div>
 

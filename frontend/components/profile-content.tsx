@@ -348,7 +348,7 @@ export function ProfileContent() {
               </div>
               <div>
                 <p className="font-semibold text-lg">{totalPurchases.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">推定購入</p>
+                <p className="text-xs text-muted-foreground">購入貢献数</p>
               </div>
             </div>
 
