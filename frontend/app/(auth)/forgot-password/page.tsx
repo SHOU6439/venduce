@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
         setLoading(true);
 
         try {
-            await apiClient.post('/auth/forgot-password', { email });
+            await apiClient.post('/api/auth/forgot-password', { email });
             setSuccess(true);
         } catch (err) {
             if (err instanceof ApiError) {
