@@ -66,7 +66,7 @@ function ResetPasswordContent() {
         setLoading(true);
 
         try {
-            await apiClient.post('/auth/reset-password', {
+            await apiClient.post('/api/auth/reset-password', {
                 token,
                 new_password: newPassword,
             });
