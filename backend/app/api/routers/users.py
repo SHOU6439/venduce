@@ -10,7 +10,8 @@ from app.schemas.product import ProductRead
 from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.models.user import User
 from app.models.post import Post
-from app.models.enums import PostStatus
+from app.models.purchase import Purchase
+from app.models.enums import PostStatus, PurchaseStatus
 from app.db.database import get_db
 from app.deps import get_current_user, get_user_service, get_post_service, get_like_service, get_purchase_service
 from app.services.post_service import PostService
@@ -84,23 +85,56 @@ def get_user_ranking(
     offset: int = 0,
     db: Session = Depends(get_db),
 ) -> RankingResponse:
-    """いいね累計数上位ユーザーのランキングを返します（認証不要・オフセットページネーション）。"""
-    base_query = (
+    """購入貢献数上位ユーザーのランキングを返します（認証不要・オフセットページネーション）。
+
+    - total_purchases: purchases テーブルを直接集計（COMPLETED かつ投稿経由のみ）
+    - total_likes: posts.like_count の合計（購入JOINで重複しないようサブクエリ分離）
+    """
+    # サブクエリ①: 投稿経由の COMPLETED 購入数をユーザー別に集計
+    purchase_subq = (
         db.query(
-            Post.user_id,
+            Post.user_id.label("user_id"),
+            func.count(Purchase.id).label("total_purchases"),
+        )
+        .join(Purchase, Purchase.referring_post_id == Post.id)
+        .filter(
+            Post.deleted_at.is_(None),
+            Post.status == PostStatus.PUBLIC,
+            Purchase.status == PurchaseStatus.COMPLETED,
+        )
+        .group_by(Post.user_id)
+        .subquery()
+    )
+
+    # サブクエリ②: いいね累計をユーザー別に集計
+    likes_subq = (
+        db.query(
+            Post.user_id.label("user_id"),
             func.sum(Post.like_count).label("total_likes"),
-            func.sum(Post.purchase_count).label("total_purchases"),
         )
         .filter(Post.deleted_at.is_(None), Post.status == PostStatus.PUBLIC)
         .group_by(Post.user_id)
+        .subquery()
     )
 
-    # 総件数
+    # いいねサブクエリをベースに購入サブクエリを LEFT JOIN
+    base_query = (
+        db.query(
+            likes_subq.c.user_id,
+            func.coalesce(purchase_subq.c.total_purchases, 0).label("total_purchases"),
+            likes_subq.c.total_likes,
+        )
+        .outerjoin(purchase_subq, purchase_subq.c.user_id == likes_subq.c.user_id)
+    )
+
     total = base_query.count()
 
     rows = (
         base_query
-        .order_by(func.sum(Post.like_count).desc())
+        .order_by(
+            func.coalesce(purchase_subq.c.total_purchases, 0).desc(),
+            likes_subq.c.total_likes.desc(),
+        )
         .offset(offset)
         .limit(limit)
         .all()
