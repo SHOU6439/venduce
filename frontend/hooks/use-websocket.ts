@@ -81,7 +81,10 @@ export function useWebSocket(): WsEventBus {
         if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return;
 
         const token = getToken();
-        const base = deriveWsUrl();
+        let base = deriveWsUrl();
+        // nginx側で `/ws/` に proxy されるため、ベースURLの末尾が `/api` の場合は不要なので削る
+        base = base.replace(/\/api$/, "");
+
         const url = token
             ? `${base}/ws/events?token=${encodeURIComponent(token)}`
             : `${base}/ws/events`;
