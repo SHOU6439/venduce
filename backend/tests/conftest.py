@@ -14,6 +14,7 @@ import smtplib
 
 
 class _DummySMTP:
+    """テスト中に実際の SMTP 接続を行わないようにするスタブ。"""
     def __init__(self, *args, **kwargs):
         pass
 

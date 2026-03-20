@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
@@ -17,6 +19,11 @@ from app.api.routers import payment_methods as payment_methods_router
 from app.api.routers import purchases as purchases_router
 from app.api.routers import likes as likes_router
 from app.api.routers import comments as comments_router
+from app.api.routers import follows as follows_router
+from app.api.routers import badges as badges_router
+from app.api.routers import ws as ws_router
+from app.api.routers import admin as admin_router
+from app.api.routers import notifications as notifications_router
 from app.core.config import settings
 
 app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
@@ -49,6 +56,11 @@ def get_application() -> FastAPI:
     app.include_router(posts_router.router)
     app.include_router(comments_router.router, prefix="/api", tags=["comments"])
     app.include_router(likes_router.router)
+    app.include_router(follows_router.router)
+    app.include_router(badges_router.router)
+    app.include_router(notifications_router.router, prefix="/api/notifications", tags=["notifications"])
+    app.include_router(ws_router.router)
+    app.include_router(admin_router.router, prefix="/api/admin", tags=["admin"])
 
     if not os.path.exists(settings.ASSET_STORAGE_ROOT):
         os.makedirs(settings.ASSET_STORAGE_ROOT)
@@ -60,9 +72,37 @@ def get_application() -> FastAPI:
     except Exception as e:
         print(f"SQLAdmin setup error: {e}")
 
+    @app.on_event("startup")
+    async def _capture_event_loop():
+        """メインのイベントループを ws_manager に登録する。
+        def エンドポイント（スレッドプール）から WS 送信を可能にする。"""
+        from app.core.ws_manager import set_main_loop
+        set_main_loop(asyncio.get_running_loop())
+
     @app.get("/api/health")
     def health_check():
         return {"status": "ok"}
+
+    @app.post("/api/internal/ws-notify-badge", include_in_schema=False)
+    async def ws_notify_badge(payload: dict):
+        """内部用: スクリプトからWebSocket badge_awarded 通知を発火する。"""
+        from app.core.ws_manager import ws_manager
+        user_id = payload.get("user_id")
+        if user_id:
+            await ws_manager.send_to_user(user_id, "badge_awarded", {
+                "slug": payload.get("badge_slug", ""),
+                "name": payload.get("badge_name", ""),
+                "icon": payload.get("badge_icon", ""),
+                "color": payload.get("badge_color", ""),
+            })
+        return {"ok": True}
+
+    @app.post("/api/internal/ws-notify-ranking", include_in_schema=False)
+    async def ws_notify_ranking():
+        """内部用: スクリプトからWebSocket ranking_updated を全クライアントにブロードキャスト。"""
+        from app.core.ws_manager import ws_manager
+        await ws_manager.broadcast("ranking_updated")
+        return {"ok": True}
 
     def custom_openapi():
         if app.openapi_schema:

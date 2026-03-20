@@ -1,5 +1,5 @@
 import { client } from './client';
-import { Post, CreatePostPayload } from '@/types/api';
+import { Post, CreatePostPayload, PostUpdatePayload } from '@/types/api';
 
 const normalizePost = (post: Post): Post => {
   let user = post.user;
@@ -14,6 +14,8 @@ const normalizePost = (post: Post): Post => {
     user,
     assets: post.assets ?? post.images ?? [],
     images: post.images ?? post.assets ?? [],
+    // バックエンドの is_liked フィールドを liked_by_me にマッピング
+    liked_by_me: post.liked_by_me ?? (post as any).is_liked ?? false,
   };
 };
 
@@ -56,14 +58,18 @@ export const postsApi = {
     return normalizePost(post);
   },
 
-  createPost: async (data: {
-    caption: string;
-    asset_ids: string[];
-    product_ids: string[];
-    tags?: string[];
-  }) => {
+  createPost: async (data: CreatePostPayload) => {
     const created = await client.post<Post>("/api/posts", data);
     return normalizePost(created);
+  },
+
+  updatePost: async (id: string, data: PostUpdatePayload): Promise<Post> => {
+    const updated = await client.patch<Post>(`/api/posts/${id}`, data);
+    return normalizePost(updated);
+  },
+
+  deletePost: async (id: string): Promise<void> => {
+    await client.delete<void>(`/api/posts/${id}`);
   },
 
   getRelatedPosts: async (productId: string): Promise<Post[]> => {
@@ -82,5 +88,26 @@ export const postsApi = {
     const response = await client.get<Post[] | { items: Post[] }>(`/api/posts?${params.toString()}`);
     const items = Array.isArray(response) ? response : response.items || [];
     return items.map(normalizePost);
+  },
+
+  likePost: async (postId: string): Promise<void> => {
+    await client.post<void>(`/api/posts/${postId}/likes`, undefined);
+  },
+
+  unlikePost: async (postId: string): Promise<void> => {
+    await client.delete<void>(`/api/posts/${postId}/likes`);
+  },
+
+  getLikedPosts: async (cursor?: string | null): Promise<PaginatedPostsResponse> => {
+    const params = new URLSearchParams();
+    if (cursor) params.set("cursor", cursor);
+    params.set("limit", "20");
+    const response = await client.get<PaginatedPostsResponse>(
+      `/api/users/me/likes?${params.toString()}`
+    );
+    return {
+      items: response.items.map(normalizePost),
+      meta: response.meta,
+    };
   },
 };

@@ -1,16 +1,18 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Product, PaymentMethod } from '@/types/api';
-import { productsApi } from '@/lib/api/products';
-import { paymentMethodsApi } from '@/lib/api/payment-methods';
-import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getImageUrl, formatCurrencyFromMinorUnit } from '@/lib/utils';
+import { Header } from '@/components/header';
+import { paymentMethodsApi } from '@/lib/api/payment-methods';
+import { productsApi } from '@/lib/api/products';
+import { purchasesApi } from '@/lib/api/purchases';
+import { formatCurrencyFromMinorUnit, getImageUrl } from '@/lib/utils';
+import { useBadgeStore } from '@/stores/badge';
+import { PaymentMethod, Product } from '@/types/api';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function PurchaseConfirmationPage() {
+function PurchaseConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -24,6 +26,9 @@ export default function PurchaseConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const triggerOptimistic = useBadgeStore((state) => state.triggerOptimistic);
+  const ownedSlugs = useBadgeStore((state) => state.ownedSlugs);
+  const isOwnedSlugsLoaded = useBadgeStore((state) => state.isOwnedSlugsLoaded);
 
   useEffect(() => {
     const load = async () => {
@@ -71,11 +76,18 @@ export default function PurchaseConfirmationPage() {
         referring_post_id: referringPostId || null,
       });
 
+      // はじめてのお買い物バッジを楽観的に即時表示
+      // ownedSlugs のロード完了後かつ未所持の場合のみ表示
+      // (未ロードの場合は WS の badge_awarded イベントで表示される)
+      if (isOwnedSlugsLoaded && !ownedSlugs.has('buyer-first')) {
+        triggerOptimistic('buyer-first');
+      }
+
       // 注文完了ページにクエリパラメータで情報を渡す
       const params = new URLSearchParams({
         productId: product.id,
         productTitle: product.title,
-        productImage: product.images?.[0]?.id || product.images?.[0] || '',
+        productImage: typeof product.images?.[0] === 'string' ? product.images[0] : '',
         quantity: String(quantity),
         totalAmount: String(product.price_cents * quantity),
       });
@@ -119,8 +131,9 @@ export default function PurchaseConfirmationPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}
@@ -189,7 +202,7 @@ export default function PurchaseConfirmationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{paymentMethod.name}</p>
-                <p className="text-sm text-muted-foreground">{paymentMethod.type}</p>
+                <p className="text-sm text-muted-foreground">{paymentMethod.payment_type}</p>
               </div>
               <Button
                 variant="outline"
@@ -222,5 +235,20 @@ export default function PurchaseConfirmationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PurchaseConfirmationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex justify-center py-24">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      </div>
+    }>
+      <PurchaseConfirmationContent />
+    </Suspense>
   );
 }

@@ -51,7 +51,7 @@ export default function SuccessModal({ isOpen, email, onClose }: SuccessModalPro
     setMessage(null);
 
     try {
-      await apiClient.post('/api/auth/resend-confirmation', { email });
+      await apiClient.post('/auth/resend-confirmation', { email });
       setMessage('確認メールを再送信しました。');
 
       const storedRetryCount = parseInt(localStorage.getItem('resend_retry_count') || '0', 10);

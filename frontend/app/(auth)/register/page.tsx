@@ -13,6 +13,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      localStorage.removeItem('register_pending_email');
       router.push('/');
     }
   }, [isAuthenticated, router]);
@@ -27,6 +28,16 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+
+  // リロード後も登録済みメールを復元
+  useEffect(() => {
+    const saved = localStorage.getItem('register_pending_email');
+    if (saved) {
+      setRegisteredEmail(saved);
+      setShowSuccessModal(true);
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,6 +51,8 @@ export default function RegisterPage() {
 
     try {
       await apiClient.post('/api/auth/register', formData);
+      localStorage.setItem('register_pending_email', formData.email);
+      setRegisteredEmail(formData.email);
       setShowSuccessModal(true);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -67,8 +80,20 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 via-white to-cyan-50 p-4">
-      <SuccessModal isOpen={showSuccessModal} email={formData.email} onClose={() => setShowSuccessModal(false)} />
+      <SuccessModal isOpen={showSuccessModal} email={registeredEmail ?? formData.email} onClose={() => setShowSuccessModal(false)} />
       <div className="w-full max-w-md bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-8 sm:p-10 transition-all duration-300 hover:shadow-2xl">
+        {registeredEmail && !showSuccessModal && (
+          <div className="mb-6 flex items-center justify-between rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-700">
+            <span>確認メールを送信しました</span>
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(true)}
+              className="ml-4 font-semibold underline hover:text-indigo-900 whitespace-nowrap"
+            >
+              もう一度確認する
+            </button>
+          </div>
+        )}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">アカウント作成</h2>
           <p className="text-sm text-gray-500">

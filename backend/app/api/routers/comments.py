@@ -5,10 +5,13 @@ from typing import List
 from app.db.database import get_db
 from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from app.services.comment_service import CommentService
-from app.deps import get_current_user
+from app.services.notification_service import NotificationService
+from app.deps import get_current_user, get_notification_service
 from app.models.user import User
+from app.models.post import Post
+from app.models.enums import NotificationType
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
@@ -17,13 +20,30 @@ def create_comment(
     comment_in: CommentCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    notification_service: NotificationService = Depends(get_notification_service),
 ):
     """
     投稿にコメントを作成する
     """
-    return CommentService.create_comment(
+    comment = CommentService.create_comment(
         db=db, comment_in=comment_in, post_id=post_id, user_id=current_user.id
     )
+
+    # 投稿主に「コメントされました」通知を送信
+    try:
+        post = db.query(Post).filter(Post.id == post_id).first()
+        if post and post.user_id != current_user.id:
+            notification_service.create_notification(
+                user_id=post.user_id,
+                actor_id=current_user.id,
+                notification_type=NotificationType.COMMENT,
+                entity_id=post_id,
+                message=f"{current_user.username} があなたの投稿にコメントしました",
+            )
+    except Exception:
+        pass
+
+    return comment
 
 
 @router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])

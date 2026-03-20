@@ -6,10 +6,10 @@ from app.services.brand_service import BrandService
 from app.schemas.brand import BrandCreate, BrandRead
 from app.models.user import User
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
-@router.post("/", response_model=BrandRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BrandRead, status_code=status.HTTP_201_CREATED)
 def create_brand(
     payload: BrandCreate,
     db: Session = Depends(get_db),

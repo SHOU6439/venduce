@@ -15,6 +15,9 @@ from app.services.brand_service import brand_service, BrandService
 from app.services.payment_method_service import payment_method_service, PaymentMethodService
 from app.services.purchase_service import purchase_service, PurchaseService
 from app.services.like_service import LikeService
+from app.services.follow_service import FollowService
+from app.services.badge_service import BadgeService
+from app.services.notification_service import NotificationService
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
@@ -41,6 +44,18 @@ def get_post_service(db: Session = Depends(get_db)) -> PostService:
 
 def get_like_service(db: Session = Depends(get_db)) -> LikeService:
     return LikeService(db)
+
+
+def get_follow_service(db: Session = Depends(get_db)) -> FollowService:
+    return FollowService(db)
+
+
+def get_badge_service(db: Session = Depends(get_db)) -> BadgeService:
+    return BadgeService(db)
+
+
+def get_notification_service(db: Session = Depends(get_db)) -> NotificationService:
+    return NotificationService(db)
 
 
 def get_category_service() -> CategoryService:

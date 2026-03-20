@@ -51,5 +51,7 @@ class User(Base):
     avatar_asset_id: Mapped[Optional[str]] = mapped_column(String(26), ForeignKey("assets.id"), nullable=True, unique=True)
     avatar_asset: Mapped["Asset"] = relationship("Asset", uselist=False, foreign_keys=[avatar_asset_id])
 
+    is_purchase_history_public: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+
 
 __all__ = ["User"]

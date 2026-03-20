@@ -1,12 +1,14 @@
-.PHONY: help setup up down logs clean rebuild nocache test seed
+.PHONY: help setup prod-setup up prod-up down logs clean rebuild nocache test seed env-file prod-env-file
 
 help:
 	@echo "使い方: make [コマンド]"
 	@echo ""
 	@echo "利用可能なコマンド:"
-	@echo "  setup	- バックエンドとフロントエンドの初期セットアップ"
-	@echo "  up	   - Dockerコンテナを起動"
-	@echo "  down	 - Dockerコンテナを停止"
+	@echo "  setup       - バックエンドとフロントエンドの初期セットアップ（開発用）"
+	@echo "  prod-setup  - バックエンドとフロントエンドの初期セットアップ（本番用: .env.production.example を使用）"
+	@echo "  up       - Dockerコンテナを起動（開発用: cloudflaredなし）"
+	@echo "  prod-up   - Dockerコンテナを起動（本番用: cloudflaredあり）"
+	@echo "  down      - Dockerコンテナを停止"
 	@echo "  logs	 - コンテナのログを表示"
 	@echo "  clean	- コンテナを停止し、不要なリソースを削除"
 	@echo "  destroy	- データベースを含む全データを完全削除（初期化）"
@@ -20,19 +22,30 @@ setup: build env-file keys up migrate test-db
 	@echo ""
 	@echo "セットアップが完了しました！"
 
+prod-setup: build prod-env-file keys prod-up migrate test-db
+	@echo ""
+	@echo "本番セットアップが完了しました！"
+
 build:
 	@echo "Dockerイメージをビルド中..."
 	docker compose build
 
 env-file:
-	@python setup.py env
+	@python3 setup.py env
+
+prod-env-file:
+	@python3 setup.py env --prod
 
 keys:
-	@python setup.py keys
+	@python3 setup.py keys
 
 up:
-	@echo "Dockerコンテナを起動中..."
+	@echo "Dockerコンテナを起動中（開発モード: cloudflaredなし）..."
 	docker compose up -d
+
+prod-up:
+	@echo "Dockerコンテナを起動中（本番モード: cloudflaredあり）..."
+	docker compose -f compose.yml -f compose.prod.yml --profile production up -d
 
 down:
 	@echo "Dockerコンテナを停止中..."
@@ -51,7 +64,7 @@ clean:
 destroy:
 	@echo "【警告】データベースのボリュームを含む全データを削除します。"
 	@echo "本当によろしいですか？ (y/N)"
-	@python -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
+	@python3 -c "import sys; answer = input('> '); sys.exit(0 if answer.lower() == 'y' else 1)"
 	docker compose down --volumes
 	docker system prune -f
 	@echo "全データの削除（初期化）が完了しました。"
@@ -85,6 +98,8 @@ test:
 seed:
 	@echo "seedデータを生成中..."
 	docker compose exec -T backend python -c "import sys; sys.path.insert(0, '/app'); from scripts.seed_data import generate_seed_data; generate_seed_data()"
+	@echo "バッジ定義をシード中..."
+	docker compose exec -T backend python -c "from app.db.database import SessionLocal; from app.services.badge_service import BadgeService; db = SessionLocal(); svc = BadgeService(db); svc.ensure_default_badges(); badges = svc.get_all_badges(); print(f'  バッジ {len(badges)} 件登録済み'); db.close()"
 
 db-merge:
 	@echo "マイグレーションの競合を解消（merge heads）します..."

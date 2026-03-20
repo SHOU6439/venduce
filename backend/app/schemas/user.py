@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import EmailStr, Field, ConfigDict
 from app.schemas.base import AppModel
+from app.schemas.asset import AssetRead
 
 
 class UserCreate(AppModel):
@@ -18,6 +19,7 @@ class UserUpdate(AppModel):
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     bio: Optional[str] = Field(None, max_length=1000)
     avatar_asset_id: Optional[str] = Field(None, min_length=1, max_length=26)
+    is_purchase_history_public: Optional[bool] = None
 
 
 class UserRead(AppModel):
@@ -32,6 +34,21 @@ class UserRead(AppModel):
     created_at: datetime
     is_confirmed: bool
     is_active: bool
+    is_admin: bool = False
+    is_purchase_history_public: bool = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicUserRead(AppModel):
+    """他のユーザーに公開されるプロフィール情報（メールアドレスや本名を除外）。"""
+    id: str
+    username: str
+    display_name: str | None = None
+    bio: str | None = None
+    avatar_asset: "AssetRead | None" = None
+    created_at: datetime
+    is_purchase_history_public: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,3 +59,32 @@ class RegistrationResponse(AppModel):
     confirmation_token: Optional[str] = None
 
     model_config = ConfigDict()
+
+
+# 前方参照 "AssetRead" を解決
+UserRead.model_rebuild()
+PublicUserRead.model_rebuild()
+
+
+class UserPostStats(AppModel):
+    post_count: int
+    total_likes: int
+    total_purchases: int
+
+
+class UserRankingItem(AppModel):
+    user_id: str
+    username: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    total_likes: int
+    total_purchases: int
+    rank: int
+
+
+class RankingResponse(AppModel):
+    items: List["UserRankingItem"]
+    total: int
+    offset: int
+    limit: int
+    has_more: bool

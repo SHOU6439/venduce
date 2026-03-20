@@ -16,16 +16,17 @@ import re
 from pathlib import Path
 
 
-def setup_env_files():
+def setup_env_files(production=False):
     """Setup .env and frontend/.env.local files from examples."""
     print("環境ファイルをセットアップ中...")
 
     env_file = Path(".env")
-    env_example = Path(".env.example")
+    env_example = Path(".env.production.example") if production else Path(".env.example")
 
     if not env_file.exists():
         if env_example.exists():
-            print(f"'.env' が見つかりません。'.env.example' をコピーして作成します...")
+            label = "本番用" if production else "開発用"
+            print(f"'.env' が見つかりません。'{env_example}' ({label}) をコピーして作成します...")
             shutil.copy(env_example, env_file)
             print(f"✓ {env_file} を作成しました")
         else:
@@ -35,18 +36,9 @@ def setup_env_files():
 
     frontend_dir = Path("frontend")
     if frontend_dir.exists() and frontend_dir.is_dir():
-        frontend_env = frontend_dir / ".env.local"
-        frontend_example = frontend_dir / ".env.local.example"
-
-        if not frontend_env.exists():
-            if frontend_example.exists():
-                print(f"'frontend/.env.local' が見つかりません。'frontend/.env.local.example' をコピーして作成します...")
-                shutil.copy(frontend_example, frontend_env)
-                print(f"✓ {frontend_env} を作成しました")
-            else:
-                print(f"警告: {frontend_example} が見つかりません")
-        else:
-            print(f"✓ {frontend_env} は既に存在します")
+        # NOTE: デプロイ時の localhost 参照事故を防ぐため、
+        # frontend/.env.local の自動作成は行わず、全ての環境変数は .env または compose.yml で管理します。
+        pass
 
     print("環境ファイルのセットアップが完了しました！")
 
@@ -176,7 +168,8 @@ def main():
     command = sys.argv[1].lower()
 
     if command == "env":
-        setup_env_files()
+        production = "--prod" in sys.argv
+        setup_env_files(production=production)
     elif command == "keys":
         generate_jwt_keys()
     else:

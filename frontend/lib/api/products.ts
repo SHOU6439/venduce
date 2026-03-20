@@ -1,5 +1,5 @@
 import { client } from "./client";
-import { Product, PaginatedResponse, PaginatedProductsResponse } from "@/types/api";
+import { Product, PaginatedResponse, PaginatedProductsResponse, TrendingProductsResponse, MostLikedProductsResponse } from "@/types/api";
 
 const mapProduct = (product: Product): Product => ({
   ...product,
@@ -76,5 +76,17 @@ export const productsApi = {
       `/api/products?${params.toString()}`,
     );
     return result.items.map(mapProduct);
+  },
+
+  getTrendingProductsRanking: async (limit = 10, offset = 0): Promise<TrendingProductsResponse> => {
+    return client.get<TrendingProductsResponse>(
+      `/api/products/trending?limit=${limit}&offset=${offset}`,
+    );
+  },
+
+  getMostLikedProducts: async (limit = 10, offset = 0): Promise<MostLikedProductsResponse> => {
+    return client.get<MostLikedProductsResponse>(
+      `/api/products/most-liked?limit=${limit}&offset=${offset}`,
+    );
   },
 };

@@ -9,6 +9,7 @@ from app.core.security import hash_password, verify_password
 from app.exceptions import (
     AuthenticationError,
     ConfirmationError,
+    PasswordResetError,
     RefreshTokenError,
     UserAlreadyExists,
 )
@@ -214,7 +215,7 @@ class UserService:
         new_refresh_token, new_expires_at = create_new_refresh_token_fn(ttl_days=remember_days)
         self.save_refresh_token(db, rt.user_id, new_refresh_token, new_expires_at)
         
-        return new_refresh_token
+        return new_refresh_token, new_expires_at
     
     def logout(self, db: Session, refresh_token_str: str) -> None:
         """
@@ -275,7 +276,43 @@ class UserService:
 
         self.save_refresh_token(db, str(user.id), refresh_token, expires_at)
 
-        return access_token, refresh_token, expires_in
+        refresh_expires_in = int((expires_at - now_utc()).total_seconds())
+        return access_token, refresh_token, expires_in, refresh_expires_in
+
+    def request_password_reset(self, db: Session, email: str) -> tuple[str, str] | None:
+        """パスワードリセットを要求し、JWTトークンを生成します。
+
+        ユーザーが見つからない場合でも None を返す（メール列挙攻撃を防止）。
+        戻り値: (token, user_email) or None
+        """
+        user = self.get_user_by_email(db, email)
+        if not user or not user.is_active or not user.is_confirmed:
+            return None
+
+        token, _ = jwt_utils.create_password_reset_token(subject=str(user.id))
+        return token, user.email
+
+    def reset_password(self, db: Session, token: str, new_password: str) -> None:
+        """JWTトークンを検証し、パスワードを更新します。"""
+        try:
+            payload = jwt_utils.decode_token(token)
+        except Exception:
+            raise PasswordResetError("無効または期限切れのトークンです")
+
+        if payload.get("typ") != "password_reset":
+            raise PasswordResetError("無効なトークンタイプです")
+
+        user_id = payload.get("sub")
+        if not user_id:
+            raise PasswordResetError("無効なトークンです")
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise PasswordResetError("ユーザーが見つかりません")
+
+        user.password_hash = hash_password(new_password)
+        db.add(user)
+        db.commit()
 
 
 # default service instance for convenience / backward compatibility

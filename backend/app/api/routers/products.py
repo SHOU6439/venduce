@@ -1,24 +1,187 @@
-from typing import Any, Optional
+from typing import Any, Optional, List
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import ValidationError
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.product import ProductRead, ProductList
+from app.models.post import Post
+from app.models.product import Product
+from app.models.post_products import post_products
+from app.models.enums import PostStatus
+from app.schemas.product import (
+    ProductRead,
+    ProductList,
+    MostLikedProductItem,
+    MostLikedProductsResponse,
+    TrendingProductItem,
+    TrendingProductsResponse,
+)
 from app.schemas.pagination import PaginatedResponse, CursorMeta
 from app.services.product_service import ProductService
 from app.deps import get_product_service, get_current_user_optional
 from app.utils import jwt as jwt_utils
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 logger = logging.getLogger(__name__)
 
 
-@router.get("/", summary="List products")
+# ------------------------------------------------------------------
+# いいねが多い商品ランキング（オフセットページネーション）
+# ------------------------------------------------------------------
+
+@router.get("/most-liked", response_model=MostLikedProductsResponse, summary="Most liked products ranking")
+def get_most_liked_products(
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> MostLikedProductsResponse:
+    """投稿経由の累計いいね数で商品をランキングします（認証不要）。"""
+
+    base_query = (
+        db.query(
+            post_products.c.product_id,
+            func.sum(Post.like_count).label("total_likes"),
+        )
+        .join(Post, Post.id == post_products.c.post_id)
+        .filter(Post.deleted_at.is_(None), Post.status == PostStatus.PUBLIC)
+        .group_by(post_products.c.product_id)
+    )
+
+    total = base_query.count()
+
+    rows = (
+        base_query
+        .order_by(func.sum(Post.like_count).desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    if not rows:
+        return MostLikedProductsResponse(items=[], total=total, offset=offset, limit=limit, has_more=False)
+
+    product_ids = [r.product_id for r in rows]
+    products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+    product_map = {p.id: p for p in products}
+
+    items = []
+    for rank_idx, row in enumerate(rows):
+        p = product_map.get(row.product_id)
+        if not p:
+            continue
+        items.append(MostLikedProductItem(
+            product=ProductRead.model_validate(p),
+            total_likes=int(row.total_likes or 0),
+            rank=offset + rank_idx + 1,
+        ))
+
+    has_more = (offset + limit) < total
+    return MostLikedProductsResponse(items=items, total=total, offset=offset, limit=limit, has_more=has_more)
+
+
+# ------------------------------------------------------------------
+# 売れている商品ランキング（購入回数順、オフセットページネーション）
+# ------------------------------------------------------------------
+
+@router.get("/trending", response_model=TrendingProductsResponse, summary="Trending products by purchase count")
+def get_trending_products(
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> TrendingProductsResponse:
+    """実際の購入回数（purchases テーブル）＋シードの投稿 purchase_count で
+    商品をランキングします（認証不要）。
+
+    直接購入（referring_post_id なし）は purchases テーブルのみに記録され、
+    投稿経由の購入は purchases テーブルと posts.purchase_count の両方に記録されるため、
+    重複を避けつつ両方を合算する。
+    """
+    from app.models.purchase import Purchase as PurchaseModel
+    from app.models.enums import PurchaseStatus
+
+    # --- サブクエリ: purchases テーブルから直接購入（referring_post_id IS NULL）の件数 ---
+    direct_purchase_sub = (
+        db.query(
+            PurchaseModel.product_id.label("product_id"),
+            func.count(PurchaseModel.id).label("direct_cnt"),
+        )
+        .filter(
+            PurchaseModel.status == PurchaseStatus.COMPLETED,
+            PurchaseModel.referring_post_id.is_(None),
+        )
+        .group_by(PurchaseModel.product_id)
+        .subquery()
+    )
+
+    # --- サブクエリ: post_products + posts.purchase_count（投稿経由の購入数）---
+    post_purchase_sub = (
+        db.query(
+            post_products.c.product_id.label("product_id"),
+            func.sum(Post.purchase_count).label("post_cnt"),
+        )
+        .join(Post, Post.id == post_products.c.post_id)
+        .filter(Post.deleted_at.is_(None), Post.status == PostStatus.PUBLIC)
+        .group_by(post_products.c.product_id)
+        .subquery()
+    )
+
+    # --- UNION: 両方の product_id 集合を結合して合算 ---
+    total_purchases_expr = (
+        func.coalesce(post_purchase_sub.c.post_cnt, 0)
+        + func.coalesce(direct_purchase_sub.c.direct_cnt, 0)
+    ).label("total_purchases")
+
+    base_query = (
+        db.query(
+            Product.id.label("product_id"),
+            total_purchases_expr,
+        )
+        .outerjoin(post_purchase_sub, post_purchase_sub.c.product_id == Product.id)
+        .outerjoin(direct_purchase_sub, direct_purchase_sub.c.product_id == Product.id)
+        .filter(
+            (func.coalesce(post_purchase_sub.c.post_cnt, 0)
+             + func.coalesce(direct_purchase_sub.c.direct_cnt, 0)) > 0
+        )
+    )
+
+    total = base_query.count()
+
+    rows = (
+        base_query
+        .order_by(total_purchases_expr.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    if not rows:
+        return TrendingProductsResponse(items=[], total=total, offset=offset, limit=limit, has_more=False)
+
+    product_ids = [r.product_id for r in rows]
+    products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+    product_map = {p.id: p for p in products}
+
+    items = []
+    for rank_idx, row in enumerate(rows):
+        p = product_map.get(row.product_id)
+        if not p:
+            continue
+        items.append(TrendingProductItem(
+            product=ProductRead.model_validate(p),
+            total_purchases=int(row.total_purchases or 0),
+            rank=offset + rank_idx + 1,
+        ))
+
+    has_more = (offset + limit) < total
+    return TrendingProductsResponse(items=items, total=total, offset=offset, limit=limit, has_more=has_more)
+
+
+@router.get("", summary="List products")
 def list_products(
     response: Response,
     page: Optional[int] = Query(None, ge=1, description="ページ番号（従来方式）"),

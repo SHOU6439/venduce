@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useAuthStore, useAuthHydrated } from '@/stores/auth';
-import { Purchase } from '@/types/api';
-import { purchasesApi } from '@/lib/api/purchases';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { getImageUrl } from '@/lib/utils';
 import { BackButton } from '@/components/back-button';
+import { Header } from '@/components/header';
+import { Button } from '@/components/ui/button';
+import { purchasesApi } from '@/lib/api/purchases';
+import { getImageUrl } from '@/lib/utils';
+import { useAuthHydrated, useAuthStore } from '@/stores/auth';
+import { Purchase } from '@/types/api';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function PurchaseDetailPage() {
   const router = useRouter();
@@ -39,10 +40,6 @@ export default function PurchaseDetailPage() {
       try {
         setIsLoading(true);
         const data = await purchasesApi.getPurchase(purchaseId);
-        console.log('Purchase data:', data);
-        console.log('Product data:', data.product);
-        console.log('Main asset:', data.product?.main_asset);
-        console.log('Assets:', data.product?.assets);
         setPurchase(data);
       } catch (err) {
         setError(
@@ -95,8 +92,9 @@ export default function PurchaseDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <BackButton />
           <h1 className="text-2xl font-bold">購入詳細</h1>
@@ -108,7 +106,7 @@ export default function PurchaseDetailPage() {
           <div className="rounded-lg border overflow-hidden">
             <div className="flex gap-4 p-4">
               {/* 商品画像 */}
-              <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
                 {purchase.product.assets && purchase.product.assets.length > 0 && purchase.product.assets[0].public_url ? (
                   <Image
                     src={getImageUrl(purchase.product.assets[0].public_url)}
@@ -117,10 +115,6 @@ export default function PurchaseDetailPage() {
                     height={96}
                     unoptimized
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('Image load error:', e);
-                      console.error('Image URL:', getImageUrl(purchase.product.assets[0].public_url));
-                    }}
                   />
                 ) : (
                   <div className="text-xs text-muted-foreground text-center p-2">
@@ -141,9 +135,9 @@ export default function PurchaseDetailPage() {
                     ブランド: {purchase.product.brand.name}
                   </p>
                 )}
-                {purchase.product.category && (
+                {purchase.product.categories && purchase.product.categories.length > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    カテゴリ: {purchase.product.category.name}
+                    カテゴリ: {purchase.product.categories[0].name}
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground mt-2">
@@ -187,7 +181,7 @@ export default function PurchaseDetailPage() {
             {purchase.payment_method && (
               <div className="pt-4 border-t">
                 <p className="text-sm text-muted-foreground mb-2">支払い方法</p>
-                <p className="font-medium">{purchase.payment_method.method_type}</p>
+                <p className="font-medium">{purchase.payment_method.payment_type}</p>
               </div>
             )}
 

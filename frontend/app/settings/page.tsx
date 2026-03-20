@@ -4,10 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PaymentMethodsManager } from '@/components/payment-methods-manager';
 import { ProfileSettings } from '@/components/profile-settings';
 import { AccountSettings } from '@/components/account-settings';
+import { PrivacySettings } from '@/components/privacy-settings';
 import { BackButton } from '@/components/back-button';
+import AuthGuard from '@/components/auth-guard';
 
 export default function SettingsPage() {
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto">
         {/* ヘッダー */}
@@ -18,12 +21,18 @@ export default function SettingsPage() {
 
         {/* タブ */}
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0">
+          <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0 overflow-x-auto">
             <TabsTrigger
               value="profile"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
             >
               プロフィール
+            </TabsTrigger>
+            <TabsTrigger
+              value="privacy"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            >
+              プライバシー
             </TabsTrigger>
             <TabsTrigger
               value="payment-methods"
@@ -45,6 +54,12 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
+          <TabsContent value="privacy" className="mt-0">
+            <div className="p-4">
+              <PrivacySettings />
+            </div>
+          </TabsContent>
+
           <TabsContent value="payment-methods" className="mt-0">
             <div className="p-4">
               <PaymentMethodsManager />
@@ -59,5 +74,6 @@ export default function SettingsPage() {
         </Tabs>
       </div>
     </div>
+    </AuthGuard>
   );
 }

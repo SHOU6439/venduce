@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next build && next start",
     "lint": "eslint"
   },
   "dependencies": {
@@ -44,9 +44,10 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.34.5",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
-    "next": "16.0.10",
+    "next": "16.1.6",
     "next-themes": "^0.4.6",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",

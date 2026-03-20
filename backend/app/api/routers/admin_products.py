@@ -6,10 +6,10 @@ from app.services.product_service import ProductService
 from app.schemas.product import ProductCreate, ProductRead
 from app.models.user import User
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
-@router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 def create_product(
     payload: ProductCreate,
     db: Session = Depends(get_db),

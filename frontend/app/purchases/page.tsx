@@ -1,6 +1,7 @@
 'use client';
 
 import AuthGuard from '@/components/auth-guard';
+import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { purchasesApi } from '@/lib/api/purchases';
@@ -17,6 +18,10 @@ export default function PurchasesPage() {
 
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // AuthGuard が「auth 確定 + isAuthenticated」を保証してからこのコンポーネントをマウントするため、
+  // ここで useAuthHydrated を再呼び出しすると skip: true → false の遷移が毎回発生してしまい
+  // hasInitialized がリセットされて無限ロードになる。user があれば即ロードで十分。
 
   const loadMore = useCallback(
     async (cursor?: string | null) => {
@@ -55,25 +60,34 @@ export default function PurchasesPage() {
     }
   }, [hookError]);
 
+  // loadNextPage を ref に保持し、observer の再登録を hasMore 変化時のみに限定する。
+  // isLoading を deps に入れると isLoading 変化のたびに observer が再生成され、
+  // sentinel が常に画面内にある場合に無限ロードになる。
+  const loadNextPageRef = useRef(loadNextPage);
+  useEffect(() => {
+    loadNextPageRef.current = loadNextPage;
+  }, [loadNextPage]);
+
   // Intersection Observer で無限スクロール
   useEffect(() => {
-    if (!sentinelRef.current || isLoading || !hasMore) return;
+    if (!sentinelRef.current || !hasMore) return;
 
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        loadNextPage();
+        loadNextPageRef.current();
       }
     });
 
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [isLoading, hasMore, loadNextPage]);
+  }, [hasMore]);
 
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background">
+        <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}
@@ -93,7 +107,13 @@ export default function PurchasesPage() {
         )}
 
         {/* 購入一覧 */}
-        {purchases.length === 0 && !isLoading ? (
+        {isLoading && purchases.length === 0 ? (
+          /* 初回ロード中 */
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : purchases.length === 0 ? (
+          /* 購入履歴なし */
           <div className="p-8 text-center">
             <p className="text-muted-foreground mb-4">購入履歴がありません</p>
             <Link href="/products">

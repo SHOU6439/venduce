@@ -1,15 +1,16 @@
 'use client';
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Purchase } from '@/types/api';
 import { purchasesApi } from '@/lib/api/purchases';
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/header';
 import { ArrowLeft, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/utils';
 
-export default function OrderDetailPage() {
+function OrderDetailContent() {
   const params = useParams();
   const searchParamsHook = useSearchParams();
   const router = useRouter();
@@ -93,8 +94,9 @@ export default function OrderDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="max-w-2xl mx-auto">
-        {/* ヘッダー */}
+        {/* ページヘッダー */}
         <div className="flex items-center gap-4 p-4 border-b">
           <button
             onClick={() => router.back()}
@@ -205,23 +207,21 @@ export default function OrderDetailPage() {
                 フィードに戻る
               </Button>
             </div>
-
-            {/* ヘルプ */}
-            <div className="rounded border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm text-blue-900">
-                ご質問やご不明な点がある場合は、
-                <Link
-                  href="/help"
-                  className="font-medium underline hover:no-underline"
-                >
-                  ヘルプセンター
-                </Link>
-                をご参照ください。
-              </p>
-            </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrderDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex justify-center py-24">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <OrderDetailContent />
+    </Suspense>
   );
 }

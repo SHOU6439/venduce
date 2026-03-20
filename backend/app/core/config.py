@@ -7,13 +7,15 @@ class Settings(BaseSettings):
     ARGON2_TIME_COST: int = 2
     ARGON2_MEMORY_COST: int = 65536  # in KiB (64 MiB)
     ARGON2_PARALLELISM: int = 2
+    APP_ENV: str = "development"  # "development" | "production"
     MAIL_ENABLED: bool = False
-    MAIL_FROM: str = "no-reply@example.com"
+    MAIL_FROM: str = "Venduce <no-reply@venduce.com>"
     MAIL_HOST: str = "localhost"
     MAIL_PORT: int = 1025
     FRONTEND_URL: str = "http://localhost:3000"
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
+    RESEND_API_KEY: str | None = None
     JWT_PRIVATE_KEY: str | None = None
     JWT_PUBLIC_KEY: str | None = None
     JWT_PRIVATE_KEY_PATH: str | None = "keys/private.pem"
@@ -23,6 +25,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     REFRESH_TOKEN_EXPIRE_DAYS_REMEMBER: int = 60
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
     API_TITLE: str = "Venduce API"
     API_VERSION: str = "1.0.0"
     API_DESCRIPTION: str = "Venduce backend API"

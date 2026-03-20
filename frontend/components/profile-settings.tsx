@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/api/client';
 import { UserProfile } from '@/types/api';
 import { getImageUrl } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth';
 
 export function ProfileSettings() {
   const router = useRouter();
@@ -80,7 +81,8 @@ export function ProfileSettings() {
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    handleChange(e);
+    const { name, value } = e.target;
+    handleChange(name as keyof typeof form, value);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +102,7 @@ export function ProfileSettings() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await handleSubmit(e);
+    const success = await handleSubmit();
     if (success) {
       // Refresh profile data
       const userData = await usersApi.getProfile();
@@ -110,6 +112,17 @@ export function ProfileSettings() {
       };
       setProfile(mappedUser);
       setEditing(false);
+
+      // Update auth store so header etc. reflect changes immediately
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        useAuthStore.getState().setUser({
+          ...currentUser,
+          username: userData.username,
+          first_name: userData.first_name ?? undefined,
+          last_name: userData.last_name ?? undefined,
+        });
+      }
     }
   };
 

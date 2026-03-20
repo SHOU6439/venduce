@@ -112,7 +112,11 @@ export function CommentItem({
             {isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 min-h-7 min-w-7 touch-manipulation"
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">メニュー</span>
                   </Button>

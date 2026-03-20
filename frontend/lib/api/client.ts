@@ -1,10 +1,7 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
-let isRefreshing = false;
-let refreshPromise: Promise<boolean> | null = null;
 
 function getStoredToken(explicitToken?: string | null): string | null {
   if (explicitToken) {
@@ -27,7 +24,10 @@ function resolveUrl(path: string): string {
     return normalizedPath;
   }
 
-  return `${API_BASE_URL}${normalizedPath}`;
+  let finalUrl = `${API_BASE_URL}${normalizedPath}`;
+  // URLのパス部の末尾スラッシュを除去する（バックエンドでのHTTPへのリダイレクト防止）
+  finalUrl = finalUrl.replace(/\/+(\?|$)/, "$1");
+  return finalUrl;
 }
 
 export class ApiError extends Error {
@@ -238,46 +238,33 @@ async function fetchAPI<T>(
     }
     
     if (response.status === 401 && endpoint !== "/api/auth/refresh" && endpoint !== "/api/auth/login") {
-      if (isRefreshing) {
-        await refreshPromise;
-      } else {
-        isRefreshing = true;
-        try {
-          const { useAuthStore } = await import("@/stores/auth");
-          refreshPromise = (async () => {
-            const success = await useAuthStore.getState().refreshAccessToken();
-            return success;
-          })();
-          
-          const success = await refreshPromise;
-          
-          if (success) {
-            const newToken = getStoredToken(null);
-            if (newToken) {
-              mergedHeaders.set("Authorization", `Bearer ${newToken}`);
-              const retryResponse = await fetch(resolveUrl(endpoint), {
-                ...customConfig,
-                body: resolvedBody,
-                headers: mergedHeaders,
-                credentials: "include",
-              });
-              
-              if (retryResponse.ok || retryResponse.status === 204) {
-                if (retryResponse.status === 204) {
-                  return {} as T;
-                }
-                return retryResponse.json();
-              }
-              
-              const retryErrorBody = await retryResponse.json().catch(() => ({}));
-              throw new ApiError(retryResponse.status, String(retryErrorBody.detail || retryResponse.statusText), retryErrorBody);
-            }
+      // auth.ts 側の _isRefreshing/_refreshPromise が重複排除を担当するため、
+      // client.ts では単純に refreshAccessToken() を await するだけでよい
+      const { useAuthStore } = await import("@/stores/auth");
+      const success = await useAuthStore.getState().refreshAccessToken();
+
+      if (success) {
+        const newToken = getStoredToken(null);
+        if (newToken) {
+          mergedHeaders.set("Authorization", `Bearer ${newToken}`);
+          const retryResponse = await fetch(resolveUrl(endpoint), {
+            ...customConfig,
+            body: resolvedBody,
+            headers: mergedHeaders,
+            credentials: "include",
+          });
+
+          if (retryResponse.ok || retryResponse.status === 204) {
+            if (retryResponse.status === 204) return {} as T;
+            return retryResponse.json();
           }
-        } catch (refreshError) {
-          console.error("Token refresh failed:", refreshError);
-        } finally {
-          isRefreshing = false;
-          refreshPromise = null;
+
+          const retryErrorBody = await retryResponse.json().catch(() => ({}));
+          throw new ApiError(
+            retryResponse.status,
+            String(retryErrorBody.detail || retryResponse.statusText),
+            retryErrorBody,
+          );
         }
       }
     }

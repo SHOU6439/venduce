@@ -4,16 +4,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 import { postsApi } from "@/lib/api/posts";
 import { useInfiniteScroll } from "@/lib/useInfiniteScroll";
 import { Post } from "@/types/api";
+import { HashtagCaption } from "@/components/hashtag-caption";
 import { getImageUrl } from "@/lib/utils";
+import { PostMenu } from "@/components/post-menu";
 
 export default function PostsFeed() {
   const {
     items: posts,
+    setItems: setPosts,
     isLoading,
     isLoadingMore,
     hasMore,
@@ -57,6 +59,14 @@ export default function PostsFeed() {
     );
   }
 
+  const handlePostUpdated = (updated: Post) => {
+    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const handlePostDeleted = (postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -97,16 +107,19 @@ export default function PostsFeed() {
                     {formatDate(post.created_at)}
                   </p>
                 </div>
+                <PostMenu
+                  post={post}
+                  onUpdated={handlePostUpdated}
+                  onDeleted={handlePostDeleted}
+                />
               </div>
             </div>
 
             {/* 投稿内容 */}
             <div className="p-4 space-y-3">
-              <Link href={`/posts/${post.id}`}>
-                <p className="text-foreground hover:text-primary transition-colors cursor-pointer">
-                  {post.caption}
-                </p>
-              </Link>
+              <p className="text-foreground">
+                <HashtagCaption caption={post.caption} />
+              </p>
 
               {/* 投稿画像 */}
               {post.assets && post.assets.length > 0 && (
