@@ -168,6 +168,7 @@ make help     # コマンド一覧
 | ドキュメント | 内容 |
 |------------|------|
 | [GETTING_STARTED.md](./GETTING_STARTED.md) | 開発を始めるためのガイド |
+| [docs/DEVELOPMENT_SETUP.md](./docs/DEVELOPMENT_SETUP.md) | Windows セットアップ・Makefile コマンド詳細 |
 | [docs/DIRECTORY_STRUCTURE.md](./docs/DIRECTORY_STRUCTURE.md) | ディレクトリ構成と設計方針 |
 | [docs/SWAGGER_UI.md](./docs/SWAGGER_UI.md) | Swagger UI での API テスト手順 |
 | [docs/MIGRATE.md](./docs/MIGRATE.md) | Alembic マイグレーション手順 |
