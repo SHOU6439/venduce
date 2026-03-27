@@ -1,158 +1,174 @@
-# Venduce - SNS × EC プラットフォーム
+# Venduce — SNS × EC プラットフォーム
 
-> 買ったモノを自慢できる、SNS 型 EC サイト
+> 「買ったモノを投稿して、繋がる。」
+> インフルエンサーの購買行動を可視化するSNS型ECサイト
 
-## 📖 ドキュメント
+---
 
--   **[🚀 開発を始める](./GETTING_STARTED.md)** - まずはここから！次にやることガイド
--   [ディレクトリ構成ガイド](./docs/DIRECTORY_STRUCTURE.md) - Backend/Frontend の推奨構成
--   [開発計画](./DEVELOPMENT_PLAN.md) - プロジェクト全体の開発計画とロードマップ
--   [ワークフロー](./.github/WORKFLOW.md) - ブランチ戦略、開発フロー、コミット規約
--   [サンプル Issue](./.github/SAMPLE_ISSUES.md) - Issue 作成の参考例
--   [Swagger UI ガイド](./docs/SWAGGER_UI.md) - docs 画面での OAuth2 認証と API テスト手順
--   [データベースマイグレーション運用ガイド](./docs/MIGRATE.md) - Alembic を使ったマイグレーション手順と注意点
--   [テスト実行ガイド](./docs/TESTING.md) - pytest の実行方法と Docker コンテナでの検証手順
+## 概要
 
-## 前提条件
+Venduceは、SNSの「シェア・つながる」体験とECの「購入」を融合させたWebアプリケーションです。ユーザーが購入した商品を投稿で紹介し、その投稿経由での購入が追跡・可視化されます。フォロワーの購買行動がフィードに流れ、バッジやランキングで購買インフルエンサーとしての地位が可視化される仕組みを実装しました。
 
--   Docker Desktop
--   Python pip
--   npm and node.js
+---
 
-Windows ユーザー向けの補足
+## 技術スタック
 
-Windows 環境では `make` がデフォルトで利用できないことが多いです。以下のいずれかの方法で `make` を用意してください（WSL2 が最も推奨されます）。
+### Backend
+| 技術 | 用途 |
+|------|------|
+| FastAPI | REST API / WebSocket |
+| SQLAlchemy | ORM |
+| Alembic | DBマイグレーション |
+| PostgreSQL | メインDB |
+| Pydantic v2 | スキーマバリデーション |
+| pytest + factory-boy | テスト |
 
--   WSL2（推奨）
+### Frontend
+| 技術 | 用途 |
+|------|------|
+| Next.js 15 (App Router) | フレームワーク |
+| React 19 | UIライブラリ |
+| TypeScript | 型安全 |
+| Tailwind CSS | スタイリング |
+| Zustand | グローバル状態管理 |
 
-    1. 管理者 PowerShell で WSL をインストール（Windows 10/11 の最新で利用可能）:
+### インフラ・認証
+| 技術 | 用途 |
+|------|------|
+| Docker Compose | コンテナオーケストレーション |
+| Nginx | リバースプロキシ |
+| JWT (RS256 / HS256) | 認証 |
+| ULID | ID生成 |
+| SQLAdmin | 管理画面 |
 
-    ```powershell
-      wsl --install -d Ubuntu
-    ```
+---
 
-    2. Ubuntu を起動して make をインストール:
+## 主な機能
 
-    ```bash
-      sudo apt update
-      sudo apt install -y build-essential make
-    ```
+### SNS機能
+- 投稿作成・編集・削除（画像複数枚・商品リンク・タグ付き）
+- フォロー / フォロワー管理、フォローフィード
+- いいね・コメント（ネスト返信対応）
+- タグ検索・ユーザー検索・全体検索
 
-    3. WSL 内からリポジトリをチェックアウトするか、Windows 側でファイルを共有して `make` を実行してください。Docker Desktop は Windows 側で動かしておき、WSL から Docker に接続できます。
+### EC機能
+- 商品CRUD（SKU・価格・在庫・ステータス管理）
+- カテゴリ / ブランド管理（多対多）
+- 購入登録・購入履歴・購入元投稿の帰属追跡（`referring_post_id`）
+- 支払い方法管理
 
--   Chocolatey（PowerShell 管理者での方法）
+### ゲーミフィケーション
+- バッジシステム（Silver / Gold / Platinum）— 購買影響力に応じて自動付与
+- バッジ獲得アニメーション
+- ユーザーランキング
 
-    1. Chocolatey をインストール（管理者 PowerShell）:
+### 通知・リアルタイム
+- 通知記録（Like / Follow / Comment / Purchase / Ranking / Badge）
+- 既読管理
+- WebSocket基盤（リアルタイム通知に対応）
 
-        ```powershell
-        Set-ExecutionPolicy Bypass -Scope Process -Force; \
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
-        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        ```
+### セキュリティ・認証
+- JWT認証（RS256非対称鍵）＋ リフレッシュトークン
+- メール確認フロー
+- ユーザーフラグ管理（`is_active` / `is_confirmed` / 管理者）
 
-    2. make をインストール:
+---
 
-    ```powershell
-    choco install make -y
-    ```
+## アーキテクチャ
 
--   Scoop（PowerShell ユーザー向けの別案）
+```
+venduce/
+├── backend/               # FastAPI アプリケーション
+│   ├── app/
+│   │   ├── api/routers/   # エンドポイント（I/O・認可のみ）
+│   │   ├── services/      # ビジネスロジック・ユースケース
+│   │   ├── models/        # SQLAlchemy モデル
+│   │   ├── schemas/       # Pydantic v2 スキーマ
+│   │   ├── core/          # 設定・JWT・パスワード
+│   │   └── db/            # DB接続・Alembic用メタデータ
+│   └── tests/
+│       ├── routers/       # APIルーターテスト
+│       ├── services/      # サービス層ユニットテスト
+│       └── factories/     # factory-boy テストデータ生成
+├── frontend/              # Next.js アプリケーション
+│   └── app/
+│       ├── (auth)/        # ログイン・会員登録
+│       ├── (feed)/        # フィード
+│       ├── (product)/     # 商品一覧・詳細
+│       └── ...
+├── compose.yml            # 開発用 Docker Compose
+├── compose.prod.yml       # 本番用 Docker Compose
+└── nginx.conf             # リバースプロキシ設定
+```
 
-    ```powershell
-    iwr -useb get.scoop.sh | iex
-    scoop install make
-    ```
+バックエンドはRouter / Serviceの2層構成です。Routerはリクエスト/レスポンスの変換と認可チェックに専念し、ビジネスロジックはServiceに集約します。最初から層を増やしすぎると見通しが悪くなるため、クエリが複雑化・重複してきた段階でRepositoryを切り出す方針にしています。
 
-注: Git Bash の環境に含まれる make はバージョン差や互換性の違いがある場合があるため、WSL2 を強く推奨します。
+### API エンドポイント一覧
 
-# Setup
+| 機能 | エンドポイント |
+|------|--------------|
+| 認証 | `/api/auth/*` |
+| ユーザー | `/api/users/*` |
+| プロフィール | `/api/profile/*` |
+| 商品 | `/api/products/*` |
+| カテゴリ / ブランド | `/api/categories/*` `/api/brands/*` |
+| 投稿 | `/api/posts/*` |
+| いいね / コメント | `/api/likes/*` `/api/comments/*` |
+| フォロー | `/api/follows/*` |
+| タグ | `/api/tags/*` |
+| バッジ | `/api/badges/*` |
+| 購入 / 支払い | `/api/purchases/*` `/api/payment-methods/*` |
+| 通知 | `/api/notifications/*` |
+| アップロード | `/api/uploads/*` |
+| WebSocket | `/ws/*` |
+| 管理者 | `/api/admin/*` |
 
-## 環境構築
+---
 
-プロジェクトの環境構築には **Makefile** を使用します。
+## ローカル開発環境のセットアップ
 
 ### 前提条件
+- Docker Desktop
+- `make`（Mac はデフォルト利用可能）
 
--   Docker Desktop がインストールされていること
--   `make` コマンドが利用可能であること（Mac は デフォルトで利用可能、Windows は WSL2 または Git Bash を推奨）
-
-### 初期セットアップ
+### 起動手順
 
 ```sh
-# 初期セットアップ（Docker ビルド、.env 作成、RSA 鍵生成、マイグレーション、テスト DB 作成）
+# 初期セットアップ（Dockerビルド・.env生成・RSA鍵生成・マイグレーション）
 make setup
+
+# 開発サーバー起動
+make up
 ```
+
+### アクセス先
+
+| サービス | URL |
+|---------|-----|
+| Frontend (Next.js) | http://localhost:3000 |
+| Backend API (FastAPI) | http://localhost:8000/api |
+| Swagger UI | http://localhost:8000/docs |
+| 管理画面 (SQLAdmin) | http://localhost/admin/ |
 
 ### よく使うコマンド
 
 ```sh
-# コンテナを起動
-make up
-
-# コンテナを停止
-make down
-
-# コンテナを停止して削除し、リソースをクリーンアップ
-make clean
-
-# コンテナを再ビルドして起動
-make rebuild
-
-# キャッシュなしでイメージを再ビルド
-make nocache
-
-# コンテナのログを表示
-make logs
-
-# テストを実行
-make test
-
-# 利用可能なすべてのコマンドを表示
-make help
-```
-
-### Makefile の詳細
-
-各コマンドの詳細については、プロジェクト直下の `Makefile` を参照してください。
-
-# URL まとめ
-
-## Next.js
-
-```sh
-http://localhost:3000
-```
-
-## FastAPI
-
-```sh
-http://localhost:8000/api
-```
-
-### docs
-
-```sh
-http://localhost:8000/docs
-```
-
-## SQLAdmin
-
-```sh
-http://localhost/admin/
+make up       # コンテナ起動
+make down     # コンテナ停止
+make rebuild  # 再ビルド＆起動
+make test     # テスト実行
+make logs     # ログ表示
+make help     # コマンド一覧
 ```
 
 ---
 
-## 🚀 開発を始める前に
+## ドキュメント
 
-1. **開発計画を確認**: [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) でプロジェクト全体の流れを把握
-2. **GitHub ラベル設定**: ラベルは自動同期されます（`backend`, `frontend`, `bug`, `feature`, `task`, `high`, `medium`, `low`）。必要に応じてメンテナが追加します。
-3. **ワークフロー確認**: [WORKFLOW.md](./.github/WORKFLOW.md) でブランチ戦略とコミット規約を確認
-4. **最初の Issue 作成**: [SAMPLE_ISSUES.md](./.github/SAMPLE_ISSUES.md) を参考に Issue #1（データベース設計）から始める
-
-## 📋 現在の開発状況
-
--   ✅ Phase 0: 開発環境整備完了
--   🔄 Phase 1: 基盤機能実装中（次: データベース設計）
-
-詳細は [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) を参照してください。
+| ドキュメント | 内容 |
+|------------|------|
+| [GETTING_STARTED.md](./GETTING_STARTED.md) | 開発を始めるためのガイド |
+| [docs/DIRECTORY_STRUCTURE.md](./docs/DIRECTORY_STRUCTURE.md) | ディレクトリ構成と設計方針 |
+| [docs/SWAGGER_UI.md](./docs/SWAGGER_UI.md) | Swagger UI での API テスト手順 |
+| [docs/MIGRATE.md](./docs/MIGRATE.md) | Alembic マイグレーション手順 |
+| [docs/TESTING.md](./docs/TESTING.md) | pytest 実行方法 |
